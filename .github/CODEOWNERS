@@ -1,0 +1,15 @@
+# Default: backendAPIs revisa todo
+*                       @SolutionsT2/backendAPIs
+
+# Backend APIs
+/monarca/               @SolutionsT2/backendAPIs
+/package-lock.json     @SolutionsT2/backendAPIs
+
+# Base de datos
+/DB/                    @SolutionsT2/backendDB
+
+# Infra / Docker
+/compose.yaml          @SolutionsT2/backendAPIs @SolutionsT2/backendDB
+
+# Docs
+/README.md             @SolutionsT2/backendAPIs
