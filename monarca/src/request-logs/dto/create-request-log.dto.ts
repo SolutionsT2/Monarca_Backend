@@ -1,6 +1,19 @@
+/*
+ * create-requestlog.dto.ts
+ *
+ * Data Transfer Object used for creating a new request log entry.
+ * Defines validation rules and API documentation metadata
+ * for request status change tracking.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { IsUUID, IsString, IsDateString, IsOptional } from 'class-validator';
 
+/**
+ * DTO for creating a request log entry.
+ * Used to validate and document incoming data when
+ * registering a status change for a request.
+ */
 export class CreateRequestLogDto {
   @ApiProperty({
     description: 'Request being logged',
@@ -41,3 +54,9 @@ export class CreateRequestLogDto {
   @IsOptional()
   change_date?: string;
 }
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added documentation header, class JSDoc, and standardized example values to English.
+*/

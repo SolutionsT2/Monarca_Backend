@@ -1,3 +1,11 @@
+/*
+ * notifications.e2e-spec.ts
+ *
+ * End-to-end test suite for NotificationsController.
+ * Validates the complete HTTP request lifecycle using
+ * the real application module configuration.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
@@ -8,7 +16,7 @@ describe('NotificationsController (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule], // Incluye todo el backend real
+      imports: [AppModule], // Includes the full backend application
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -33,3 +41,11 @@ describe('NotificationsController (e2e)', () => {
     await app.close();
   });
 });
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Standardized documentation and translated comments to English.
+*/

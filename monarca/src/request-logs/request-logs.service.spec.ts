@@ -1,3 +1,11 @@
+/*
+ * request-logs.service.spec.ts
+ *
+ * Unit test suite for RequestLogsService.
+ * Verifies proper service instantiation
+ * within the NestJS testing environment.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { RequestLogsService } from './request-logs.service';
 
@@ -16,3 +24,11 @@ describe('RequestLogsService', () => {
     expect(service).toBeDefined();
   });
 });
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added documentation header and modification history.
+*/
