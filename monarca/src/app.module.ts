@@ -81,7 +81,7 @@ import { NotificationsModule } from './notifications/notifications.module';
         UserLogs,
         Revision,
       ],
-      synchronize: false,
+      synchronize: true,
     }),
 
     TypeOrmModule.forFeature([
