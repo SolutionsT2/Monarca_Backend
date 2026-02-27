@@ -1,3 +1,5 @@
+/*This NestJS controller defines the user registration endpoint under the /register route. It exposes a POST /register method that receives user data in the request body (validated through the CreateUserDto) and delegates the creation logic to RegisterService.register. The comment in the file explains the expected structure of the request payload (first name, last name, password, and email) and notes that role and department assignment are currently handled internally within the register.service.ts file rather than being configurable through the request body. */
+
 import { Controller, Post, Body } from '@nestjs/common';
 import { RegisterService } from '../services/register.service';
 import { CreateUserDto } from 'src/users/dto/user.dtos';
@@ -8,15 +10,17 @@ export class RegisterController {
 
   /*
 
-  Ejemplo de body para el registro de usuario
+  Example user registration body
+
   {
-    "name": "",
-    "last_name": "",
-    "password": "",
-    "email": ""
+  "first name": "",
+  "last name": "",
+  "password": "",
+  "email": ""
+
   }
 
-  Para realizar el cambio del rol y departamento por ahora se debe de hacer el cambio en el codigo "register.service.ts"
+  To change the role and department, for now, the change must be made in the "register.service.ts" file.
   */
 
   @Post()

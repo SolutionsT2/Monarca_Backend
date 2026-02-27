@@ -1,3 +1,5 @@
+/*This NestJS controller defines the authentication-related API endpoints under the /login route. It exposes a POST /login endpoint that receives login credentials (LogInDTO) and delegates the authentication logic to LoginService.logIn, passing the Express Response with passthrough enabled so the service can set cookies/headers (for example, a session token) while still returning a normal response body. It also provides POST /login/logout (with an explicit 200 status via @HttpCode(200)) that calls LoginService.logOut to clear the user’s session (typically by removing cookies). Finally, it includes a protected GET /login/profile endpoint guarded by AuthGuard, which reads the authenticated request and returns the current user profile via LoginService.profile. The large commented section at the bottom shows older, deprecated examples for role/permission guards that are no longer intended to be used. */
+
 import {
   Controller,
   Post,
@@ -27,47 +29,9 @@ export class LoginController {
     return this.loginService.logOut(res);
   }
 
-  // Prueba de envio de cookies y el usuario que ingreso
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     return this.loginService.profile(req);
   }
-
-  // YA NO USAR: BORRAR PRONTO
-  // // Prueba de permiso de roles para las rutas con Guard
-  // @Get('Eliminar')
-  // @UseGuards(AuthGuard, PermissionsGuard)
-  // @Permissions('Eliminar Datos')
-  // roleAcess2() {
-  //   return 'Only users with permission ID 2 can access this';
-  // }
-
-  // @Get('prueba_permisos')
-  // @UseGuards(AuthGuard, PermissionsGuard)
-  // @Permissions('Ver Reportes') // Acceso a los usuarios que tienes este permiso
-  // permissionsTest(@Req() req) {
-
-  //   // Permisos especificos
-  //   const canDelete = hasPermission(req, 'Eliminar Datos');
-  //   const canEdit = hasPermission(req, 'Editar Datos');
-
-  //   let message = 'Tienes permisos de ver.';
-
-  //   if (canDelete) {
-  //     message += ' Tambien tienes permisos de eliminar.';
-  //   }
-
-  //   if (canEdit) {
-  //     message += ' Tambien tienes permisos de editar.';
-  //   }
-
-  //   return {
-  //     message,
-  //     permissions: {
-  //       canDelete,
-  //       canEdit
-  //     }
-  //   };
-  // }
 }

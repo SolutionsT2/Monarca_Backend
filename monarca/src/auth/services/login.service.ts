@@ -1,3 +1,5 @@
+/*This LoginService handles authentication logic in a NestJS application using JWT and HTTP-only cookies. The logIn method first verifies that the user exists by calling userChecks.logIn, then compares the provided password with the stored hashed password using bcrypt.compare. If the credentials are valid, it generates a JWT containing the user ID, signs it with JwtService, and stores it in a secure, HTTP-only cookie named sessionInfo (configured with secure: true, sameSite: 'none', and a 1-hour expiration). It then returns a success response; otherwise, it returns a failure message without revealing which credential was incorrect. The logOut method clears the sessionInfo cookie and returns a success message. The profile method extracts the user ID from req.sessionInfo (populated by an authentication guard), retrieves the full user data including permissions via userChecks.getUserById, and returns it to the client. */
+
 import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 import { LogInDTO } from '../dto/login.dto';
