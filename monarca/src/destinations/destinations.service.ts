@@ -1,3 +1,8 @@
+/**
+ * File: destinations.service.ts
+ * Description: Service for managing destination entities (CRUD operations).
+ */
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -45,3 +50,8 @@ export class DestinationsService {
     return { status: true, message: `Destination ${id} removed` };
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer.
+ */
