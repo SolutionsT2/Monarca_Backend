@@ -1,3 +1,9 @@
+/**
+ * Vouchers E2E Tests
+ * Tests for voucher CRUD operations (Create, Read, Update, Delete)
+ * Last updated: 2026-02-26
+ * Authors: Monarca Development Team
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
@@ -6,6 +12,8 @@ import * as dotenv from 'dotenv';
 import { CreateVoucherDto } from 'src/vouchers/dto/create-voucher-dto';
 import { UpdateVoucherDto } from 'src/vouchers/dto/update-voucher-dto';
 dotenv.config();
+
+// Tests for voucher endpoints
 describe('Vouchers e2e', () => {
   let app: INestApplication;
 
@@ -29,7 +37,7 @@ describe('Vouchers e2e', () => {
     await app.close();
   });
 
-  it('/vouchers (GET) debe retornar todas', async () => {
+  it('/vouchers (GET) should return all vouchers', async () => {
       const res = await request(app.getHttpServer())
         .get('/vouchers')
         .expect(200);
@@ -37,7 +45,7 @@ describe('Vouchers e2e', () => {
       expect(Array.isArray(res.body)).toBe(true);
     });
 
-    it('/vouchers (POST) debe registar una', async () => {
+    it('/vouchers (POST) should register a new voucher', async () => {
         const dto={
             id_request: "a2b5c8f1-d3e0-4c7b-8a9d-0f1e2d3c4b5a",
             class: "HOT hotel",
@@ -57,7 +65,7 @@ describe('Vouchers e2e', () => {
 
       });
 
-      it('/vouchers/:id (GET) debe retornar una por ID', async () => {
+      it('/vouchers/:id (GET) should return a voucher by ID', async () => {
           // 1) Creamos primero para obtener su ID dinámico
           const dto={
             id_request: "a2b5c8f1-d3e0-4c7b-8a9d-0f1e2d3c4b5a",
@@ -88,7 +96,7 @@ describe('Vouchers e2e', () => {
             .expect(200);
         });
 
-        it('/vouchers/:id (DELTE) debe eliminar una por ID', async () => {
+        it('/vouchers/:id (DELETE) should delete a voucher by ID', async () => {
         // 1) Creamos primero para obtener su ID dinámico
         const dto={
           id_request: "a2b5c8f1-d3e0-4c7b-8a9d-0f1e2d3c4b5a",
@@ -113,7 +121,7 @@ describe('Vouchers e2e', () => {
 
       });
       
-      it('/vouchers/:id (PATCH) debe actualizar una por ID', async () => {
+      it('/vouchers/:id (PATCH) should update a voucher by ID', async () => {
         // 1) Creamos primero para obtener su ID dinámico
         const dto={
           id_request: "a2b5c8f1-d3e0-4c7b-8a9d-0f1e2d3c4b5a",
@@ -127,8 +135,8 @@ describe('Vouchers e2e', () => {
         const update_dto={
             id_request: "a2b5c8f1-d3e0-4c7b-8a9d-0f1e2d3c4b5a",
             class: "HOT hotel",
-            amount: 200.0,//we update the amount
-            currency: "BOL" //we update the curency
+            amount: 200.0, // Update the amount
+            currency: "BOL" // Update the currency
           }
 
         const createRes = await request(app.getHttpServer())

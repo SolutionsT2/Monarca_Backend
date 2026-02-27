@@ -1,3 +1,9 @@
+/**
+ * Travel Agencies E2E Tests
+ * Tests for travel agency CRUD operations (Create, Read, Update, Delete)
+ * Last updated: 2026-02-26
+ * Authors: Monarca Development Team
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
@@ -6,7 +12,8 @@ import * as dotenv from 'dotenv';
 import { TravelAgencyDto } from 'src/travel-agencies/dto/travel-agency.dtos';
 dotenv.config();
 
-describe('TravelAgencies e2e', () => {
+// Tests for travel agency endpoints
+describe('Travel Agencies e2e', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -29,7 +36,7 @@ describe('TravelAgencies e2e', () => {
     await app.close();
   });
 
-  it('/travel-agencies (POST) debe crear una agencia', async () => {
+  it('/travel-agencies (POST) should create a travel agency', async () => {
     const dto = { name: 'Agencia E2E' };
     const res = await request(app.getHttpServer())
       .post('/travel-agencies')
@@ -47,7 +54,7 @@ describe('TravelAgencies e2e', () => {
       .expect(200);
   });
 
-  it('/travel-agencies (GET) debe retornar todas', async () => {
+  it('/travel-agencies (GET) should return all travel agencies', async () => {
     const res = await request(app.getHttpServer())
       .get('/travel-agencies')
       .expect(200);
@@ -55,7 +62,7 @@ describe('TravelAgencies e2e', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('/travel-agencies/:id (GET) debe retornar una por ID', async () => {
+  it('/travel-agencies/:id (GET) should return one by ID', async () => {
     // 1) Creamos primero para obtener su ID dinámico
     const createRes = await request(app.getHttpServer())
       .post('/travel-agencies')

@@ -12,7 +12,8 @@ import {
 } from 'src/reservations/dto/reservation.dtos';
 dotenv.config();
 
-describe('reservations e2e', () => {
+// Tests for reservation endpoints
+describe('Reservations e2e', () => {
   let app: INestApplication;
 
   /** Bootstrap Nest app with validation pipe before all tests. */

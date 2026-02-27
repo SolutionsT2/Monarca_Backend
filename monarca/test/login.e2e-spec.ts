@@ -1,3 +1,9 @@
+/**
+ * Authentication E2E Tests
+ * Tests for user login and logout endpoints
+ * Last updated: 2026-02-26
+ * Authors: Monarca Development Team
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
@@ -6,6 +12,7 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+// Tests for user authentication endpoints including login and logout
 describe('Auth e2e', () => {
   let app: INestApplication;
 
