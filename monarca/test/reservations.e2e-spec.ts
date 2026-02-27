@@ -1,3 +1,9 @@
+/**
+ * Reservations E2E Tests
+ * Tests for reservation CRUD operations (Create, Read, Update, Delete)
+ * Last updated: 2026-02-26
+ * Authors: Monarca Development Team
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
@@ -9,7 +15,8 @@ import {
 } from 'src/reservations/dto/reservation.dtos';
 dotenv.config();
 
-describe('reservations e2e', () => {
+// Tests for reservation endpoints
+describe('Reservations e2e', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -32,7 +39,7 @@ describe('reservations e2e', () => {
     await app.close();
   });
 
-  it('/reservations (POST) debe crear una reservacion', async () => {
+  it('/reservations (POST) should create a reservation', async () => {
     const dto = {
       title: 'Reserva de taxi aeropuerto',
       comments:
@@ -44,7 +51,6 @@ describe('reservations e2e', () => {
       .post('/reservations')
       .send(dto)
       .expect(201);
-    console.log('Raw Response:', res.body);
 
     expect(res.body).toHaveProperty('id');
 
@@ -59,7 +65,7 @@ describe('reservations e2e', () => {
       .expect(200);
   });
 
-  it('/reservations (GET) debe retornar todas las reservaciones', async () => {
+  it('/reservations (GET) should return all reservations', async () => {
     const res = await request(app.getHttpServer())
       .get('/reservations')
       .expect(200);
@@ -67,7 +73,7 @@ describe('reservations e2e', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('/reservations/:id (GET) debe retornar una reserva por ID', async () => {
+  it('/reservations/:id (GET) should return a reservation by ID', async () => {
     // 1) Creamos primero para obtener su ID dinámico
     const createRes = await request(app.getHttpServer())
       .post('/reservations')
@@ -94,7 +100,7 @@ describe('reservations e2e', () => {
       .expect(200);
   });
 
-  it('/reservations/:id (PATCH) debe actualizar uno o mas parametros de la reserva', async () => {
+  it('/reservations/:id (PATCH) should update one or more reservation parameters', async () => {
     // 1) Creamos primero para obtener su ID dinámico
     const createRes = await request(app.getHttpServer())
       .post('/reservations')
@@ -127,7 +133,7 @@ describe('reservations e2e', () => {
       .expect(200);
   });
 
-  it('/reservations/:id (DELETE) debe borrar la reserva', async () => {
+  it('/reservations/:id (DELETE) should delete a reservation', async () => {
     // 1) Creamos primero para obtener su ID dinámico
     const createRes = await request(app.getHttpServer())
       .post('/reservations')
