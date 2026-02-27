@@ -1,3 +1,8 @@
+/**
+ * File: login.dto.ts
+ * Description: Data transfer object for login credentials.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, MinLength, MaxLength } from 'class-validator';
 
@@ -12,3 +17,8 @@ export class LogInDTO {
   @IsString()
   password: string;
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer.
+ */

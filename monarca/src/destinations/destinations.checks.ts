@@ -1,3 +1,8 @@
+/**
+ * File: destinations.checks.ts
+ * Description: Helper service for validating destinations and retrieving destination information.
+ */
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -20,6 +25,11 @@ export class DestinationsChecks {
 
   async getCityNameById(id: string): Promise<string> {
     const dest = await this.destRepo.findOneBy({ id });
-    return dest?.city || 'Ciudad desconocida';
+    return dest?.city || 'Unknown city';
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer; translated comments/strings to English.
+ */

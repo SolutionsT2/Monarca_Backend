@@ -1,3 +1,8 @@
+/**
+ * File: departments.module.ts
+ * Description: NestJS module exposing TypeORM repository for departments.
+ */
+
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Department } from './entity/department.entity';
@@ -7,3 +12,8 @@ import { Department } from './entity/department.entity';
   exports: [TypeOrmModule],
 })
 export class DepartmentsModule {}
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: login.controller.ts
+ * Description: Controller handling login, logout and profile endpoints.
+ */
+
 import {
   Controller,
   Post,
@@ -27,15 +32,15 @@ export class LoginController {
     return this.loginService.logOut(res);
   }
 
-  // Prueba de envio de cookies y el usuario que ingreso
+  // Test for sending cookies and returning the logged-in user
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     return this.loginService.profile(req);
   }
 
-  // YA NO USAR: BORRAR PRONTO
-  // // Prueba de permiso de roles para las rutas con Guard
+  // DO NOT USE: DELETE SOON
+  // // Test for role permissions for routes with Guard
   // @Get('Eliminar')
   // @UseGuards(AuthGuard, PermissionsGuard)
   // @Permissions('Eliminar Datos')
@@ -45,21 +50,21 @@ export class LoginController {
 
   // @Get('prueba_permisos')
   // @UseGuards(AuthGuard, PermissionsGuard)
-  // @Permissions('Ver Reportes') // Acceso a los usuarios que tienes este permiso
+  // @Permissions('Ver Reportes') // Access for users that have this permission
   // permissionsTest(@Req() req) {
 
-  //   // Permisos especificos
+  //   // Specific permissions
   //   const canDelete = hasPermission(req, 'Eliminar Datos');
   //   const canEdit = hasPermission(req, 'Editar Datos');
 
-  //   let message = 'Tienes permisos de ver.';
+  //   let message = 'You have view permissions.';
 
   //   if (canDelete) {
-  //     message += ' Tambien tienes permisos de eliminar.';
+  //     message += ' You also have delete permissions.';
   //   }
 
   //   if (canEdit) {
-  //     message += ' Tambien tienes permisos de editar.';
+  //     message += ' You also have edit permissions.';
   //   }
 
   //   return {
@@ -71,3 +76,8 @@ export class LoginController {
   //   };
   // }
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer; translated comments to English.
+ */
