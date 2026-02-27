@@ -1,3 +1,8 @@
+/**
+ * File: destination.entity.ts
+ * Description: TypeORM entity representing a travel destination and its relationships.
+ */
+
 import { Request } from 'src/requests/entities/request.entity';
 import { RequestsDestination } from 'src/requests/entities/requests-destination.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
@@ -13,7 +18,7 @@ export class Destination {
   @Column()
   city: string;
 
-  //RELATIONSHIPS
+  // RELATIONSHIPS
 
   @OneToMany(() => Request, (req) => req.destination, {
     cascade: true,
@@ -25,3 +30,8 @@ export class Destination {
   })
   requests_destinations: RequestDestination[];
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer; normalized comments to English.
+ */

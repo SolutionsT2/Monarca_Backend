@@ -1,8 +1,5 @@
 /**
- * Reservations E2E Tests
- * Tests for reservation CRUD operations (Create, Read, Update, Delete)
- * Last updated: 2026-02-26
- * Authors: Monarca Development Team
+ * E2E tests for reservations API: POST create, GET all, GET by id, PATCH update, DELETE.
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -19,6 +16,7 @@ dotenv.config();
 describe('Reservations e2e', () => {
   let app: INestApplication;
 
+  /** Bootstrap Nest app with validation pipe before all tests. */
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -35,11 +33,13 @@ describe('Reservations e2e', () => {
     await app.init();
   });
 
+  /** Close app after all tests. */
   afterAll(async () => {
     await app.close();
   });
 
-  it('/reservations (POST) should create a reservation', async () => {
+  /** POST /reservations creates a reservation and returns it with id. */
+  it('POST /reservations creates a reservation', async () => {
     const dto = {
       title: 'Reserva de taxi aeropuerto',
       comments:
@@ -65,7 +65,8 @@ describe('Reservations e2e', () => {
       .expect(200);
   });
 
-  it('/reservations (GET) should return all reservations', async () => {
+  /** GET /reservations returns all reservations as an array. */
+  it('GET /reservations returns all reservations', async () => {
     const res = await request(app.getHttpServer())
       .get('/reservations')
       .expect(200);
@@ -73,8 +74,8 @@ describe('Reservations e2e', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('/reservations/:id (GET) should return a reservation by ID', async () => {
-    // 1) Creamos primero para obtener su ID dinámico
+  /** GET /reservations/:id returns one reservation by id (create first to get dynamic id). */
+  it('GET /reservations/:id returns one reservation by id', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/reservations')
       .send({
@@ -87,21 +88,20 @@ describe('Reservations e2e', () => {
 
     const data = createRes.body;
 
-    // 2) Ahora lo buscamos por ese mismo ID
     const res = await request(app.getHttpServer())
       .get(`/reservations/${data.id}`)
       .expect(200);
 
-    const retrieved_data = res.body;
-    expect(retrieved_data.id).toBe(data.id);
+    const retrievedData = res.body;
+    expect(retrievedData.id).toBe(data.id);
 
     await request(app.getHttpServer())
       .delete(`/reservations/${data.id}`)
       .expect(200);
   });
 
-  it('/reservations/:id (PATCH) should update one or more reservation parameters', async () => {
-    // 1) Creamos primero para obtener su ID dinámico
+  /** PATCH /reservations/:id updates one or more reservation fields. */
+  it('PATCH /reservations/:id updates reservation fields', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/reservations')
       .send({
@@ -112,8 +112,7 @@ describe('Reservations e2e', () => {
       })
       .expect(201);
 
-    const data = createRes.body
-    // 2) Ahora lo actualizamos su comentario
+    const data = createRes.body;
     const updatedComment =
       'Taxi reservado para el usuario Juan Pérez, llegada estimada a las 09:00 AM';
     const res = await request(app.getHttpServer())
@@ -125,16 +124,16 @@ describe('Reservations e2e', () => {
       .get(`/reservations/${data.id}`)
       .expect(200);
 
-    const retrieved_data = updatedReservation.body;
-    expect(retrieved_data.comments).toBe(updatedComment);
+    const retrievedData = updatedReservation.body;
+    expect(retrievedData.comments).toBe(updatedComment);
 
     await request(app.getHttpServer())
       .delete(`/reservations/${data.id}`)
       .expect(200);
   });
 
-  it('/reservations/:id (DELETE) should delete a reservation', async () => {
-    // 1) Creamos primero para obtener su ID dinámico
+  /** DELETE /reservations/:id deletes the reservation; GET afterward returns 404. */
+  it('DELETE /reservations/:id deletes the reservation', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/reservations')
       .send({
@@ -146,15 +145,18 @@ describe('Reservations e2e', () => {
       .expect(201);
 
     const data = createRes.body;
-    // 2) Ahora la borramos
 
     await request(app.getHttpServer())
       .delete(`/reservations/${data.id}`)
       .expect(200);
 
-    // 3) Verificamos que ya no existe
     await request(app.getHttpServer())
       .get(`/reservations/${data.id}`)
       .expect(404);
   });
 });
+/*
+Modification History:
+- 2026-02-25 | Standards applied | File description, test descriptions and comments in English, camelCase variables, removed debug log, modification history.
+*/
+

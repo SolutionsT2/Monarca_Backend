@@ -1,3 +1,8 @@
+/**
+ * File: login.service.ts
+ * Description: Service handling user login, logout and profile retrieval.
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 import { LogInDTO } from '../dto/login.dto';
@@ -20,7 +25,7 @@ export class LoginService {
       return { status: false, message: 'Email or password incorrect' };
     }
 
-    // Verificar la contraseña
+    // Verify the password
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
 
     if (!isPasswordValid) {
@@ -30,7 +35,7 @@ export class LoginService {
     const payload = { id: user.id };
     const token = this.jwtService.sign(payload);
 
-    // Cambios para la conexion con el front
+    // Settings for communication with the frontend
     res.cookie('sessionInfo', token, {
       httpOnly: true,
       secure: true,
@@ -52,9 +57,14 @@ export class LoginService {
 
   async profile(req: any) {
     const { id } = req.sessionInfo;
-    // get user by id with their permissions
+    // Get user by id with their permissions
     const user = await this.userChecks.getUserById(id);
 
     return { status: true, user };
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer; translated comments to English.
+ */
