@@ -1,3 +1,8 @@
+/**
+ * File: create-destination.dto.ts
+ * Description: Data transfer object for creating a new destination.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
 
@@ -18,3 +23,8 @@ export class CreateDestinationDto {
   @Length(2, 100)
   city: string;
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer.
+ */

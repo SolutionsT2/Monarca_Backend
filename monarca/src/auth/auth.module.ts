@@ -1,3 +1,8 @@
+/**
+ * File: auth.module.ts
+ * Description: Authentication module that wires login and registration controllers and services.
+ */
+
 import { Module, forwardRef } from '@nestjs/common';
 import { LoginController } from './controllers/login.controller';
 import { LoginService } from './services/login.service';
@@ -13,3 +18,8 @@ import { RegisterService } from './services/register.service';
   exports: [LoginService, RegisterService, JwtConfigModule],
 })
 export class AuthModule {}
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer.
+ */

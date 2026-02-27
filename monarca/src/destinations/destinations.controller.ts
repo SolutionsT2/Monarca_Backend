@@ -1,3 +1,8 @@
+/**
+ * File: destinations.controller.ts
+ * Description: Controller exposing CRUD endpoints for destinations.
+ */
+
 import {
   Controller,
   Get,
@@ -44,3 +49,8 @@ export class DestinationsController {
     return this.destService.remove(id);
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-02-26: Added description header and modification history footer.
+ */
