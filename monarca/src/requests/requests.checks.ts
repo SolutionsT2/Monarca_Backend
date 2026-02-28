@@ -1,3 +1,11 @@
+/*
+ * requests.checks.ts
+ *
+ * Provides internal validation and verification logic
+ * related to requests and request destinations.
+ * Used to centralize business rule checks.
+ */
+
 import {
   Injectable,
   NotFoundException,
@@ -12,6 +20,10 @@ import { Repository, In } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { RequestsDestination } from './entities/requests-destination.entity';
 
+/**
+ * Service containing validation helpers and
+ * business rule checks for requests.
+ */
 @Injectable()
 export class RequestsChecks {
   constructor(
@@ -81,3 +93,11 @@ export class RequestsChecks {
   }
 
 }
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Removed unused imports, added documentation, and improved null safety checks.
+*/

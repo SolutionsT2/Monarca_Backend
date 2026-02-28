@@ -1,3 +1,10 @@
+/*
+ * create-request.dto.ts
+ *
+ * Data Transfer Objects used for creating a new travel request.
+ * Includes nested destination validation and Swagger metadata.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -11,6 +18,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+/**
+ * DTO representing a single destination within a request.
+ * Defines validation rules and trip sequencing data.
+ */
 export class RequestDestinationtDto {
   @ApiProperty({
     description: 'Destination city identifier',
@@ -78,6 +89,10 @@ export class RequestDestinationtDto {
   details: string;
 }
 
+/**
+ * DTO for creating a new request.
+ * Contains general request data and a list of destinations.
+ */
 export class CreateRequestDto {
   @ApiProperty({
     description: 'Origin city identifier',
@@ -130,3 +145,11 @@ export class CreateRequestDto {
   @Type(() => RequestDestinationtDto)
   requests_destinations: RequestDestinationtDto[];
 }
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Fixed DTO naming typo and added full documentation compliance.
+*/

@@ -1,3 +1,11 @@
+/*
+ * notifications.controller.spec.ts
+ *
+ * Unit test suite for NotificationsController.
+ * Verifies that the controller is properly instantiated
+ * within the NestJS testing module environment.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsController } from './notifications.controller';
 
@@ -16,3 +24,11 @@ describe('NotificationsController', () => {
     expect(controller).toBeDefined();
   });
 });
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added file description and documentation standard compliance.
+*/

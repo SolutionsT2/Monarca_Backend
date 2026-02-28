@@ -1,3 +1,11 @@
+/*
+ * request.entity.ts
+ *
+ * TypeORM entity representing the requests table.
+ * Defines core request data and relationships with
+ * users, destinations, logs, revisions, and vouchers.
+ */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -16,6 +24,11 @@ import { User } from 'src/users/entities/user.entity';
 import { TravelAgency } from 'src/travel-agencies/entities/travel-agency.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 
+/**
+ * Entity representing a travel request.
+ * Contains request metadata, financial data,
+ * status tracking, and relational mappings.
+ */
 @Entity({ name: 'requests' })
 export class Request {
   @PrimaryGeneratedColumn('uuid')
@@ -57,7 +70,7 @@ export class Request {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  // Relationships
+  // Defines entity relationships and database associations.
 
   @OneToMany(() => RequestsDestination, (dest) => dest.request, {
     cascade: true,
@@ -104,3 +117,11 @@ export class Request {
   @JoinColumn({ name: 'id_request' })
   vouchers: Voucher[];
 }
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added entity documentation and improved relationship comments.
+*/

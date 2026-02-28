@@ -1,3 +1,11 @@
+/*
+ * requests-destination.entity.ts
+ *
+ * TypeORM entity representing the association between
+ * a request and its destinations. Stores trip sequencing,
+ * stay details, and logistical requirements.
+ */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -11,6 +19,10 @@ import { Reservation } from 'src/reservations/entity/reservations.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Destination } from 'src/destinations/entities/destination.entity';
 
+/**
+ * Entity representing a destination within a request.
+ * Tracks travel sequence, timing, and requirements.
+ */
 @Entity({ name: 'requests_destinations' })
 export class RequestsDestination {
   @PrimaryGeneratedColumn('uuid')
@@ -46,7 +58,7 @@ export class RequestsDestination {
   @Column({ name: 'details', nullable: true })
   details: string;
 
-  // Relationships
+  // Defines relationships with Request, Destination, and related entities.
 
   @ManyToOne(() => Request, (request) => request.requests_destinations, {
     onDelete: 'CASCADE',
@@ -64,3 +76,11 @@ export class RequestsDestination {
   @JoinColumn({ name: 'id_destination' })
   destination: Destination;
 }
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added entity documentation and standardized relationship comments.
+*/

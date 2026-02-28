@@ -1,3 +1,9 @@
+/*
+ * requests.module.ts
+ *
+ * NestJS module responsible for configuring request-related
+ * services, controllers, validation checks, and dependencies.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Request } from './entities/request.entity';
@@ -16,6 +22,10 @@ import { RequestLogsModule } from 'src/request-logs/request-logs.module';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 
+/**
+ * Module encapsulating request domain logic
+ * and related integrations.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Request, RequestsDestination]),
@@ -31,3 +41,11 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
   exports: [RequestsService, RequestsChecks],
 })
 export class RequestsModule {}
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added module documentation and clarified inline comments.
+*/

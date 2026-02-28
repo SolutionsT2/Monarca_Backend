@@ -1,13 +1,26 @@
+/*
+ * notifications.service.ts
+ *
+ * Provides email notification functionality using Nodemailer.
+ * Handles email transport configuration and message dispatching,
+ * including optional HTML rendering and safe content handling.
+ */
+
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as Handlebars from 'handlebars';
 import { join } from 'path';
 
+/**
+ * Service responsible for handling email notifications
+ * and communication with the configured SMTP provider.
+ */
 @Injectable()
 export class NotificationsService {
   private transporter: nodemailer.Transporter;
 
+  // Initializes SMTP transporter using environment variables.
   constructor() {
     this.transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
@@ -19,6 +32,15 @@ export class NotificationsService {
     });
   }
 
+  /**
+   * Sends an email using the configured SMTP transporter.
+   *
+   * @param to Recipient email address.
+   * @param subject Email subject line.
+   * @param text Plain text content of the email.
+   * @param html Optional HTML content.
+   * @returns Promise containing the Nodemailer response.
+   */
   async sendMail(to: string, subject: string, text: string, html?: string) {
     const fromAddress = `"Sistema Monarca" <${process.env.EMAIL_USER}>`;
     const mailOptions: nodemailer.SendMailOptions = {
@@ -31,6 +53,15 @@ export class NotificationsService {
     return this.transporter.sendMail(mailOptions);
   }
 
+  /**
+   * Wrapper method for sending notifications.
+   * Delegates email sending to the internal sendMail method.
+   *
+   * @param to Recipient email address.
+   * @param subject Notification subject.
+   * @param text Plain text content.
+   * @param html Optional HTML content.
+   */
   async sendNotification(
     to: string,
     subject: string,
@@ -45,7 +76,16 @@ export class NotificationsService {
   );
   }
 
-
+  /**
+   * Sends a notification while ensuring safe HTML rendering.
+   * Escapes plain text content to prevent HTML injection
+   * and generates a minimal HTML email structure.
+   *
+   * @param to Recipient email address.
+   * @param subject Notification subject.
+   * @param message Plain text message content.
+   * @param html Optional raw HTML body.
+   */
   async notify(
   to: string,
   subject: string,
@@ -53,7 +93,7 @@ export class NotificationsService {
   html?: string
 ) {
   
-  // Si deseas escapar texto plano a HTML seguro, implementa un escape sencillo:
+  // Escapes plain text to prevent HTML injection.
     const escapeHtml = (str: string) =>
       str
         .replace(/&/g, '&amp;')
@@ -62,12 +102,12 @@ export class NotificationsService {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 
-    // Supongamos que el caller pasa texto plano: "Hola, este es mi mensaje"
-    // Para permitir HTML opcional, podrías distinguir: si detectas etiquetas HTML, no escapar.
-    // Aquí un enfoque simple: siempre tratamos message como texto plano:
+    // Assumes message is plain text and escapes it before rendering.
+    // To allow optional HTML, you could distinguish: if you detect HTML tags, don't escape.
+    // Here we treat the message as plain text and escape it, while allowing optional HTML content to be included as-is.
     const safeText = escapeHtml(message);
 
-    // Generar HTML sencillo, con estilo inline mínimo si quieres:
+    // Generates a minimal HTML structure for email rendering.
     const htmlComplete = `
       <!DOCTYPE html>
       <html>
@@ -85,3 +125,9 @@ export class NotificationsService {
 }
 
 }
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added full documentation, JSDoc comments, and standardized comment language to English.
+*/

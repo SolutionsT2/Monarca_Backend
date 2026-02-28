@@ -1,3 +1,11 @@
+/*
+ * requests.controller.ts
+ *
+ * HTTP controller responsible for managing request
+ * creation, retrieval, and updates.
+ * Protected by authentication and permissions guards.
+ */
+
 import {
   Controller,
   Get,
@@ -18,6 +26,10 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 
+/**
+ * Controller handling request-related endpoints.
+ * Requires authentication and appropriate permissions.
+ */
 @UseGuards(AuthGuard, PermissionsGuard)
 @Controller('requests')
 export class RequestsController {
@@ -46,7 +58,7 @@ export class RequestsController {
   async findAssignedSOI(@Request() req: RequestInterface) {
     return this.requestsService.findBySOI(req);
   }
-  // Para jalar todos los requests en estatus de Pending Refund Approval asignados a un SOI
+  // Retrieves all requests with "Pending Refund Approval" status assigned to an SOI.
   @Get('refund-to-approve-SOI')
   async findPendingRefundApproval(@Request() req: RequestInterface) {
     return this.requestsService.findPendingRefundApproval(req);
@@ -79,3 +91,11 @@ export class RequestsController {
     return this.requestsService.updateRequest(req, id, data);
   }
 }
+
+
+
+/*
+Modification History:
+
+- 2026-02-26 | Diego Vergara | Added controller documentation and standardized comment language.
+*/
