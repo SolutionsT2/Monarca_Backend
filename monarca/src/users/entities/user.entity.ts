@@ -1,3 +1,7 @@
+/**
+ * File: user.entity.ts
+ * Description: Entity representing the users table in the database, including relations to departments, roles, and travel agencies.
+ */
 import { ApiProperty } from '@nestjs/swagger';
 import { Department } from 'src/departments/entity/department.entity';
 import { Request } from 'src/requests/entities/request.entity';
@@ -14,6 +18,9 @@ import {
   OneToMany,
 } from 'typeorm';
 
+/**
+ * User entity mapping to the "users" table.
+ */
 @Entity({ name: 'users' })
 export class User {
   @ApiProperty({ example: 1 })
@@ -29,8 +36,8 @@ export class User {
   name: string;
 
   @ApiProperty({ example: 'López' })
-  @Column()
-  last_name: string;
+  @Column({ name: 'last_name' })
+  lastName: string;
 
   @ApiProperty({ example: '123456' })
   @Column()
@@ -41,19 +48,20 @@ export class User {
   status: string;
 
   @ApiProperty({ example: 1 })
-  @Column()
-  id_department: string;
+  @Column({ name: 'id_department' })
+  idDepartment: string;
 
   @ApiProperty({ example: 2 })
-  @Column()
-  id_role: string;
+  @Column({ name: 'id_role' })
+  idRole: string;
 
   @ApiProperty()
   @Column({
     type: 'uuid',
     nullable: true,
+    name: 'id_travel_agency'
   })
-  id_travel_agency?: string;
+  idTravelAgency?: string;
 
   @ManyToOne(() => Department, (department) => department.users)
   @JoinColumn({ name: 'id_department' })
@@ -63,9 +71,9 @@ export class User {
   @JoinColumn({ name: 'id_role' })
   role: Roles;
 
-  @ManyToOne(() => TravelAgency, (travel_agency) => travel_agency.users)
+  @ManyToOne(() => TravelAgency, (travelAgency) => travelAgency.users)
   @JoinColumn({ name: 'id_travel_agency' })
-  travel_agency?: TravelAgency;
+  travelAgency?: TravelAgency;
 
   // Hacer conexion despues
   @OneToMany(() => Revision, (log) => log.request, {})
@@ -75,8 +83,13 @@ export class User {
   requests: Request[];
 
   @OneToMany(() => Request, (req) => req.admin, {})
-  assigned_requests: Request[];
+  assignedRequests: Request[];
 
   @OneToMany(() => Request, (req) => req.admin, {})
-  SOI_assigned_requests: Request[];
+  soiAssignedRequests: Request[];
 }
+
+/*
+Modification History:
+- 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+*/

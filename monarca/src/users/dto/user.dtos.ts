@@ -1,7 +1,13 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { OmitType } from '@nestjs/swagger';
+/**
+ * File: user.dtos.ts
+ * Description: Data Transfer Objects (DTOs) for user creation, updating, and presentation.
+ */
+import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 import { User } from '../entities/user.entity';
 
+/**
+ * DTO for creating a new user in the system.
+ */
 export class CreateUserDto {
   @ApiProperty({ example: 'juan@gmail.com' })
   email: string;
@@ -10,7 +16,7 @@ export class CreateUserDto {
   name: string;
 
   @ApiProperty({ example: 'López' })
-  last_name: string;
+  lastName: string;
 
   @ApiProperty({ example: '123456' })
   password: string;
@@ -19,15 +25,26 @@ export class CreateUserDto {
   status: string;
 
   @ApiProperty({ example: 1 })
-  id_department?: string;
+  idDepartment?: string;
 
   @ApiProperty({ example: 2 })
-  id_role: string;
+  idRole: string;
 
   @ApiProperty()
-  id_travel_agency?: string;
+  idTravelAgency?: string;
 }
 
+/**
+ * DTO for updating an existing user's details.
+ */
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
 
+/**
+ * DTO for user data output, omitting sensitive fields like passwords.
+ */
 export class UserDto extends OmitType(User, ['password']) {}
+
+/*
+Modification History:
+- 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+*/
