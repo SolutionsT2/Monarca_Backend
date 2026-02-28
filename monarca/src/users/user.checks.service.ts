@@ -1,3 +1,7 @@
+/**
+ * File: user.checks.service.ts
+ * Description: Service handling specific validation checks, authentication matching, and user assignments.
+ */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
@@ -12,6 +16,11 @@ export class UserChecks {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  /**
+   * Validates user credentials during the login process.
+   * @param data Data Transfer Object containing email and password.
+   * @returns The user entity if validation succeeds, or null if it fails.
+   */
   async logIn(data: LogInDTO): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { email: data.email },
@@ -31,10 +40,16 @@ export class UserChecks {
 
     return user;
   }
+
+  /**
+   * Retrieves specific basic fields of a user by their ID.
+   * @param id The UUID of the user.
+   * @returns The selected user entity or null if not found.
+   */
   async getUserById(id: string): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { id: id },
-      select: ['id', 'name', 'email', 'department', 'last_name', 'role'],
+      select: ['id', 'name', 'email', 'department', 'lastName', 'role'], // lastName updated to camelCase
       relations: ['department', 'role', 'role.permissions'],
     });
 
@@ -46,7 +61,11 @@ export class UserChecks {
     return user;
   }
 
-  async getRandomApproverID(): Promise<string | null> {
+  /**
+   * Finds and returns a random user ID whose role is 'Aprobador'.
+   * @returns A random approver's UUID or null if none exist.
+   */
+  async getRandomApproverId(): Promise<string | null> {
     const approvers = await this.userRepository.find({
       where: {
         role: {
@@ -57,8 +76,6 @@ export class UserChecks {
       relations: [],
     });
 
-    // console.log(approvers)
-
     if (approvers.length === 0) {
       return null;
     }
@@ -68,22 +85,25 @@ export class UserChecks {
     return approvers[randomIndex].id;
   }
 
-  async getRandomApproverIdFromSameDepartment(id_department: string, id_user: string): Promise<string | null> {
+  /**
+   * Finds and returns a random approver's ID from a specific department, excluding a specific user ID.
+   * @param idDepartment The UUID of the department.
+   * @param idUser The UUID of the user to exclude (to prevent assigning oneself).
+   * @returns A random approver's UUID or null if none exist.
+   */
+  async getRandomApproverIdFromSameDepartment(idDepartment: string, idUser: string): Promise<string | null> {
     const approvers = await this.userRepository.find({
       where: {
-        id: Not(id_user), // Que no se pueda asignar a si mismo como aprobador
-        id_department: id_department,
+        id: Not(idUser), 
+        idDepartment: idDepartment, // Updated to camelCase
         role: {
           name: 'Aprobador',
-
         },
       },
       select: ['id'],
       relations: [],
     });
 
-    // console.log(approvers)
-
     if (approvers.length === 0) {
       return null;
     }
@@ -92,10 +112,13 @@ export class UserChecks {
 
     return approvers[randomIndex].id;
   }
-  
 
-  async getRandomSOIID(): Promise<string | null> {
-    const SOIs = await this.userRepository.find({
+  /**
+   * Finds and returns a random user ID whose role is 'SOI'.
+   * @returns A random SOI's UUID or null if none exist.
+   */
+  async getRandomSoiId(): Promise<string | null> {
+    const sois = await this.userRepository.find({
       where: {
         role: {
           name: 'SOI',
@@ -105,14 +128,17 @@ export class UserChecks {
       relations: [],
     });
 
-    // console.log(approvers)
-
-    if (SOIs.length === 0) {
+    if (sois.length === 0) {
       return null;
     }
 
-    const randomIndex = Math.floor(Math.random() * SOIs.length);
+    const randomIndex = Math.floor(Math.random() * sois.length);
 
-    return SOIs[randomIndex].id;
+    return sois[randomIndex].id;
   }
 }
+
+/*
+Modification History:
+- 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+*/
