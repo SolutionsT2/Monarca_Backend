@@ -1,3 +1,8 @@
+/**
+ * File: travel-agencies.module.ts
+ * Description: Nest module that registers travel agencies controller, service, checks and TravelAgency entity.
+ */
+
 import { Module } from '@nestjs/common';
 import { TravelAgenciesService } from './travel-agencies.service';
 import { TravelAgenciesController } from './travel-agencies.controller';
@@ -12,3 +17,8 @@ import { TravelAgenciesChecks } from './travel-agencies.checks';
   exports: [TravelAgenciesChecks],
 })
 export class TravelAgenciesModule {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

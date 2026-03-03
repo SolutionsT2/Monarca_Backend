@@ -1,24 +1,17 @@
 /**
- * ===========================================
- * Funciones auxiliares para gestión de permisos
- * ===========================================
- *
- * Este archivo centraliza la lógica para verificar
- * si un usuario tiene permisos específicos.
- *
- * Esto ayuda a mantener el código limpio, reutilizable
- * y escalable conforme crece el número de rutas y permisos.
+ * File: permissions.helper.ts
+ * Description: Helper functions to check if the current request has specific permissions (used after PermissionsGuard).
  */
 
 /**
- * Verifica si el usuario tiene un permiso específico.
+ * Returns whether the request has the given permission.
  */
 export function hasPermission(req: any, permissionName: string): boolean {
   return req.userPermissions?.includes(permissionName) || false;
 }
 
 /**
- * Verifica si el usuario tiene al menos uno de los permisos proporcionados.
+ * Returns whether the request has at least one of the given permissions.
  */
 export function hasAnyPermission(req: any, permissionNames: string[]): boolean {
   if (!req.userPermissions) return false;
@@ -26,7 +19,7 @@ export function hasAnyPermission(req: any, permissionNames: string[]): boolean {
 }
 
 /**
- * Verifica si el usuario tiene todos los permisos proporcionados.
+ * Returns whether the request has all of the given permissions.
  */
 export function hasAllPermissions(
   req: any,
@@ -37,8 +30,13 @@ export function hasAllPermissions(
 }
 
 /**
- * Verifica si el usuario no tiene un permiso específico.
+ * Returns whether the request does not have the given permission.
  */
 export function lacksPermission(req: any, permissionName: string): boolean {
   return !hasPermission(req, permissionName);
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header; translated comments and descriptions to English.
+ */

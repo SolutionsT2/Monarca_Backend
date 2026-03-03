@@ -63,3 +63,8 @@ describe('Auth e2e', () => {
     expect(res.body.message).toMatch(/logged out successfully/i);
   });
 });
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added modification history.
+ */

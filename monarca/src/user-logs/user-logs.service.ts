@@ -1,3 +1,8 @@
+/**
+ * File: user-logs.service.ts
+ * Description: Service for user log CRUD operations.
+ */
+
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -33,3 +38,8 @@ export class UserLogsService {
     return this.userLogsRepository.delete(id);
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

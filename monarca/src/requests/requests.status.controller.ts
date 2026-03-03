@@ -1,3 +1,8 @@
+/**
+ * File: requests.status.controller.ts
+ * Description: Controller for request status transitions (approve, deny, cancel, finished reservations, SOI, vouchers, complete).
+ */
+
 import {
   Controller,
   Get,
@@ -98,3 +103,8 @@ export class RequestsStatusController {
     );
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

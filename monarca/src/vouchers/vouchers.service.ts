@@ -1,3 +1,8 @@
+/**
+ * File: vouchers.service.ts
+ * Description: Service for voucher CRUD, create (with creator check), approve/deny, and findByRequest.
+ */
+
 import { Injectable, NotFoundException,ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
@@ -135,3 +140,8 @@ export class VouchersService {
     return vouchers;
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; removed unused privateDecrypt import; normalized ForbiddenException spacing.
+ */

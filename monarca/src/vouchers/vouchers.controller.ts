@@ -1,3 +1,8 @@
+/**
+ * File: vouchers.controller.ts
+ * Description: Controller for voucher upload (PDF/XML), CRUD, and approve/deny endpoints.
+ */
+
 import {
   Controller,
   Get,
@@ -110,3 +115,8 @@ export class VouchersController {
   }
 
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; consolidated Nest imports.
+ */

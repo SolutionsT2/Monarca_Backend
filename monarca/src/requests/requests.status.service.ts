@@ -1,3 +1,8 @@
+/**
+ * File: requests.status.service.ts
+ * Description: Service for request status transitions (approve, deny, cancel, finished reservations, SOI, vouchers, complete) and notifications.
+ */
+
 import {
   Injectable,
   NotFoundException,
@@ -347,3 +352,8 @@ export class RequestsStatusService {
     return await this.requestsService.updateStatus(id_request, 'Completed');
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

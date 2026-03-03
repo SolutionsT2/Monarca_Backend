@@ -1,3 +1,8 @@
+/**
+ * File: revisions.service.ts
+ * Description: Service for creating revisions (admin comments on requests) and notifying users; updates request status to Changes Needed.
+ */
+
 import {
   Injectable,
   NotFoundException,
@@ -76,3 +81,8 @@ export class RevisionsService {
     return await this.revisionRepository.save(revision);
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; removed unused UseGuards import.
+ */

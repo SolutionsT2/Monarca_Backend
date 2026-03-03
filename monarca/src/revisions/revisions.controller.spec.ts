@@ -1,3 +1,8 @@
+/**
+ * File: revisions.controller.spec.ts
+ * Description: Unit tests for RevisionsController.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { RevisionsController } from './revisions.controller';
 
@@ -16,3 +21,8 @@ describe('RevisionsController', () => {
     expect(controller).toBeDefined();
   });
 });
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

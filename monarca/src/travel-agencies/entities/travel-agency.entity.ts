@@ -1,3 +1,8 @@
+/**
+ * File: travel-agency.entity.ts
+ * Description: TypeORM entity for travel agencies; has relations to Request and User.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Request } from 'src/requests/entities/request.entity';
@@ -22,3 +27,8 @@ export class TravelAgency {
   @OneToMany(() => User, (user) => user.travel_agency, {})
   users: User[];
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

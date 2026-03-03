@@ -1,3 +1,8 @@
+/**
+ * File: revision.entity.ts
+ * Description: TypeORM entity for revisions (admin comments on a request), linked to Request.
+ */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,7 +11,6 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { RequestsDestination } from 'src/requests/entities/requests-destination.entity';
 
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { Request } from 'src/requests/entities/request.entity';
@@ -41,3 +45,8 @@ export class Revision {
   // @JoinColumn({ name: 'id_user' })
   // user: User;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; removed unused RequestsDestination import.
+ */

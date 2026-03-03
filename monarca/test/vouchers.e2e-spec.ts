@@ -157,11 +157,9 @@ describe('Vouchers e2e', () => {
           .expect(200);
       });
 
-
-
-
-
-
-
-
 });
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added modification history.
+ */

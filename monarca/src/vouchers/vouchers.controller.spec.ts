@@ -1,3 +1,8 @@
+/**
+ * File: vouchers.controller.spec.ts
+ * Description: Unit tests for VouchersController.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { VouchersController } from './vouchers.controller';
 
@@ -16,3 +21,8 @@ describe('VouchersController', () => {
     expect(controller).toBeDefined();
   });
 });
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

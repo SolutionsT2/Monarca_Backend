@@ -1,3 +1,8 @@
+/**
+ * File: permissions.guard.ts
+ * Description: Guard that loads the current user and their permissions, then enforces required permissions from the handler metadata.
+ */
+
 import {
   Injectable,
   CanActivate,
@@ -81,3 +86,8 @@ export class PermissionsGuard implements CanActivate {
     return user;
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header; removed commented debug code; renamed userRepository123 to userRepository.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: guards.module.ts
+ * Description: Nest module that registers AuthGuard, PermissionsGuard, JWT config and User repository for route protection.
+ */
+
 import { Module } from '@nestjs/common';
 import { JwtConfigModule } from 'src/jwt/jwt.config.module';
 import { AuthGuard } from './auth.guard';
@@ -16,3 +21,8 @@ import { User } from 'src/users/entities/user.entity';
   ],
 })
 export class GuardsModule {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

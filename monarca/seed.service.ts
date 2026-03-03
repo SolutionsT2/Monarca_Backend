@@ -1,7 +1,12 @@
+/**
+ * File: seed.service.ts
+ * Description: Service that seeds the database from JSON files (run/truncate/drop) and hashes user passwords.
+ */
+
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
-import { Department } from './src/departments/entity/department.entity';
+import { Department } from 'src/departments/entity/department.entity';
 import { Destination } from 'src/destinations/entities/destination.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UserLogs } from 'src/user-logs/entity/user-logs.entity';
@@ -193,5 +198,9 @@ export class SeedService {
             await queryRunner.release();
         }
     }
-
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; fixed Department import path (./src/ -> src/).
+ */

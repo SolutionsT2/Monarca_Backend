@@ -1,3 +1,8 @@
+/**
+ * File: main.ts
+ * Description: Application entry point: Nest bootstrap, CORS, cookie parser, validation pipe, logging middleware, Swagger.
+ */
+
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -12,7 +17,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Habilitar CORS para permitir peticiones desde el origen del frontend
+  // Enable CORS to allow requests from the frontend origin
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -41,3 +46,8 @@ async function bootstrap() {
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; translated CORS comment to English; removed unused fs and https imports.
+ */

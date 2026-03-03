@@ -1,3 +1,8 @@
+/**
+ * File: revisions.controller.ts
+ * Description: Controller for creating revisions (admin feedback on requests).
+ */
+
 import {
   Body,
   Controller,
@@ -37,3 +42,8 @@ export class RevisionsController {
   //     return this.revisionsService.create(dto, userId);
   // }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

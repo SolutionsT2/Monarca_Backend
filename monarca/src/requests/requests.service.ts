@@ -1,3 +1,8 @@
+/**
+ * File: requests.service.ts
+ * Description: Service for request CRUD, creation/update logging, and status updates.
+ */
+
 import {
   Injectable,
   NotFoundException,
@@ -422,3 +427,8 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
     return updated;
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

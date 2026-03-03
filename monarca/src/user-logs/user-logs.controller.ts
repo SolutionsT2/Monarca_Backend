@@ -1,3 +1,8 @@
+/**
+ * File: user-logs.controller.ts
+ * Description: Controller for user log CRUD endpoints.
+ */
+
 import {
   Controller,
   Post,
@@ -40,3 +45,8 @@ export class UserLogsController {
     return this.userLogsService.remove(id);
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

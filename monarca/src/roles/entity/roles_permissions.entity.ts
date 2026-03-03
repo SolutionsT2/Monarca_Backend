@@ -1,3 +1,8 @@
+/**
+ * File: roles_permissions.entity.ts
+ * Description: TypeORM join entity for role-permission many-to-many relationship.
+ */
+
 import { Entity, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { Roles } from './roles.entity';
 import { Permission } from './permissions.entity';
@@ -22,3 +27,8 @@ export class RolePermission {
   @JoinColumn({ name: 'id_permission' })
   permission: Permission;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

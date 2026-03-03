@@ -1,3 +1,8 @@
+/**
+ * File: uploadPdf.middleware.ts
+ * Description: Multer-based file interceptor for reservation PDF uploads to uploads/reservations.
+ */
+
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -36,3 +41,8 @@ export const UploadPdfInterceptor = () => {
     },
   );
 };
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */
