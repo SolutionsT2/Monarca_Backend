@@ -1,3 +1,8 @@
+/**
+ * File: reservations.module.ts
+ * Description: Nest module that registers reservations controller, service, and Reservation entity.
+ */
+
 import { Module } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { ReservationsController } from './reservations.controller';
@@ -13,3 +18,8 @@ GuardsModule],
   controllers: [ReservationsController],
 })
 export class ReservationsModule {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: reservations.entity.ts
+ * Description: TypeORM entity for reservations linked to a request destination.
+ */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -36,3 +41,8 @@ export class Reservation {
   @JoinColumn({ name: 'id_request_destination' })
   requestDestination: RequestDestination;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; fixed requestDestination type to RequestsDestination.
+ */

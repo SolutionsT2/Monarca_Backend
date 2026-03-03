@@ -1,3 +1,8 @@
+/**
+ * File: travel-agencies.service.spec.ts
+ * Description: Unit tests for TravelAgenciesService.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { TravelAgenciesService } from './travel-agencies.service';
 
@@ -16,3 +21,8 @@ describe('TravelAgenciesService', () => {
     expect(service).toBeDefined();
   });
 });
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

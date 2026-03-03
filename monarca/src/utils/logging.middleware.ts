@@ -1,3 +1,8 @@
+/**
+ * File: logging.middleware.ts
+ * Description: Middleware that logs each request (method, URL, status, size, response time) on response finish.
+ */
+
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
@@ -20,3 +25,8 @@ export class LoggingMiddleware implements NestMiddleware {
     next();
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; removed unused Logger import.
+ */

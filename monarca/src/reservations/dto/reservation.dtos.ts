@@ -1,3 +1,8 @@
+/**
+ * File: reservation.dtos.ts
+ * Description: DTOs for creating, updating and representing reservations (with Swagger/validation).
+ */
+
 import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 import {
   IsNotEmpty,
@@ -61,3 +66,8 @@ export class CreateReservationDto {
 export class UpdateReservationDto extends PartialType(CreateReservationDto) {}
 
 export class ReservationDto extends OmitType(Reservation, []) {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

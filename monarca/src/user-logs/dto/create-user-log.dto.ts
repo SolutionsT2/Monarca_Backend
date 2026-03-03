@@ -1,3 +1,8 @@
+/**
+ * File: create-user-log.dto.ts
+ * Description: DTO for creating a user log (user, date, ip, report), with Swagger.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserLogDto {
@@ -13,3 +18,8 @@ export class CreateUserLogDto {
   @ApiProperty({ example: 'User accessed the dashboard' })
   report: string;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

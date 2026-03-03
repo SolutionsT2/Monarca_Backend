@@ -1,3 +1,8 @@
+/**
+ * File: create-voucher-dto.ts
+ * Description: DTO for creating a voucher (request, class, amount, tax, currency, date, file URLs, status, approver), with Swagger and validation.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsUUID,
@@ -79,3 +84,8 @@ export class CreateVoucherDto {
   @IsString()
   id_approver: string;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

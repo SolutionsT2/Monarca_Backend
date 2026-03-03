@@ -1,3 +1,8 @@
+/**
+ * File: app.module.ts
+ * Description: Root Nest module: static files, feature modules, TypeORM config, and seed provider.
+ */
+
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from './auth/auth.module';
@@ -107,3 +112,8 @@ import { NotificationsModule } from './notifications/notifications.module';
   providers: [SeedService],
 })
 export class AppModule {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: revisions.module.ts
+ * Description: Nest module that registers revisions controller, service, and Revision entity.
+ */
+
 import { Module } from '@nestjs/common';
 import { RevisionsController } from './revisions.controller';
 import { RevisionsService } from './revisions.service';
@@ -14,3 +19,8 @@ import { UsersModule } from 'src/users/users.module';
   providers: [RevisionsService],
 })
 export class RevisionsModule {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: travel-agencies.checks.ts
+ * Description: Helper service to check travel agency existence and to fetch agency users.
+ */
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   CreateTravelAgencyDto,
@@ -37,3 +42,8 @@ export class TravelAgenciesChecks {
     return travel_agency.users;
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

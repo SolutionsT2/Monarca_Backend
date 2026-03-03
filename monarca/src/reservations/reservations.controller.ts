@@ -1,3 +1,8 @@
+/**
+ * File: reservations.controller.ts
+ * Description: Controller for reservation CRUD and file upload on create.
+ */
+
 import {
   Controller,
   Get,
@@ -82,3 +87,8 @@ export class ReservationsController {
     return this.reservationsService.remove(id);
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

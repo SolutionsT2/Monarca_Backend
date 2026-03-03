@@ -1,3 +1,8 @@
+/**
+ * File: requests.service.spec.ts
+ * Description: Unit tests for RequestsService.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { RequestsService } from './requests.service';
 
@@ -16,3 +21,8 @@ describe('RequestsService', () => {
     expect(service).toBeDefined();
   });
 });
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

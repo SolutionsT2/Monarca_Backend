@@ -1,3 +1,8 @@
+/**
+ * File: vouchers.entity.ts
+ * Description: TypeORM entity for vouchers (request, class, amount, tax, currency, date, PDF/XML URLs, status, approver); linked to Request.
+ */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,6 +11,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Request } from 'src/requests/entities/request.entity';
+
 @Entity({ name: 'vouchers' })
 export class Voucher {
   @PrimaryGeneratedColumn('uuid')
@@ -49,3 +55,8 @@ export class Voucher {
   @JoinColumn({ name: 'id_request' })
   requests: Request;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

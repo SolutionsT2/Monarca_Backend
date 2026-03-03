@@ -1,3 +1,8 @@
+/**
+ * File: interceptor.middleware.ts
+ * Description: Multer-based file interceptor for voucher uploads (PDF and XML) to uploads/vouchers.
+ */
+
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -38,3 +43,8 @@ export const UploadPdfInterceptor = () => {
     },
   );
 };
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; removed debug console.log.
+ */

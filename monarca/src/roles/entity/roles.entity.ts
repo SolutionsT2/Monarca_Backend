@@ -1,3 +1,8 @@
+/**
+ * File: roles.entity.ts
+ * Description: TypeORM entity for roles; many-to-many with Permission via roles_permissions join table.
+ */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -28,3 +33,8 @@ export class Roles {
   @OneToMany(() => RolePermission, (rp) => rp.permission)
   rolePermissions: RolePermission[];
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

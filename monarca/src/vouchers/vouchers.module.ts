@@ -1,3 +1,7 @@
+/**
+ * File: vouchers.module.ts
+ * Description: Nest module that registers vouchers controller, service, Voucher and Request entities.
+ */
 import { Module, Req } from '@nestjs/common';
 import { VouchersController } from './vouchers.controller';
 import { VouchersService } from './vouchers.service';
@@ -14,3 +18,8 @@ import { GuardsModule } from 'src/guards/guards.module';
   providers: [VouchersService],
 })
 export class VouchersModule {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; removed unused Req import; formatted imports and module options.
+ */

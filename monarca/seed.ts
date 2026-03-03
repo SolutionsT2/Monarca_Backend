@@ -1,3 +1,8 @@
+/**
+ * File: seed.ts
+ * Description: CLI entry point for seeding: runs SeedService with --seed, --truncate, or --drop.
+ */
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './src/app.module';
 import { SeedService } from './seed.service';
@@ -31,3 +36,8 @@ async function runSeed() {
 }
 
 runSeed();
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: travel-agency.dtos.ts
+ * Description: DTOs for creating, updating and representing travel agencies (with Swagger and validation).
+ */
+
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { TravelAgency } from '../entities/travel-agency.entity';
 import { OmitType } from '@nestjs/swagger';
@@ -16,3 +21,8 @@ export class CreateTravelAgencyDto {
 export class UpdateTravelAgencyDto extends PartialType(CreateTravelAgencyDto) {}
 
 export class TravelAgencyDto extends OmitType(TravelAgency, []) {}
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history; consolidated OmitType import.
+ */

@@ -1,3 +1,8 @@
+/**
+ * File: create-revision.dto.ts
+ * Description: DTO for creating a revision (request id and comment), with Swagger and validation.
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -26,3 +31,8 @@ export class CreateRevisionDto {
   @IsString()
   comment: string;
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */

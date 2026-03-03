@@ -1,3 +1,8 @@
+/**
+ * File: travel-agencies.controller.ts
+ * Description: Controller for travel agency CRUD endpoints.
+ */
+
 import {
   Controller,
   Get,
@@ -46,3 +51,8 @@ export class TravelAgenciesController {
     return this.travelAgenciesService.remove(id);
   }
 }
+
+/**
+ * Modification History:
+ * - 2026-03-02: Added file header with description and modification history.
+ */
