@@ -24,7 +24,7 @@ export class TravelAgency {
   @OneToMany(() => Request, (req) => req.travel_agency, {})
   requests: Request[];
 
-  @OneToMany(() => User, (user) => user.travel_agency, {})
+  @OneToMany(() => User, (user) => user.travelAgency, {})
   users: User[];
 }
 

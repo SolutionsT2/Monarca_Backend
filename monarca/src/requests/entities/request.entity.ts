@@ -95,13 +95,13 @@ export class Request {
   @JoinColumn({ name: 'id_user' })
   user: User;
 
-  @ManyToOne(() => User, (usr) => usr.assigned_requests, {
+  @ManyToOne(() => User, (usr) => usr.assignedRequests, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_admin' })
   admin: User;
 
-  @ManyToOne(() => User, (usr) => usr.SOI_assigned_requests, {
+  @ManyToOne(() => User, (usr) => usr.soiAssignedRequests, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_SOI' })

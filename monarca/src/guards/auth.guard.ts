@@ -11,14 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
-
-interface SessionInfo {
-  id: number;
-  email: string;
-  role: string;
-  iat: number;
-  exp: number;
-}
+import { SessionInfoInterface } from './interfaces/sessionInfo.interface';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
