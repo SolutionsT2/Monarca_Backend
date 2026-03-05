@@ -1,8 +1,18 @@
 /**
+<<<<<<< Updated upstream
  * File: app.module.ts
  * Description: Root Nest module: static files, feature modules, TypeORM config, and seed provider.
  */
 
+=======
+ * Application Root Module
+ * 
+ * Main NestJS module initializing all application features:
+ * - Authentication and authorization
+ * - Database configuration
+ * - Modules for all business domains
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from './auth/auth.module';

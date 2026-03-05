@@ -20,6 +20,14 @@ interface SessionInfo {
   exp: number;
 }
 
+/**
+ * AuthGuard
+ * 
+ * Guard for validating JWT tokens from HTTP cookies.
+ * Verifies token authenticity and attaches session information to requests.
+ * 
+ * @implements CanActivate
+ */
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
@@ -36,7 +44,11 @@ export class AuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token);
+<<<<<<< Updated upstream
       request.sessionInfo = payload as SessionInfoInterface;
+=======
+      request.sessionInfo = payload; // Attach user to the request
+>>>>>>> Stashed changes
       return true;
     } catch (err) {
       throw new UnauthorizedException('Invalid token');

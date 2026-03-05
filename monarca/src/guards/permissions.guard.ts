@@ -18,6 +18,14 @@ import { SessionInfoInterface } from './interfaces/sessionInfo.interface';
 import { UserInfoInterface } from './interfaces/userInfo.interface';
 import { RequestInterface } from './interfaces/request.interface';
 
+/**
+ * PermissionsGuard
+ * 
+ * Guard for validating user permissions based on roles.
+ * Checks if user has required permissions for protected endpoints.
+ * 
+ * @implements CanActivate
+ */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(
@@ -37,8 +45,6 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User or permissions not found');
     }
 
-    // console.log('User found:', user.id);
-
     request.sessionInfo.id = user.id;
     request.userInfo = {
       id: user.id,
@@ -50,7 +56,6 @@ export class PermissionsGuard implements CanActivate {
       id_role: user.id_role,
       id_travel_agency: user.id_travel_agency,
     };
-    // console.log(`request.sessionInfo.id: ${request.sessionInfo.id}`)
 
     const userPermissions = user.role.permissions.map((p) => p.name);
     request.userPermissions = userPermissions;

@@ -1,6 +1,13 @@
 /**
+<<<<<<< Updated upstream
  * File: users.module.ts
  * Description: Module configuration for the users feature, managing imports, controllers, and service providers.
+=======
+ * Users Module
+ * 
+ * Module for managing user accounts and user-related operations.
+ * Exports: UsersService, UsersController, UserChecks
+>>>>>>> Stashed changes
  */
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';

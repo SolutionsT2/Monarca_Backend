@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 /*
  * request-logs.controller.ts
  *
@@ -6,6 +7,16 @@
  * status changes of requests.
  */
 
+=======
+/**
+ * Request Logs Controller
+ * 
+ * REST API controller for managing system request logs.
+ * Handles endpoints for retrieving request activity records.
+ * 
+ * Protected by: Authentication guards (review implementation)
+ */
+>>>>>>> Stashed changes
 import {
   Controller,
   Get,

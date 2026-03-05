@@ -1,8 +1,16 @@
 /**
+<<<<<<< Updated upstream
  * File: reservations.module.ts
  * Description: Nest module that registers reservations controller, service, and Reservation entity.
  */
 
+=======
+ * Reservations Module
+ * 
+ * Module for managing travel reservations with file upload support.
+ * Exports: ReservationsService, ReservationsController
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { ReservationsController } from './reservations.controller';

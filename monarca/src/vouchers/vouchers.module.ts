@@ -1,6 +1,13 @@
 /**
+<<<<<<< Updated upstream
  * File: vouchers.module.ts
  * Description: Nest module that registers vouchers controller, service, Voucher and Request entities.
+=======
+ * Vouchers Module
+ * 
+ * Module for managing travel vouchers and expense documentation.
+ * Exports: VouchersService, VouchersController
+>>>>>>> Stashed changes
  */
 import { Module, Req } from '@nestjs/common';
 import { VouchersController } from './vouchers.controller';

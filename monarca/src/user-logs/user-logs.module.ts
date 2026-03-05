@@ -1,8 +1,16 @@
 /**
+<<<<<<< Updated upstream
  * File: user-logs.module.ts
  * Description: Nest module that registers user logs controller, service and UserLogs entity.
  */
 
+=======
+ * User Logs Module
+ * 
+ * Module for managing user activity and audit logs.
+ * Exports: UserLogsService, UserLogsController
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserLogs } from './entity/user-logs.entity';

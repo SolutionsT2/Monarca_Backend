@@ -19,6 +19,14 @@ import {
   UpdateTravelAgencyDto,
 } from './dto/travel-agency.dtos';
 
+/**
+ * TravelAgenciesController
+ * 
+ * REST API controller for managing travel agencies.
+ * Handles endpoints for creating, retrieving, updating, and deleting travel agency records.
+ * 
+ * No guards currently applied - review security requirements
+ */
 @Controller('travel-agencies')
 export class TravelAgenciesController {
   constructor(private readonly travelAgenciesService: TravelAgenciesService) {}

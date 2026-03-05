@@ -17,6 +17,14 @@ import { DestinationsService } from './destinations.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 
+/**
+ * DestinationsController
+ * 
+ * REST API controller for managing destinations.
+ * Handles endpoints for creating, retrieving, updating, and deleting destination records.
+ * 
+ * No guards currently applied - review security requirements
+ */
 @Controller('destinations')
 export class DestinationsController {
   constructor(private readonly destService: DestinationsService) {}

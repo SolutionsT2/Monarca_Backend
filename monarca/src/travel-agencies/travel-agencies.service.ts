@@ -13,6 +13,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { TravelAgency } from './entities/travel-agency.entity';
 import { Repository } from 'typeorm';
 
+/**
+ * TravelAgenciesService
+ * 
+ * Service for managing travel agency operations including:
+ * - Creating and updating travel agency records
+ * - Retrieving all agencies or specific agency details
+ * - Removing travel agencies from the system
+ * 
+ * @class TravelAgenciesService
+ */
 @Injectable()
 export class TravelAgenciesService {
   constructor(

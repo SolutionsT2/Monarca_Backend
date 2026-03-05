@@ -1,8 +1,18 @@
 /**
+<<<<<<< Updated upstream
  * File: user-logs.controller.ts
  * Description: Controller for user log CRUD endpoints.
  */
 
+=======
+ * User Logs Controller
+ * 
+ * REST API controller for managing user activity logs.
+ * Handles endpoints for creating, retrieving, updating, and deleting user log records.
+ * 
+ * Protected by: Authentication guards (review implementation)
+ */
+>>>>>>> Stashed changes
 import {
   Controller,
   Post,

@@ -11,6 +11,17 @@ import { UpdateVoucherDto } from './dto/update-voucher-dto';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { privateDecrypt } from 'crypto';
+/**
+ * VouchersService
+ * 
+ * Service for managing voucher operations including:
+ * - Creating vouchers with file uploads
+ * - Retrieving and updating voucher information
+ * - Approving and denying vouchers
+ * - Finding vouchers by request
+ * 
+ * @class VouchersService
+ */
 @Injectable()
 export class VouchersService {
   constructor(

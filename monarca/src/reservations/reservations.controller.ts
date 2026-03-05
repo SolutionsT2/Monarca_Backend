@@ -27,6 +27,15 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { UploadPdfInterceptor } from 'src/utils/uploadPdf.middleware';
 
+/**
+ * ReservationsController
+ * 
+ * REST API controller for managing reservations.
+ * Handles endpoints for creating, retrieving, updating, and deleting reservations
+ * with file upload support and authentication validation.
+ * 
+ * Protected by: AuthGuard, PermissionsGuard
+ */
 @UseGuards(AuthGuard,PermissionsGuard)
 @Controller('reservations')
 export class ReservationsController {

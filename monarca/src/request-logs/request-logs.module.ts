@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 /*
  * request-logs.module.ts
  *
@@ -5,6 +6,14 @@
  * request log persistence, services, and controllers.
  */
 
+=======
+/**
+ * Request Logs Module
+ * 
+ * Module for managing request activity logs.
+ * Exports: RequestLogsService, RequestLogsController
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RequestLog } from './entities/request-log.entity';

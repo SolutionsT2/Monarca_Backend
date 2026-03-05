@@ -16,6 +16,12 @@ import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { User } from 'src/users/entities/user.entity';
 
+/**
+ * Revision Entity
+ * 
+ * TypeORM entity representing revision records for requests.
+ * Stores comments and change history for travel request submissions.
+ */
 @Entity({ name: 'revisions' })
 export class Revision {
   @PrimaryGeneratedColumn('uuid')
@@ -37,13 +43,6 @@ export class Revision {
   })
   @JoinColumn({ name: 'id_request' })
   request: Request;
-
-  //HACER CONEXION DESPUES
-  // @ManyToOne(() => User, (request) => request.revisions, {
-  //   onDelete: 'CASCADE',
-  // })
-  // @JoinColumn({ name: 'id_user' })
-  // user: User;
 }
 
 /**

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 /*
  * notifications.controller.ts
  *
@@ -10,6 +11,16 @@
  * Controller responsible for managing notification endpoints.
  */
 
+=======
+/**
+ * Notifications Controller
+ * 
+ * REST API controller for managing system notifications.
+ * Handles endpoints related to sending and managing user notifications.
+ * 
+ * Note: Currently minimal implementation - review for expansion
+ */
+>>>>>>> Stashed changes
 import { Controller } from '@nestjs/common';
 
 @Controller('notifications')

@@ -19,6 +19,14 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 
+/**
+ * RevisionsController
+ * 
+ * REST API controller for managing request revisions.
+ * Handles endpoints for posting revision comments and marking requests for changes.
+ * 
+ * Protected by: AuthGuard, PermissionsGuard
+ */
 @UseGuards(AuthGuard, PermissionsGuard)
 @Controller('revisions')
 export class RevisionsController {
@@ -29,18 +37,8 @@ export class RevisionsController {
     @Request() req: RequestInterface,
     @Body() dto: CreateRevisionDto,
   ) {
-    // console.log(dto);
     return this.revisionsService.create(req, dto);
   }
-  /* Para sacar userId de la cookie */
-  // @UseGuards(AuthGuard)
-  // @Post()
-  // postRevision(@Body() dto : CreateRevisionDto, @Request() req)
-  // {
-  //     // console.log(dto);
-  //     const userId = req.sessionInfo.id; // desde cookie JWT
-  //     return this.revisionsService.create(dto, userId);
-  // }
 }
 
 /**

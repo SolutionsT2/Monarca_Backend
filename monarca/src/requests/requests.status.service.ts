@@ -22,6 +22,17 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 // STATUSES:
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
 
+/**
+ * RequestsStatusService
+ * 
+ * Service for managing request status transitions including:
+ * - Approving and denying travel requests
+ * - Handling request cancellations
+ * - Managing reservations workflow
+ * - Sending notifications to users and travel agencies
+ * 
+ * @class RequestsStatusService
+ */
 @Injectable()
 export class RequestsStatusService {
   constructor(
@@ -46,7 +57,7 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    //CHECAR SI ES VALIDO EL TRAVEL AGENCY ID
+    // Validate if travel agency ID is valid
     if (!(await this.travelAgenciesChecks.Exists(id_travel_agency)))
       throw new BadRequestException('Invalid travel agency id.');
 
@@ -171,12 +182,6 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    
-    // console.log("Scenario 1: ")
-    // console.log (`(!(id_travel_agency && id_travel_agency === request.id_travel_agency)) ${(!(id_travel_agency && id_travel_agency === request.id_travel_agency))}`)
-    // console.log("Scenario 2: ")
-    // console.log (` (!!id_travel_agency && id_travel_agency !== request.id_travel_agency) ${ (!!id_travel_agency && id_travel_agency !== request.id_travel_agency)}`)
-    
     if  (!(id_travel_agency && id_travel_agency === request.id_travel_agency)) //Testear mas
       throw new UnauthorizedException('Unable to change requests status.')
 

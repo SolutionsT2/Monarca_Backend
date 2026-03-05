@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 /*
  * notifications.module.ts
  *
@@ -6,6 +7,14 @@
  * and services.
  */
 
+=======
+/**
+ * Notifications Module
+ * 
+ * Module for managing email notifications and messaging.
+ * Exports: NotificationsService, NotificationsController
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';

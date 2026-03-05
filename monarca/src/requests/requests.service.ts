@@ -24,6 +24,17 @@ import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
 
+/**
+ * RequestsService
+ * 
+ * Service responsible for handling all request-related operations including:
+ * - Creating, updating, and retrieving travel requests
+ * - Managing request statuses and workflows
+ * - Logging request actions and changes
+ * - Sending notifications to relevant users
+ * 
+ * @class RequestsService
+ */
 @Injectable()
 export class RequestsService {
   constructor(
@@ -35,10 +46,27 @@ export class RequestsService {
     private readonly dataSource: DataSource,
   ) {}
 
+  /**
+   * Retrieves the city name for a given destination ID
+   * 
+   * @param id Destination ID
+   * @returns Promise<string> The city name
+   */
   private async getCityName(id: string): Promise<string> {
     return await this.destinationChecks.getCityNameById(id);
   }
 
+  /**
+   * Logs request-related actions to the RequestLog entity
+   * 
+   * @param manager EntityManager for transaction handling
+   * @param id_request Request ID being logged
+   * @param id_user User ID performing the action
+   * @param action Type of action: 'create', 'update', or 'status_change'
+   * @param new_status The new status of the request
+   * @param extraData Optional additional data for the log entry
+   * @returns Promise<void>
+   */
   private async logRequestAction(
     manager: EntityManager,
     id_request: string,
@@ -73,9 +101,9 @@ export class RequestsService {
 
   async create(req: RequestInterface, data: CreateRequestDto) {
     const userId = req.sessionInfo.id;
-    //VALIDAR VALIDEZ DE CIUDADES
+    // Validate origin city validity
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
-      throw new BadRequestException('Invalid id_origin_city.');
+      throw new BadRequestException('Invalid id_origin_city.';
     }
 
     for (const rd of data.requests_destinations) {
@@ -83,7 +111,7 @@ export class RequestsService {
         throw new BadRequestException('Invalid id_destination.');
     }
 
-    //ASIGNAR APROVADOR
+    // Assign approver from same department
     const id_department = req.userInfo.id_department;
     const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
       id_department,
@@ -96,7 +124,7 @@ export class RequestsService {
       );
     }
 
-    //ASIGNAR SOI
+    // Assign SOI (Specialized Operations Inspector)
     const SOIId = await this.userChecks.getRandomSOIID();
     if (!SOIId) {
       throw new HttpException(
@@ -117,7 +145,7 @@ export class RequestsService {
 
     const saved = await this.requestsRepo.save(request);
 
-    // Log creación de un request
+    // Log request creation
     const originCityName = await this.getCityName(saved.id_origin_city);
     await this.logRequestAction(
       this.dataSource.createEntityManager(),
@@ -137,7 +165,7 @@ export class RequestsService {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
-    // Mandar mail de notificación al admin asignado
+    // Send notification email to assigned admin
     await this.notificationsService.notify(
       admin.email,
       `Nueva solicitud asignada`,

@@ -1,8 +1,16 @@
 /**
+<<<<<<< Updated upstream
  * File: destinations.module.ts
  * Description: NestJS module wiring destinations controller, service and checks.
  */
 
+=======
+ * Destinations Module
+ * 
+ * Module for managing travel destinations (cities and countries).
+ * Exports: DestinationsService, DestinationsController, DestinationsChecks
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Destination } from './entities/destination.entity';

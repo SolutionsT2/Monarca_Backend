@@ -10,6 +10,17 @@ import { Destination } from './entities/destination.entity';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 
+/**
+ * DestinationsService
+ * 
+ * Service for managing destination entities including:
+ * - Creating new destination records (city/country pairs)
+ * - Retrieving destination information
+ * - Updating destination details
+ * - Removing destinations from the system
+ * 
+ * @class DestinationsService
+ */
 @Injectable()
 export class DestinationsService {
   constructor(

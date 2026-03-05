@@ -1,8 +1,16 @@
 /**
+<<<<<<< Updated upstream
  * File: guards.module.ts
  * Description: Nest module that registers AuthGuard, PermissionsGuard, JWT config and User repository for route protection.
  */
 
+=======
+ * Guards Module
+ * 
+ * Module for authentication and permission guard implementations.
+ * Exports: AuthGuard, PermissionsGuard
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { JwtConfigModule } from 'src/jwt/jwt.config.module';
 import { AuthGuard } from './auth.guard';

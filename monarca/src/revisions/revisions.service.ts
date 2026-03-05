@@ -19,6 +19,17 @@ import { RequestsChecks } from 'src/requests/requests.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { UserChecks } from 'src/users/user.checks.service';
 
+/**
+ * RevisionsService
+ * 
+ * Service for managing request revisions including:
+ * - Creating revision records for requests needing changes
+ * - Validating revision permissions and request status
+ * - Notifying users of required changes
+ * - Updating request status to "Changes Needed"
+ * 
+ * @class RevisionsService
+ */
 @Injectable()
 export class RevisionsService {
   constructor(

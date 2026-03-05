@@ -9,6 +9,14 @@ import { Not, Repository } from 'typeorm';
 import { LogInDTO } from 'src/auth/dto/login.dto';
 import * as bcrypt from 'bcrypt';
 
+/**
+ * UserChecks
+ * 
+ * Service for validating user credentials and retrieving user information.
+ * Handles login verification, user lookup, and random selection of approval roles.
+ * 
+ * @class UserChecks
+ */
 @Injectable()
 export class UserChecks {
   constructor(
@@ -28,13 +36,11 @@ export class UserChecks {
     });
 
     if (!user) {
-      console.log('Email or password incorrect');
       return null;
     }
 
     const passwordMatch = await bcrypt.compare(data.password, user.password);
     if (!passwordMatch) {
-      console.log('Password does not match');
       return null;
     }
 
@@ -54,7 +60,6 @@ export class UserChecks {
     });
 
     if (!user) {
-      console.log('User not found');
       return null;
     }
 

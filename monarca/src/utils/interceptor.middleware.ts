@@ -9,9 +9,14 @@ import { extname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 
+/**
+ * UploadPdfInterceptor
+ * 
+ * Multer interceptor for uploading PDF and XML voucher files.
+ * Validates file types and sizes, stores files in the uploads/vouchers directory.
+ */
 export const UploadPdfInterceptor = () => {
   const uploadPath = join(process.cwd(), 'uploads', 'vouchers');
-  console.log('path:', uploadPath);
 
   if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });

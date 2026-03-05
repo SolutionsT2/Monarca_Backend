@@ -21,8 +21,19 @@ import { Request as RequestEntity } from './entities/request.entity';
 import { RequestsDestination } from './entities/requests-destination.entity';
 
 /**
+<<<<<<< Updated upstream
  * Service containing validation helpers and
  * business rule checks for requests.
+=======
+ * RequestsChecks
+ * 
+ * Service for validating request-related operations including:
+ * - Checking request ownership and admin permissions
+ * - Retrieving request status information
+ * - Validating travel agency authorization for request destinations
+ * 
+ * @class RequestsChecks
+>>>>>>> Stashed changes
  */
 @Injectable()
 export class RequestsChecks {
@@ -86,8 +97,6 @@ export class RequestsChecks {
         }},
       relations: ['request']
     });
-
-    // console.log(!!requestDestination);
 
     return !!requestDestination;
   }

@@ -26,6 +26,15 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 
+/**
+ * VouchersController
+ * 
+ * REST API controller for managing vouchers.
+ * Handles endpoints for uploading, retrieving, updating, and approving vouchers
+ * with authentication and permission validation.
+ * 
+ * Protected by: AuthGuard, PermissionsGuard
+ */
 @UseGuards(AuthGuard, PermissionsGuard)
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')

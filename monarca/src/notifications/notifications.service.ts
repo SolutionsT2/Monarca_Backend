@@ -13,8 +13,17 @@ import * as Handlebars from 'handlebars';
 import { join } from 'path';
 
 /**
+<<<<<<< Updated upstream
  * Service responsible for handling email notifications
  * and communication with the configured SMTP provider.
+=======
+ * NotificationsService
+ * 
+ * Service for sending email notifications using Nodemailer.
+ * Handles email configuration, sending operations, and HTML content generation.
+ * 
+ * @class NotificationsService
+>>>>>>> Stashed changes
  */
 @Injectable()
 export class NotificationsService {
@@ -33,6 +42,7 @@ export class NotificationsService {
   }
 
   /**
+<<<<<<< Updated upstream
    * Sends an email using the configured SMTP transporter.
    *
    * @param to Recipient email address.
@@ -40,6 +50,15 @@ export class NotificationsService {
    * @param text Plain text content of the email.
    * @param html Optional HTML content.
    * @returns Promise containing the Nodemailer response.
+=======
+   * Sends an email using configured SMTP transport
+   * 
+   * @param to Recipient email address
+   * @param subject Email subject
+   * @param text Plain text email content
+   * @param html HTML email template (optional)
+   * @returns Promise<any> Result from Nodemailer
+>>>>>>> Stashed changes
    */
   async sendMail(to: string, subject: string, text: string, html?: string) {
     const fromAddress = `"Sistema Monarca" <${process.env.EMAIL_USER}>`;
@@ -93,7 +112,11 @@ export class NotificationsService {
   html?: string
 ) {
   
+<<<<<<< Updated upstream
   // Escapes plain text to prevent HTML injection.
+=======
+    // Escape plain text to safe HTML
+>>>>>>> Stashed changes
     const escapeHtml = (str: string) =>
       str
         .replace(/&/g, '&amp;')
@@ -102,12 +125,19 @@ export class NotificationsService {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 
+<<<<<<< Updated upstream
     // Assumes message is plain text and escapes it before rendering.
     // To allow optional HTML, you could distinguish: if you detect HTML tags, don't escape.
     // Here we treat the message as plain text and escape it, while allowing optional HTML content to be included as-is.
     const safeText = escapeHtml(message);
 
     // Generates a minimal HTML structure for email rendering.
+=======
+    // Treat message as plain text unless HTML is explicitly provided
+    const safeText = escapeHtml(message);
+
+    // Generate complete HTML email template
+>>>>>>> Stashed changes
     const htmlComplete = `
       <!DOCTYPE html>
       <html>

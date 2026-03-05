@@ -1,8 +1,16 @@
 /**
+<<<<<<< Updated upstream
  * File: revisions.module.ts
  * Description: Nest module that registers revisions controller, service, and Revision entity.
  */
 
+=======
+ * Revisions Module
+ * 
+ * Module for managing request revision comments and change requests.
+ * Exports: RevisionsService, RevisionsController
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { RevisionsController } from './revisions.controller';
 import { RevisionsService } from './revisions.service';

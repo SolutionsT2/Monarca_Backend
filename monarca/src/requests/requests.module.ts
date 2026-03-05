@@ -1,8 +1,16 @@
+<<<<<<< Updated upstream
 /*
  * requests.module.ts
  *
  * NestJS module responsible for configuring request-related
  * services, controllers, validation checks, and dependencies.
+=======
+/**
+ * Requests Module
+ * 
+ * Module for managing travel requests including creation, approval, and status workflows.
+ * Exports: RequestsService, RequestsController, RequestsChecks, RequestsStatusService
+>>>>>>> Stashed changes
  */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';

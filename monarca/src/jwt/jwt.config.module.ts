@@ -1,8 +1,16 @@
 /**
+<<<<<<< Updated upstream
  * File: jwt.config.module.ts
  * Description: Nest module that configures JWT (secret and token expiry) for use by AuthGuard and login/register services.
  */
 
+=======
+ * JWT Configuration Module
+ * 
+ * Module for configuring JWT authentication tokens.
+ * Exports: JwtModule with configured settings
+ */
+>>>>>>> Stashed changes
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 

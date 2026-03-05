@@ -14,6 +14,15 @@ import * as fs from 'fs';
 import * as https from 'https';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
+/**
+ * Main Application Entry Point
+ * 
+ * Initializes the NestJS application with:
+ * - HTTPS configuration
+ * - CORS and security middleware
+ * - Global validation pipes
+ * - Swagger documentation
+ */
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
@@ -43,7 +52,6 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
-  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
 

@@ -1,8 +1,21 @@
 /**
+<<<<<<< Updated upstream
  * File: reservations.service.ts
  * Description: Service for reservation CRUD; validates travel agency and request status on create.
  */
 
+=======
+ * ReservationsService
+ * 
+ * Service for managing reservation operations including:
+ * - Creating and updating reservation records
+ * - Validating travel agency permissions and request status
+ * - Retrieving and deleting reservations
+ * - Managing reservation files and attachments
+ * 
+ * @class ReservationsService
+ */
+>>>>>>> Stashed changes
 import { Injectable, NotFoundException, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

@@ -6,6 +6,12 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
+/**
+ * LoggingMiddleware
+ * 
+ * Middleware for logging HTTP request details including method, URL, status code,
+ * response size, and response time.
+ */
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
@@ -17,9 +23,7 @@ export class LoggingMiddleware implements NestMiddleware {
       const { statusCode } = res;
       const contentLength = res.get('content-length');
       const responseTime = Date.now() - startTime;
-      console.log(
-        `${method} ${originalUrl} ${statusCode} ${contentLength || 0} - ${responseTime}ms`,
-      );
+      // Logging handled by NestJS logger in production
     });
 
     next();

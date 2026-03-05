@@ -27,8 +27,18 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 
 /**
+<<<<<<< Updated upstream
  * Controller handling request-related endpoints.
  * Requires authentication and appropriate permissions.
+=======
+ * RequestsController
+ * 
+ * REST API controller for managing travel requests.
+ * Handles endpoints for creating, retrieving, updating requests
+ * with authentication and permission validation.
+ * 
+ * Protected by: AuthGuard, PermissionsGuard
+>>>>>>> Stashed changes
  */
 @UseGuards(AuthGuard, PermissionsGuard)
 @Controller('requests')
@@ -58,7 +68,11 @@ export class RequestsController {
   async findAssignedSOI(@Request() req: RequestInterface) {
     return this.requestsService.findBySOI(req);
   }
+<<<<<<< Updated upstream
   // Retrieves all requests with "Pending Refund Approval" status assigned to an SOI.
+=======
+  // Get all requests with Pending Refund Approval status assigned to an SOI
+>>>>>>> Stashed changes
   @Get('refund-to-approve-SOI')
   async findPendingRefundApproval(@Request() req: RequestInterface) {
     return this.requestsService.findPendingRefundApproval(req);

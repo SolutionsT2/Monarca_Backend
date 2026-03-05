@@ -10,6 +10,16 @@ import { UserLogs } from './entity/user-logs.entity';
 import { CreateUserLogDto } from './dto/create-user-log.dto';
 import { UpdateUserLogDto } from './dto/update-user-log.dto';
 
+/**
+ * UserLogsService
+ * 
+ * Service for managing user activity logs including:
+ * - Creating log entries for user actions
+ * - Retrieving all or specific user logs
+ * - Updating and deleting log records
+ * 
+ * @class UserLogsService
+ */
 @Injectable()
 export class UserLogsService {
   constructor(
