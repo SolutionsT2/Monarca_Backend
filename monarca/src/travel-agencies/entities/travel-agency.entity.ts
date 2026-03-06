@@ -21,10 +21,10 @@ export class TravelAgency {
   @IsNotEmpty()
   name: string;
 
-  @OneToMany(() => Request, (req) => req.travel_agency, {})
+  @OneToMany(() => Request, (req) => req.travelAgency, {})
   requests: Request[];
 
-  @OneToMany(() => User, (user) => user.travel_agency, {})
+  @OneToMany(() => User, (user) => user.travelAgency, {})
   users: User[];
 }
 

@@ -97,7 +97,7 @@ export class RequestsService {
     }
 
     //ASIGNAR SOI
-    const SOIId = await this.userChecks.getRandomSOIID();
+    const SOIId = await this.userChecks.getRandomSoiId();
     if (!SOIId) {
       throw new HttpException(
         'There is no SOI available to assign the request.',

@@ -95,13 +95,13 @@ export class Request {
   @JoinColumn({ name: 'id_user' })
   user: User;
 
-  @ManyToOne(() => User, (usr) => usr.assigned_requests, {
+  @ManyToOne(() => User, (usr) => usr.assignedRequests, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_admin' })
   admin: User;
 
-  @ManyToOne(() => User, (usr) => usr.SOI_assigned_requests, {
+  @ManyToOne(() => User, (usr) => usr.soiAssignedRequests, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_SOI' })
@@ -111,7 +111,7 @@ export class Request {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_travel_agency' })
-  travel_agency: TravelAgency;
+  travelAgency: TravelAgency;
 
   @OneToMany(() => Voucher, (v) => v.requests, {})
   @JoinColumn({ name: 'id_request' })
