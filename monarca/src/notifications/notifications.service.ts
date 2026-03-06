@@ -6,7 +6,7 @@
  * including optional HTML rendering and safe content handling.
  */
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as Handlebars from 'handlebars';
@@ -22,14 +22,21 @@ export class NotificationsService {
 
   // Initializes SMTP transporter using environment variables.
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-      }
-    });
+    const transportOptions: any = {
+      host: process.env.EMAIL_HOST || 'localhost',
+      port: parseInt(process.env.EMAIL_PORT || '1025', 10),
+      secure: (process.env.EMAIL_SECURE || 'false') === 'true',
+    };
+
+    // Only set auth when credentials are provided (MailHog doesn't need auth).
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+      transportOptions.auth = {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      };
+    }
+
+    this.transporter = nodemailer.createTransport(transportOptions);
   }
 
   /**
@@ -121,7 +128,16 @@ export class NotificationsService {
       </html>
     `;
 
-    return this.sendMail(to, subject, message, htmlComplete);
+    try {
+      return await this.sendMail(to, subject, message, htmlComplete);
+    } catch (err) {
+      const logger = new Logger('NotificationsService');
+      logger.warn(
+        `Failed to send notification to ${to} (subject: ${subject}): ${err?.message || err}`,
+      );
+      // Do not rethrow: failures to send emails should not make the whole request fail
+      return null;
+    }
 }
 
 }
