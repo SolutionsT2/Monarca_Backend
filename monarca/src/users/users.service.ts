@@ -63,7 +63,7 @@ export class UsersService {
   async findOne(id: string): Promise<UserDto> {
     const ent = await this.repo.findOne({
       where: { id },
-      relations: { travel_agency: true },
+      relations: { travelAgency: true },
     });
     if (!ent) throw new NotFoundException(`User ${id} not found`);
     return ent;

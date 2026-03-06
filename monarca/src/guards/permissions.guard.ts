@@ -44,11 +44,11 @@ export class PermissionsGuard implements CanActivate {
       id: user.id,
       email: user.email,
       name: user.name,
-      last_name: user.last_name,
+      last_name: user.lastName,
       status: user.status,
-      id_department: user.id_department,
-      id_role: user.id_role,
-      id_travel_agency: user.id_travel_agency,
+      id_department: user.idDepartment,
+      id_role: user.idRole,
+      id_travel_agency: user.idTravelAgency,
     };
     // console.log(`request.sessionInfo.id: ${request.sessionInfo.id}`)
 
