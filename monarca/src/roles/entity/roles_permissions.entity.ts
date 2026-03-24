@@ -3,7 +3,7 @@
  * Description: TypeORM join entity for role-permission many-to-many relationship.
  */
 
-import { Entity, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
+import { Entity, ManyToOne, JoinColumn, PrimaryColumn, Column } from 'typeorm';
 import { Roles } from './roles.entity';
 import { Permission } from './permissions.entity';
 
