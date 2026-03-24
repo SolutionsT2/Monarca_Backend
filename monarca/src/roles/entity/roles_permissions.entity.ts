@@ -10,7 +10,8 @@ import { Permission } from './permissions.entity';
 @Entity('roles_permissions')
 export class RolePermission {
   @PrimaryColumn()
-  id_role: string;
+  // id_role: string;
+  id: string;
 
   @PrimaryColumn()
   id_permission: string;
