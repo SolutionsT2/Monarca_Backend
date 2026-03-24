@@ -40,4 +40,8 @@ export class Roles {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-03-23:
+ *   - Updated id type to string for UUID compatibility.
+ *   - Fixed OneToMany relation to correctly reference RolePermission.role.
+ *   - Removed direct ManyToMany relationship with Permission to support pivot table with metadata (expires_at).
  */

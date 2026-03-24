@@ -33,5 +33,7 @@ export class Permission {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * - 2026-03-23: Added description, module, and action fields; fixed UUID type and relation mapping.
+ * - 2026-03-23:
+ *    - Added description, module, and action fields; fixed UUID type and relation mapping.
+ *    - Fixed OneToMany relation to correctly reference RolePermission.permission.
  */
