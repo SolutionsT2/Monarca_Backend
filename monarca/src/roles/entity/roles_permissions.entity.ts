@@ -27,6 +27,9 @@ export class RolePermission {
   })
   @JoinColumn({ name: 'id_permission' })
   permission: Permission;
+
+  @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
+  expiresAt?: Date | null;
 }
 
 /**
