@@ -21,6 +21,7 @@ import { TravelAgenciesModule } from 'src/travel-agencies/travel-agencies.module
 import { RequestLogsModule } from 'src/request-logs/request-logs.module';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 
 /**
  * Module encapsulating request domain logic
@@ -28,7 +29,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Request, RequestsDestination]),
+    TypeOrmModule.forFeature([Request, RequestsDestination, Voucher]),
     GuardsModule,
     UsersModule,
     DestinationsModule,
