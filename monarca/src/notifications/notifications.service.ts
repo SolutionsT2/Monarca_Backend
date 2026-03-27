@@ -22,15 +22,20 @@ export class NotificationsService {
 
   // Initializes SMTP transporter using environment variables.
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-      }
-    });
-  }
+  this.transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: parseInt(process.env.EMAIL_PORT ?? '1025'),
+    secure: false,
+    ...(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
+      ? {
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD,
+          },
+        }
+      : {}),
+  });
+}
 
   /**
    * Sends an email using the configured SMTP transporter.
@@ -42,7 +47,9 @@ export class NotificationsService {
    * @returns Promise containing the Nodemailer response.
    */
   async sendMail(to: string, subject: string, text: string, html?: string) {
-    const fromAddress = `"Sistema Monarca" <${process.env.EMAIL_USER}>`;
+    const fromAddress = process.env.EMAIL_USER 
+  ? `"Sistema Monarca" <${process.env.EMAIL_USER}>`
+  : '"Sistema Monarca" <noreply@monarca.dev>';
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromAddress,
       to,
