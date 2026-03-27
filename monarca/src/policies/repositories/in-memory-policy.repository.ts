@@ -12,6 +12,7 @@ import {
   PolicyRuleType,
   PolicySeverity,
 } from '../types/policy.types';
+import { normalizeVoucherSpendClass } from 'src/vouchers/types/voucher-spend.types';
 
 @Injectable()
 export class InMemoryPolicyRepository implements IPolicyRepository {
@@ -34,7 +35,7 @@ export class InMemoryPolicyRepository implements IPolicyRepository {
       id: 'policy-2',
       code: 'TRAINING_REQUIRES_XML',
       name: 'Capacitacion requiere XML',
-      expense_class: 'CAPACITACION',
+      expense_class: 'CAPA',
       applies_on: PolicyAppliesOn.VOUCHER,
       rule_type: PolicyRuleType.FILE_REQUIRED,
       params: { required_files: ['XML'] },
@@ -47,7 +48,7 @@ export class InMemoryPolicyRepository implements IPolicyRepository {
       id: 'policy-3',
       code: 'FOOD_MAX_50',
       name: 'Alimentacion maximo 50 MXN',
-      expense_class: 'ALIMENTACION',
+      expense_class: 'ALIF',
       applies_on: PolicyAppliesOn.VOUCHER,
       rule_type: PolicyRuleType.AMOUNT_LIMIT,
       params: { max_amount: 50, currency: 'MXN' },
@@ -80,12 +81,15 @@ export class InMemoryPolicyRepository implements IPolicyRepository {
     expenseClass: string,
     appliesOn: PolicyAppliesOn,
   ): Promise<PolicyRule[]> {
+    const normalizedExpenseClass = normalizeVoucherSpendClass(expenseClass);
+
     return Promise.resolve(
       this.policies.filter(
         (p) =>
           p.is_active &&
           p.applies_on === appliesOn &&
-          (p.expense_class === 'ALL' || p.expense_class === expenseClass),
+          (p.expense_class === 'ALL' ||
+            p.expense_class === normalizedExpenseClass),
       ),
     );
   }
