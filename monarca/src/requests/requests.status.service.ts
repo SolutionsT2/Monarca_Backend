@@ -9,6 +9,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -18,6 +19,7 @@ import { RequestsService } from './requests.service';
 import { ApproveRequestDTO } from './dto/approve-request.dto';
 import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { PolicyEngineService } from 'src/policies/services/policy-engine.service';
 
 // STATUSES:
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
@@ -30,6 +32,7 @@ export class RequestsStatusService {
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
+    private readonly policyEngineService: PolicyEngineService,
   ) {}
 
   async approve(
@@ -242,7 +245,7 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin'],
+      relations: ['admin', 'vouchers'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -254,6 +257,33 @@ export class RequestsStatusService {
       throw new ConflictException(
         'Unable to change status because of the requests current status.',
       );
+
+    // Evaluate reimbursement policies before moving the request to approval.
+    const summary = await this.policyEngineService.evaluateRequestSubmission(
+      {
+        id: request.id,
+        advance_money: request.advance_money,
+        createdAt: request.createdAt,
+      },
+      (request.vouchers || []).map((voucher) => ({
+        id: voucher.id,
+        id_request: voucher.id_request,
+        class: voucher.class,
+        amount: voucher.amount,
+        currency: voucher.currency,
+        file_url_pdf: voucher.file_url_pdf,
+        file_url_xml: voucher.file_url_xml,
+        date: voucher.date,
+      })),
+    );
+
+    if (!summary.can_submit) {
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        message: 'Policy validation failed. Resolve violations before submit.',
+        policy_summary: summary,
+      });
+    }
 
     // Notify admin
     await this.notificationsService.notify(

@@ -16,11 +16,11 @@ import { DestinationsModule } from 'src/destinations/destinations.module';
 import { RequestsChecks } from './requests.checks';
 import { RequestsStatusController } from './requests.status.controller';
 import { RequestsStatusService } from './requests.status.service';
-import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { TravelAgenciesModule } from 'src/travel-agencies/travel-agencies.module';
 import { RequestLogsModule } from 'src/request-logs/request-logs.module';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { PoliciesModule } from 'src/policies/policies.module';
 
 /**
  * Module encapsulating request domain logic
@@ -35,6 +35,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
     TravelAgenciesModule,
     RequestLogsModule,
     NotificationsModule, // Assuming this is a controller that handles notifications related to requests
+    PoliciesModule,
   ],
   controllers: [RequestsController, RequestsStatusController],
   providers: [RequestsService, RequestsChecks, RequestsStatusService, NotificationsService],
