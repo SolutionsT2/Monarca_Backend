@@ -4,7 +4,6 @@
  */
 
 import { Module } from '@nestjs/common';
-
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -38,6 +37,10 @@ import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { Policy } from './policy-engine/entities/policy.entity';
+import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
+import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
+import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 
 @Module({
   imports: [
@@ -60,6 +63,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     DestinationsModule,
     UserLogsModule,
     GuardsModule,
+    PolicyEngineModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST,
@@ -85,6 +89,9 @@ import { NotificationsModule } from './notifications/notifications.module';
         Voucher,
         UserLogs,
         Revision,
+        Policy,
+        PolicyRule,
+        PolicyViolation,
       ],
       synchronize: true,
     }),
