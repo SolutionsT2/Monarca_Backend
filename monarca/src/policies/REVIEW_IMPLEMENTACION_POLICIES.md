@@ -32,13 +32,13 @@ Se cargaron 4 reglas iniciales en InMemoryPolicyRepository:
 2. TRAINING_REQUIRES_XML
    - Tipo: FILE_REQUIRED
    - Nivel: VOUCHER
-   - Clase: CAPACITACION
+   - Clase: CAPA
    - Regla: requiere XML.
 
 3. FOOD_MAX_50
    - Tipo: AMOUNT_LIMIT
    - Nivel: VOUCHER
-   - Clase: ALIMENTACION
+   - Clase: ALIF
    - Regla: monto maximo 50 MXN.
 
 4. ALL_TIME_LIMIT_4W
@@ -73,6 +73,30 @@ Se integro en RequestsStatusService, metodo finishedUploadingVouchers:
 
 ### 1.5 Wiring de modulo
 RequestsModule ya importa PoliciesModule para inyeccion del motor.
+
+### 1.6 Contrato FE-BE normalizado (clase de gasto)
+Se normalizo el contrato de clase de gasto para usar codigos canónicos del frontend:
+
+- ALIF
+- CAPA
+- CPF
+- FIDP
+- GAS
+- HTLP
+- LAUN
+- NDPR
+- NDVA
+- REAU
+- TCCF
+- TSCF
+- TRAA
+- AIRP
+
+Cambios aplicados:
+- DTO de vouchers valida class contra ese catalogo con IsIn + transform.
+- Backend normaliza aliases legacy (por ejemplo ALIMENTACION -> ALIF, CAPACITACION -> CAPA).
+- Rules de policies MVP se alinearon a codigos (ALIF, CAPA).
+- El filtro de politicas usa la clase normalizada para evitar mismatch por nomenclatura.
 
 ## 2) Contrato de salida actual para Frontend (cuando falla)
 
@@ -135,6 +159,7 @@ Pendientes BE-DB integration:
 Objetivo: mostrar errores de politicas al enviar comprobacion.
 
 Pendientes FE:
+1. Enviar siempre class como code del catalogo (ALIF, CAPA, etc.), no label.
 1. Conectar boton Enviar Solicitud al endpoint ya existente de submit de comprobacion.
 2. Manejar respuesta 422:
    - leer policy_summary
