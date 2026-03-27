@@ -49,7 +49,9 @@ export class NotificationsService {
    * @returns Promise containing the Nodemailer response.
    */
   async sendMail(to: string, subject: string, text: string, html?: string) {
-    const fromAddress = `"Sistema Monarca" <${process.env.EMAIL_USER}>`;
+    const fromAddress = process.env.EMAIL_USER 
+  ? `"Sistema Monarca" <${process.env.EMAIL_USER}>`
+  : '"Sistema Monarca" <noreply@monarca.dev>';
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromAddress,
       to,

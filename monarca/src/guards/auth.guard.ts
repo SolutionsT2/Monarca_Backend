@@ -19,7 +19,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest() as Request & {
-      sessionInfo: SessionInfoInterface;
+      sessionInfo: SessionInfo;
     };
 
     const token = request.cookies['sessionInfo'];
@@ -29,7 +29,7 @@ export class AuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      request.sessionInfo = payload as SessionInfoInterface;
+      request.sessionInfo = payload as SessionInfo;
       return true;
     } catch (err) {
       throw new UnauthorizedException('Invalid token');
