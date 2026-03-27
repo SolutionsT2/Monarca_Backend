@@ -35,7 +35,7 @@ export class Voucher {
   @Column({ name: 'date', type: 'timestamptz' })
   date: Date;
 
-  @Column({ name: 'file_url_pdf', type: 'varchar',nullable: true })
+  @Column({ name: 'file_url_pdf', type: 'varchar', nullable: true })
   file_url_pdf: string | null;
 
   @Column({ name: 'file_url_xml', type: 'varchar', nullable: true })
@@ -43,6 +43,9 @@ export class Voucher {
 
   @Column({ name: 'status', type: 'varchar' })
   status: string;
+
+  @Column({ name: 'policy_status', type: 'varchar', default: 'PENDING', nullable: true })
+  policy_status: string; // new column to track policy evaluation status
 
   @Column({ name: 'id_approver', type: 'uuid' })
   id_approver: string;
