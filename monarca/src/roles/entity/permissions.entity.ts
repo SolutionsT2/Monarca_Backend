@@ -18,10 +18,10 @@ export class Permission {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description?: string;
 
-  @Column({ type: 'varchar', length: 80 })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   module: string;
 
-  @Column({ type: 'varchar', length: 80 })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   action: string;
 
   // @OneToMany(() => RolePermission, (rp) => rp.role)
