@@ -77,6 +77,7 @@ Se mantiene el contrato por codigos canónicos:
 - AIRP
 
 El backend normaliza aliases legacy para evitar mismatch de nomenclatura.
+Nota: hoy este catalogo sigue en codigo (src/vouchers/types/voucher-spend.types.ts y validacion en src/vouchers/dto/create-voucher-dto.ts), no en BD.
 
 ## 2) Seed y datos de politicas
 
@@ -134,6 +135,7 @@ Esto aplica tanto para submit como para create voucher cuando hay violacion bloq
    - submit bloqueado
    - submit exitoso
 6. Migrar a migraciones formales de TypeORM (evitar dependencia en synchronize true para ambientes controlados).
+7. Migrar catalogo de clases de gasto a BD (tabla de catalogo + seed), para eliminar dependencia de lista hardcoded en backend.
 
 ## 6) Checklist de validacion rapida
 
