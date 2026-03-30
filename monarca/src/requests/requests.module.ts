@@ -20,7 +20,8 @@ import { TravelAgenciesModule } from 'src/travel-agencies/travel-agencies.module
 import { RequestLogsModule } from 'src/request-logs/request-logs.module';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
-import { PoliciesModule } from 'src/policies/policies.module';
+import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
+import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 
 /**
  * Module encapsulating request domain logic
@@ -28,14 +29,14 @@ import { PoliciesModule } from 'src/policies/policies.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Request, RequestsDestination]),
+    TypeOrmModule.forFeature([Request, RequestsDestination, PolicyViolation]),
     GuardsModule,
     UsersModule,
     DestinationsModule,
     TravelAgenciesModule,
     RequestLogsModule,
     NotificationsModule, // Assuming this is a controller that handles notifications related to requests
-    PoliciesModule,
+    PolicyEngineModule,
   ],
   controllers: [RequestsController, RequestsStatusController],
   providers: [RequestsService, RequestsChecks, RequestsStatusService, NotificationsService],

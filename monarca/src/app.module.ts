@@ -112,6 +112,9 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
       Voucher,
       UserLogs,
       Revision,
+      Policy,
+      PolicyRule,
+      PolicyViolation,
     ]),
 
   ],

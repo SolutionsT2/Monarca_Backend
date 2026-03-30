@@ -1,0 +1,32 @@
+[
+  {
+    "id": "dd92f393-9f53-4fe6-b4be-14e5311ab101",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "CAPA",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "0a028ea8-5d69-4f0d-b89f-02d16b4f3102",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "ALIF",
+    "operator": "LT",
+    "threshold_value": 50,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "d18690b0-2474-4497-867e-e94cc6a62803",
+    "id_policy": "0f2ed8b1-1e7e-4c7b-8d65-4dd204d6d6a8",
+    "expense_class": "TODAS",
+    "operator": "DAYS_EXCEEDED",
+    "threshold_value": 28,
+    "threshold_unit": "DAYS",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  }
+]

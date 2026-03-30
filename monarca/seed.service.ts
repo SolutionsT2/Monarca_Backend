@@ -20,6 +20,9 @@ import { Revision } from 'src/revisions/entities/revision.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Permission } from 'src/roles/entity/permissions.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
+import { Policy } from 'src/policy-engine/entities/policy.entity';
+import { PolicyRule } from 'src/policy-engine/entities/policy-rule.entity';
+import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -51,6 +54,9 @@ export class SeedService {
         @InjectRepository(Permission) private readonly permissionRepo: Repository<Permission>,
         @InjectRepository(Roles) private readonly rolesRepo: Repository<Roles>,
         @InjectRepository(RolePermission) private readonly rolePermissionRepo: Repository<RolePermission>,
+        @InjectRepository(Policy) private readonly policyRepo: Repository<Policy>,
+        @InjectRepository(PolicyRule) private readonly policyRuleRepo: Repository<PolicyRule>,
+        @InjectRepository(PolicyViolation) private readonly policyViolationRepo: Repository<PolicyViolation>,
     ) {}
 
     async run() {
@@ -63,6 +69,8 @@ export class SeedService {
             { repo: this.rolesRepo, file: 'roles.json', entityName: 'Roles' },
             { repo: this.userRepo, file: 'users.json', entityName: 'User' },
             { repo: this.rolePermissionRepo, file: 'roles-permissions.json', entityName: 'RolePermission' },
+            { repo: this.policyRepo, file: 'policies.json', entityName: 'Policy' },
+            { repo: this.policyRuleRepo, file: 'policy-rules.json', entityName: 'PolicyRule' },
             { repo: this.userLogsRepo, file: 'user-logs.json', entityName: 'UserLogs' },
             { repo: this.requestRepo, file: 'requests.json', entityName: 'Request' },
             { repo: this.requestsDestinationRepo, file: 'requests-destinations.json', entityName: 'RequestsDestination' },
@@ -70,6 +78,7 @@ export class SeedService {
             { repo: this.requestLogRepo, file: 'request-logs.json', entityName: 'RequestLog' },
             { repo: this.revisionRepo, file: 'revisions.json', entityName: 'Revision' },
             { repo: this.voucherRepo, file: 'vouchers.json', entityName: 'Voucher' },
+            { repo: this.policyViolationRepo, file: 'policy-violations.json', entityName: 'PolicyViolation' },
         ];
 
         const hashPasswords = async (user: User) => {
@@ -143,6 +152,9 @@ export class SeedService {
             await queryRunner.startTransaction();
 
             const tables = [
+                'policy_violations',
+                'policy_rules',
+                'policies',
                 'vouchers',
                 'revisions',
                 'request_logs',

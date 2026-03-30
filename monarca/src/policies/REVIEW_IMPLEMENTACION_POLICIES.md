@@ -1,81 +1,65 @@
-# Revision interna - Implementacion Policies MVP
+# Revision interna - Implementacion Policies
 
-Fecha: 2026-03-27
-Modulo: Policies
-Objetivo del MVP: validar politicas de comprobacion antes de avanzar el flujo a Pending Vouchers Approval.
+Fecha: 2026-03-30
+Modulo: Policy Engine
+Objetivo: validar politicas de comprobacion con datos reales de BD y bloquear desde la creacion de voucher cuando haya violaciones bloqueantes.
 
-## 1) Que ya se implemento
+## 1) Estado actual implementado
 
-### 1.1 Modulo y arquitectura base
-Se creo una arquitectura desacoplada por capas dentro de src/policies:
+### 1.1 Motor canónico activo
+El flujo ya usa el modulo con BD real:
 
-- policies.module.ts
-- types/policy.types.ts
-- services/policy-repository.interface.ts
-- repositories/in-memory-policy.repository.ts
-- services/policy-engine.service.ts
-- dtos/policy-evaluation-response.dto.ts
+- src/policy-engine/policy-engine.module.ts
+- src/policy-engine/policy-engine.service.ts
+- src/policy-engine/entities/policy.entity.ts
+- src/policy-engine/entities/policy-rule.entity.ts
+- src/policy-engine/entities/policy-violation.entity.ts
 
-Motivo:
-- Separar logica de evaluacion de la fuente de datos.
-- Permitir empezar sin BD final.
-- Cambiar despues a TypeORM sin reescribir el motor.
+El modulo in-memory en src/policies se mantiene solo como referencia temporal/deprecada.
 
-### 1.2 Reglas MVP activas en memoria
-Se cargaron 4 reglas iniciales en InMemoryPolicyRepository:
+### 1.2 Flujo de submit (finished-uploading-vouchers)
+En RequestsStatusService se usa evaluateRequestSubmission del policy-engine DB.
 
-1. ALL_TOTAL_LTE_ADVANCE
-   - Tipo: TOTAL_VOUCHERS_LIMIT
-   - Nivel: REQUEST
-   - Regla: suma de vouchers no debe exceder anticipo.
+Comportamiento:
+1. Evalua reglas por request y por voucher.
+2. Si hay bloqueantes: responde 422 con policy_summary y no cambia estado.
+3. Si no hay bloqueantes: continua notificacion y cambia a Pending Vouchers Approval.
 
-2. TRAINING_REQUIRES_XML
-   - Tipo: FILE_REQUIRED
-   - Nivel: VOUCHER
-   - Clase: CAPA
-   - Regla: requiere XML.
+### 1.3 Flujo de creacion de voucher
+VouchersService.create ahora valida inmediatamente con el policy-engine.
 
-3. FOOD_MAX_50
-   - Tipo: AMOUNT_LIMIT
-   - Nivel: VOUCHER
-   - Clase: ALIF
-   - Regla: monto maximo 50 MXN.
+Comportamiento actual:
+1. Guarda temporalmente el voucher.
+2. Evalua reglas de voucher.
+3. Si falla: elimina el voucher y responde 422 con policy_summary.
+4. Si pasa: conserva el voucher y responde exito.
 
-4. ALL_TIME_LIMIT_4W
-   - Tipo: TIME_LIMIT
-   - Nivel: REQUEST
-   - Regla: limite 4 semanas.
+Resultado: se evita el escenario de negocio donde un voucher invalido queda persistido y solo falla hasta submit.
 
-### 1.3 Motor de evaluacion
-PolicyEngineService ya:
-- Evalua reglas por request.
-- Evalua reglas por voucher.
-- Construye resumen:
-  - total_rules
-  - passed
-  - failed
-  - blocking_violations
-  - can_submit
-  - violations
+### 1.4 Auditoria de violaciones
+Se persisten violaciones en policy_violations cuando una evaluacion bloqueante falla.
+Tambien se actualiza policy_status por voucher (APPROVED o POLICY_VIOLATION).
 
-### 1.4 Integracion real al flujo de requests
-Se integro en RequestsStatusService, metodo finishedUploadingVouchers:
+### 1.5 Endpoint de consulta por request
+Se agrego endpoint para consultar violaciones por solicitud:
 
-- Antes de notificar y cambiar estado, se corre evaluateRequestSubmission.
-- Si can_submit = false:
-  - responde 422
-  - no cambia estado
-  - devuelve policy_summary
-- Si can_submit = true:
-  - sigue flujo actual normal
-  - notifica admin
-  - cambia a Pending Vouchers Approval
+- GET /requests/:id/policy-violations
 
-### 1.5 Wiring de modulo
-RequestsModule ya importa PoliciesModule para inyeccion del motor.
+Comportamiento:
+1. Reutiliza validacion de acceso de RequestsService.findOne (owner/admin/SOI/TA asignada).
+2. Consulta policy_violations por vouchers del request.
+3. Devuelve total y detalle de violaciones con datos de voucher y regla.
 
-### 1.6 Contrato FE-BE normalizado (clase de gasto)
-Se normalizo el contrato de clase de gasto para usar codigos canónicos del frontend:
+Salida:
+- request_id
+- total
+- violations[]
+   - id, id_voucher, id_policy_rule, detail, created_at
+   - voucher: class, amount, currency, date
+   - rule: expense_class, operator, threshold_value, threshold_unit, consequence
+
+### 1.6 Contrato FE-BE de clase de gasto
+Se mantiene el contrato por codigos canónicos:
 
 - ALIF
 - CAPA
@@ -92,106 +76,76 @@ Se normalizo el contrato de clase de gasto para usar codigos canónicos del fron
 - TRAA
 - AIRP
 
-Cambios aplicados:
-- DTO de vouchers valida class contra ese catalogo con IsIn + transform.
-- Backend normaliza aliases legacy (por ejemplo ALIMENTACION -> ALIF, CAPACITACION -> CAPA).
-- Rules de policies MVP se alinearon a codigos (ALIF, CAPA).
-- El filtro de politicas usa la clase normalizada para evitar mismatch por nomenclatura.
+El backend normaliza aliases legacy para evitar mismatch de nomenclatura.
 
-## 2) Contrato de salida actual para Frontend (cuando falla)
+## 2) Seed y datos de politicas
 
-HTTP status: 422
+Se agrego seed para tablas de policies:
 
-Body (estructura):
+- seeds/policies.json
+- seeds/policy-rules.json
+- seeds/policy-violations.json
 
-statusCode: 422
-message: Policy validation failed. Resolve violations before submit.
-policy_summary:
-  total_rules: number
-  passed: number
-  failed: number
-  blocking_violations: number
-  can_submit: boolean
-  violations: array
+El seed ya se integra en:
 
-Campos por elemento de violations:
-- policy_id
-- policy_code
-- passed
+- seed.service.ts
+- src/app.module.ts (repos forFeature)
+
+Reglas semilla incluidas:
+1. CAPA + MISSING_XML
+2. ALIF + LT 50
+3. TODAS + DAYS_EXCEEDED 28
+
+## 3) Contrato de error para frontend
+
+Cuando bloquea, la API responde 422 con:
+
+- statusCode
 - message
-- severity
-- consequence
-- can_override
-- evaluated_value
+- policy_summary
 
-## 3) Trabajo pendiente por area
+policy_summary contiene:
 
-### 3.1 Equipo DB
-Objetivo: reemplazar repositorio en memoria por persistencia real.
+- total_rules
+- passed
+- failed
+- blocking_violations
+- can_submit
+- violations[]
 
-Pendientes DB:
-1. Crear tablas finales (segun diseno acordado):
-   - policies
-   - policy_rules
-   - policy_violations o policy_evaluations
-2. Definir llaves e indices:
-   - indice por policy code
-   - indice por request id / voucher id en violaciones
-   - timestamps para auditoria
-3. Definir campos minimos para reglas:
-   - applies_on
-   - rule_type
-   - params (jsonb)
-   - consequence
-   - severity
-   - is_active
-   - allow_override
-4. Entregar migracion y semilla inicial de reglas.
+Esto aplica tanto para submit como para create voucher cuando hay violacion bloqueante.
 
-Pendientes BE-DB integration:
-1. Crear entities TypeORM para policies.
-2. Cambiar provider IPolicyRepository:
-   - de InMemoryPolicyRepository
-   - a TypeOrmPolicyRepository
-3. Persistir cada evaluacion en tabla de violaciones/evaluaciones.
+## 4) Riesgos conocidos y decisiones
 
-### 3.2 Equipo Frontend
-Objetivo: mostrar errores de politicas al enviar comprobacion.
+1. Todavia existen dos carpetas de policies en repo.
+   - Decision: policy-engine es fuente canónica.
+   - src/policies queda deprecado hasta limpieza final.
+2. Las pruebas unitarias actuales del proyecto fallan por configuracion/imports de test no relacionados al motor de policies.
+3. Hay ruido de lint por EOL (CRLF/LF) en algunos archivos; no afecta logica de negocio.
 
-Pendientes FE:
-1. Enviar siempre class como code del catalogo (ALIF, CAPA, etc.), no label.
-1. Conectar boton Enviar Solicitud al endpoint ya existente de submit de comprobacion.
-2. Manejar respuesta 422:
-   - leer policy_summary
-   - renderizar lista de violations
-3. Bloquear UX de avance cuando can_submit = false.
-4. Mostrar mensaje por regla:
-   - usar field message
-   - opcional: agrupar por severity
-5. Confirmar flujo exitoso cuando no hay violaciones.
+## 5) Siguientes pasos (priorizados)
 
-No requerido en esta iteracion:
-- CRUD visual de reglas de politicas (se deja para fase final).
-- Override por UI (iteracion 2).
+1. Ajustar frontend para manejar 422 tambien en create voucher (no solo en submit), mostrando policy_summary de forma consistente.
+2. Unificar mensajes UX para evitar alertas optimistas de exito antes de confirmar respuesta del backend.
+3. Conectar frontend a GET /requests/:id/policy-violations para vista de auditoria/historial.
+4. Decidir y ejecutar cleanup final de src/policies (in-memory) una vez validado en QA.
+5. Agregar pruebas de integracion para:
+   - create voucher bloqueado
+   - submit bloqueado
+   - submit exitoso
+6. Migrar a migraciones formales de TypeORM (evitar dependencia en synchronize true para ambientes controlados).
 
-## 4) Checklist de validacion cruzada
+## 6) Checklist de validacion rapida
 
-### BE
-- submit con datos validos avanza a Pending Vouchers Approval
-- submit con violaciones responde 422 y no cambia estado
+Backend:
+- create voucher invalido responde 422 y no persiste en vouchers
+- submit invalido responde 422 y request permanece In Progress
+- submit valido cambia a Pending Vouchers Approval
 
-### FE
-- pantalla muestra violaciones devueltas por policy_summary
-- usuario entiende por que no puede enviar
+Frontend:
+- renderiza policy_summary.violations en create y submit
+- no muestra exito si la API responde 422
 
-### DB
-- migraciones aplican sin romper flujo actual
-- datos semilla de reglas equivalentes a las 4 del MVP
-
-## 5) Proximo hito recomendado
-
-Hito 2:
-- conectar TypeOrmPolicyRepository
-- persistir evaluaciones en tabla
-- agregar endpoint de consulta de violaciones por request
-- preparar base para override con auditoria
+DB:
+- tablas policies, policy_rules y policy_violations pobladas
+- reglas activas coherentes con codigos de gasto del frontend

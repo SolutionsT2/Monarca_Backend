@@ -1,6 +1,7 @@
 /**
  * File: policies.module.ts
  * Description: Policies module wiring the policy engine and repository adapter.
+ * Deprecated: replaced by policy-engine module backed by DB entities.
  */
 
 import { Module } from '@nestjs/common';
