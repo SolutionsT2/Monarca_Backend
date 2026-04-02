@@ -245,7 +245,7 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin', 'vouchers'],
+      relations: ['admin', 'vouchers', 'requests_destinations'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -258,14 +258,63 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
+    const vouchers = request.vouchers || [];
+    const hasAdvance = Number(request.advance_money || 0) > 0;
+    const destinations = request.requests_destinations || [];
+
+    const tripStartDate = destinations.length
+      ? new Date(
+          Math.min(
+            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
+          ),
+        )
+      : null;
+
+    const tripEndDate = destinations.length
+      ? new Date(
+          Math.max(
+            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
+          ),
+        )
+      : null;
+
+    if (hasAdvance && vouchers.length === 0) {
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        message:
+          'Cannot submit reimbursement without vouchers when an advance was requested.',
+        policy_summary: {
+          total_rules: 1,
+          passed: 0,
+          failed: 1,
+          blocking_violations: 1,
+          can_submit: false,
+          violations: [
+            {
+              policy_id: 'ADVANCE_REQUIRES_VOUCHERS',
+              policy_code: 'ADVANCE_REQUIRES_VOUCHERS',
+              passed: false,
+              message:
+                'Advance exists on request, but no vouchers were uploaded for reimbursement.',
+              severity: 'BLOCKING',
+              consequence: 'POLICY_VIOLATION',
+              can_override: false,
+            },
+          ],
+        },
+      });
+    }
+
     // Evaluate reimbursement policies before moving the request to approval.
     const summary = await this.policyEngineService.evaluateRequestSubmission(
       {
         id: request.id,
         advance_money: request.advance_money,
         createdAt: request.createdAt,
+        trip_start_date: tripStartDate,
+        trip_end_date: tripEndDate,
       },
-      (request.vouchers || []).map((voucher) => ({
+      vouchers.map((voucher) => ({
         id: voucher.id,
         id_request: voucher.id_request,
         class: voucher.class,

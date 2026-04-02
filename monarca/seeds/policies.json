@@ -10,5 +10,11 @@
     "name": "Politica de Tiempo",
     "description": "Reglas de ventana de tiempo para subir comprobaciones",
     "is_active": true
+  },
+  {
+    "id": "7f6fa3ee-2f08-4e91-b1d2-1d8b17b8d8aa",
+    "name": "Politica de Anticipo",
+    "description": "El total comprobado no debe exceder el anticipo recibido o autorizado",
+    "is_active": true
   }
 ]

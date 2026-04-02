@@ -93,9 +93,14 @@ El seed ya se integra en:
 - src/app.module.ts (repos forFeature)
 
 Reglas semilla incluidas:
-1. CAPA + MISSING_XML
-2. ALIF + LT 50
+1. Cobertura por clase (14 codigos canónicos) con MISSING_XML:
+   - ALIF, CAPA, CPF, FIDP, GAS, HTLP, LAUN, NDPR, NDVA, REAU, TCCF, TSCF, TRAA, AIRP
+2. Topes de monto temporales (fase 2):
+   - ALIF + LT 50 MXN
+   - CAPA, CPF, FIDP, GAS, HTLP, LAUN, NDPR, NDVA, REAU, TCCF, TSCF, TRAA, AIRP + LT 5000 MXN
 3. TODAS + DAYS_EXCEEDED 28
+4. TODAS + TOTAL_LTE_ADVANCE (anticipo)
+5. Logging detallado en consola cuando hay violaciones para identificar regla, severidad, consecuencia y valor evaluado.
 
 ## 3) Contrato de error para frontend
 
@@ -136,6 +141,7 @@ Esto aplica tanto para submit como para create voucher cuando hay violacion bloq
    - submit exitoso
 6. Migrar a migraciones formales de TypeORM (evitar dependencia en synchronize true para ambientes controlados).
 7. Migrar catalogo de clases de gasto a BD (tabla de catalogo + seed), para eliminar dependencia de lista hardcoded en backend.
+8. Mantener la politica de anticipo como regla request-level con nombre claro: "El total comprobado no debe exceder el anticipo recibido o autorizado".
 
 ## 6) Checklist de validacion rapida
 

@@ -25,10 +25,13 @@ const REQUEST_LEVEL_OPERATORS = new Set([
   'TOTAL_VOUCHERS_LTE_ADVANCE',
   'DAYS_EXCEEDED',
   'TIME_LIMIT',
+  'VOUCHER_DATE_WITHIN_TRIP_WINDOW',
 ]);
 
 @Injectable()
 export class PolicyEngineService {
+  private readonly contextLabel = 'PolicyEngineService';
+
   constructor(
     @InjectRepository(PolicyRule)
     private readonly policyRuleRepo: Repository<PolicyRule>,
@@ -51,6 +54,23 @@ export class PolicyEngineService {
     for (const rule of rules) {
       const violated = this.evaluateRule(rule, voucher);
       if (violated) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[${this.contextLabel}][VOUCHER_EVALUATION] Policy violated`,
+          JSON.stringify(
+            {
+              voucher_id: voucher.id,
+              expense_class: voucher.class,
+              policy_rule_id: rule.id,
+              operator: rule.operator,
+              threshold_value: rule.threshold_value,
+              threshold_unit: rule.threshold_unit,
+            },
+            null,
+            2,
+          ),
+        );
+
         const violation = this.policyViolationRepo.create({
           id_voucher: voucher.id,
           id_policy_rule: rule.id,
@@ -96,6 +116,13 @@ export class PolicyEngineService {
     }
 
     const summary = this.buildSummary(evaluations);
+    this.logViolationsToConsole('REQUEST_SUBMISSION', {
+      requestId: requestContext.id,
+      totalRules: summary.total_rules,
+      failedRules: summary.failed,
+      blockingViolations: summary.blocking_violations,
+      violations: summary.violations,
+    });
     await this.persistBlockingViolations(evaluations);
     await this.updateVoucherPolicyStatus(vouchers, evaluations);
 
@@ -173,6 +200,50 @@ export class PolicyEngineService {
         evaluated_value: {
           elapsed_days: elapsedDays,
           max_days: limit,
+        },
+      };
+    }
+
+    if (operator === 'VOUCHER_DATE_WITHIN_TRIP_WINDOW') {
+      const tripStart = requestContext.trip_start_date
+        ? new Date(requestContext.trip_start_date)
+        : null;
+      const tripEnd = requestContext.trip_end_date
+        ? new Date(requestContext.trip_end_date)
+        : null;
+
+      if (!tripStart || !tripEnd || Number.isNaN(tripStart.getTime()) || Number.isNaN(tripEnd.getTime())) {
+        return {
+          ...base,
+          passed: true,
+          message: 'Trip window is not available; voucher-date rule skipped.',
+          evaluated_value: {
+            trip_start_date: requestContext.trip_start_date ?? null,
+            trip_end_date: requestContext.trip_end_date ?? null,
+          },
+        };
+      }
+
+      const outOfWindowVouchers = vouchers.filter((voucher) => {
+        const voucherDate = new Date(voucher.date);
+        if (Number.isNaN(voucherDate.getTime())) {
+          return true;
+        }
+        return voucherDate < tripStart || voucherDate > tripEnd;
+      });
+
+      const passed = outOfWindowVouchers.length === 0;
+
+      return {
+        ...base,
+        passed,
+        message: passed
+          ? 'All voucher dates are within the trip window.'
+          : 'One or more voucher dates are outside the trip window.',
+        evaluated_value: {
+          trip_start_date: tripStart.toISOString(),
+          trip_end_date: tripEnd.toISOString(),
+          out_of_window_voucher_ids: outOfWindowVouchers.map((voucher) => voucher.id),
         },
       };
     }
@@ -342,5 +413,57 @@ export class PolicyEngineService {
       default:
         return false;
     }
+  }
+
+  private logViolationsToConsole(
+    stage: 'REQUEST_SUBMISSION' | 'VOUCHER_EVALUATION',
+    context: {
+      requestId?: string;
+      voucherId?: string;
+      totalRules: number;
+      failedRules: number;
+      blockingViolations: number;
+      violations: PolicyEvaluationResult[];
+    },
+  ): void {
+    if (!context.violations.length) {
+      return;
+    }
+
+    const stageLabel = `[${this.contextLabel}][${stage}]`;
+
+    // eslint-disable-next-line no-console
+    console.warn(
+      `${stageLabel} Policy validation failed`,
+      JSON.stringify(
+        {
+          request_id: context.requestId,
+          voucher_id: context.voucherId,
+          total_rules: context.totalRules,
+          failed_rules: context.failedRules,
+          blocking_violations: context.blockingViolations,
+        },
+        null,
+        2,
+      ),
+    );
+
+    context.violations.forEach((violation, index) => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `${stageLabel} Violation #${index + 1}`,
+        JSON.stringify(
+          {
+            policy_rule_id: violation.policy_id,
+            severity: violation.severity,
+            consequence: violation.consequence,
+            message: violation.message,
+            evaluated_value: violation.evaluated_value ?? null,
+          },
+          null,
+          2,
+        ),
+      );
+    });
   }
 }

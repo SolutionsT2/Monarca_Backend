@@ -17,6 +17,8 @@ export interface RequestPolicyContext {
   id: string;
   advance_money: number;
   createdAt: Date;
+  trip_start_date?: Date | null;
+  trip_end_date?: Date | null;
 }
 
 export interface VoucherPolicyContext {

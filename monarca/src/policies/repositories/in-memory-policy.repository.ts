@@ -20,7 +20,7 @@ export class InMemoryPolicyRepository implements IPolicyRepository {
     {
       id: 'policy-1',
       code: 'ALL_TOTAL_LTE_ADVANCE',
-      name: 'Monto no excede anticipo',
+      name: 'Total comprobado no excede anticipo',
       expense_class: 'ALL',
       applies_on: PolicyAppliesOn.REQUEST,
       rule_type: PolicyRuleType.TOTAL_VOUCHERS_LIMIT,
