@@ -10,11 +10,10 @@ import { Permission } from './permissions.entity';
 @Entity('roles_permissions')
 export class RolePermission {
   @PrimaryColumn({ name: 'id_role', type: 'uuid' })
-  // id_role: string;
-  id: string;
+  idRole: string;
 
   @PrimaryColumn({ name: 'id_permission', type: 'uuid' })
-  id_permission: string;
+  idPermission: string;
 
   @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
   expiresAt?: Date | null;
@@ -39,4 +38,6 @@ export class RolePermission {
  *   - Added expires_at field to support temporary permission assignments.
  *   - Explicitly defined composite primary keys (id_role, id_permission).
  *   - Ensured proper ManyToOne relationships with Roles and Permission entities.
+ * - 2026-03-24:
+ *   - Renamed entity properties to idRole and idPermission for consistency with database columns.
  */
