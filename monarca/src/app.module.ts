@@ -38,6 +38,7 @@ import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { TravelIntegrationsModule } from './travel-integrations/travel-integrations.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { NotificationsModule } from './notifications/notifications.module';
       serveRoot: '/files',
     }),
     NotificationsModule,
+    TravelIntegrationsModule,
     AuthModule,
     UsersModule,
     TravelAgenciesModule,
