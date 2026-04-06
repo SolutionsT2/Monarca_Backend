@@ -58,7 +58,12 @@ export class RequestsDestination {
   @Column({ name: 'details', nullable: true })
   details: string;
 
-  @Column({ name: 'duffel_offer_request_id', nullable: true, default: null })
+  @Column({
+    name: 'duffel_offer_request_id',
+    type: 'varchar',
+    nullable: true,
+    default: null,
+  })
   duffel_offer_request_id: string | null;
 
   @Column({

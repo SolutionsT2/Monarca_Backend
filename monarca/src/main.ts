@@ -13,6 +13,7 @@ import { LoggingMiddleware } from './utils/logging.middleware';
 import * as fs from 'fs';
 import * as https from 'https';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -23,6 +24,15 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
+
+  // Middleware to capture raw body for webhook signature validation
+  app.use(
+    bodyParser.json({
+      verify: (req: any, res, buf) => {
+        req.rawBody = buf.toString('utf8');
+      },
+    }),
+  );
 
   app.use(cookieParser());
   app.use(new LoggingMiddleware().use);

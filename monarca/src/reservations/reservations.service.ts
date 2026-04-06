@@ -84,8 +84,57 @@ export class ReservationsService {
     return reservation;
   }
 
-  async update(id: string, Body: UpdateReservationDto) {
-    return await this.reservationsRepository.update(id, Body);
+  async update(id: string, body: UpdateReservationDto) {
+    const reservation = await this.findOne(id);
+
+    const {
+      title,
+      comments,
+      price,
+      id_request_destination,
+      file,
+      link,
+      provider_name,
+      provider_offer_id,
+      booking_reference,
+      provider_meta,
+      hold_expires_at,
+    } = body;
+
+    const payload: Partial<Reservation> = {
+      ...(title !== undefined ? { title } : {}),
+      ...(comments !== undefined ? { comments } : {}),
+      ...(price !== undefined ? { price } : {}),
+      ...(id_request_destination !== undefined
+        ? { id_request_destination }
+        : {}),
+      ...(file !== undefined ? { file } : {}),
+      ...(link !== undefined ? { link: link ?? null } : {}),
+      ...(provider_name !== undefined
+        ? { provider_name: provider_name ?? null }
+        : {}),
+      ...(provider_offer_id !== undefined
+        ? { provider_offer_id: provider_offer_id ?? null }
+        : {}),
+      ...(booking_reference !== undefined
+        ? { booking_reference: booking_reference ?? null }
+        : {}),
+      ...(provider_meta !== undefined
+        ? { provider_meta: provider_meta ?? null }
+        : {}),
+      ...(hold_expires_at !== undefined
+        ? {
+            hold_expires_at: hold_expires_at ? new Date(hold_expires_at) : null,
+          }
+        : {}),
+    };
+
+    const mergedReservation = this.reservationsRepository.merge(
+      reservation,
+      payload,
+    );
+
+    return this.reservationsRepository.save(mergedReservation);
   }
 
   async findDuffelReservationByReference(
