@@ -1,6 +1,6 @@
 /**
  * File: permissions.guard.ts
- * Description: Guard that loads the current user and their permissions, then enforces required permissions from the handler metadata.
+ * Description: Guard that loads the current user, computes effective (non-expired) permissions for their role, and enforces @Permissions metadata on the route.
  */
 
 import {
@@ -14,30 +14,33 @@ import { PERMISSIONS_KEY } from './decorators/permission.decorator';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SessionInfoInterface } from './interfaces/sessionInfo.interface';
-import { UserInfoInterface } from './interfaces/userInfo.interface';
 import { RequestInterface } from './interfaces/request.interface';
+import { EffectivePermissionsService } from 'src/roles/effective-permissions.service';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
+    private readonly reflector: Reflector,
     @InjectRepository(User)
-    private userRepository123: Repository<User>,
+    private readonly userRepository: Repository<User>,
+    private readonly effectivePermissions: EffectivePermissionsService,
   ) {}
 
+  /**
+   * Allows the request when the user has every required permission and each assignment is not expired.
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestInterface>();
 
     const userId = request.sessionInfo?.id;
-    if (!userId) throw new ForbiddenException('User session not found');
-
-    const user = await this.findById(userId);
-    if (!user || !user.role || !user.role.permissions) {
-      throw new ForbiddenException('User or permissions not found');
+    if (!userId) {
+      throw new ForbiddenException('User session not found');
     }
 
-    // console.log('User found:', user.id);
+    const user = await this.findById(userId);
+    if (!user?.role) {
+      throw new ForbiddenException('User or permissions not found');
+    }
 
     request.sessionInfo.id = user.id;
     request.userInfo = {
@@ -50,33 +53,40 @@ export class PermissionsGuard implements CanActivate {
       id_role: user.idRole,
       id_travel_agency: user.idTravelAgency,
     };
-    // console.log(`request.sessionInfo.id: ${request.sessionInfo.id}`)
 
-    const userPermissions = user.role.permissions.map((p) => p.name);
+    const userPermissions =
+      await this.effectivePermissions.getEffectivePermissionNames(user);
     request.userPermissions = userPermissions;
 
-    const permissionsRequired = this.reflector.get<string[]>(
-      PERMISSIONS_KEY,
-      context.getHandler(),
-    );
+    const permissionsRequired =
+      this.reflector.getAllAndMerge<string[]>(PERMISSIONS_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? [];
 
-    if (!permissionsRequired) return true;
+    if (permissionsRequired.length === 0) {
+      return true;
+    }
 
-    const hasPermission = permissionsRequired.every((permission) =>
+    const requiredUnique = [...new Set(permissionsRequired)];
+    const hasEveryPermission = requiredUnique.every((permission) =>
       userPermissions.includes(permission),
     );
 
-    if (!hasPermission) {
+    if (!hasEveryPermission) {
       throw new ForbiddenException('Permission denied');
     }
 
     return true;
   }
 
-  async findById(id: string): Promise<User> {
-    const user = await this.userRepository123.findOne({
+  /**
+   * Loads the user and role with join rows needed to evaluate expiry per permission.
+   */
+  private async findById(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['role', 'role.permissions'],
+      relations: ['role', 'role.rolePermissions', 'role.rolePermissions.permission'],
     });
 
     if (!user) {
@@ -87,7 +97,9 @@ export class PermissionsGuard implements CanActivate {
   }
 }
 
-/**
- * Modification History:
- * - 2026-03-02: Added file header; removed commented debug code; renamed userRepository123 to userRepository.
- */
+/*
+Modification History:
+- 2026-03-02: Added file header; removed commented debug code.
+- 2026-03-27 | Efren | Permission-only checks via rolePermissions + expires_at; Reflector getAllAndMerge; rename repository.
+- 2026-03-27 | Efren | Merge substitute role permissions via EffectivePermissionsService.
+*/

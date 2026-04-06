@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Monarca roles import format (POST /roles/import-xml, multipart field "file").
+  Root element: rolesImport
+  Each role: <role name="..." description="..." isActive="true|false">
+  Permissions: child elements <permission moduleId="mod_travel" moduleName="Solicitudes de Viaje" actions="create,read,approve"/>
+-->
+<rolesImport version="1.0">
+  <role name="Ejemplo Importado" description="Creado vía XML" isActive="true">
+    <permissions>
+      <permission moduleId="mod_travel" moduleName="Solicitudes de Viaje" actions="create,read"/>
+      <permission moduleId="mod_refunds" actions="read,approve"/>
+    </permissions>
+  </role>
+</rolesImport>

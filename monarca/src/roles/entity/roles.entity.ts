@@ -17,10 +17,16 @@ import { Permission } from './permissions.entity';
 @Entity('roles')
 export class Roles {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   name: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 
   @ManyToMany(() => Permission)
   @JoinTable({
@@ -30,11 +36,13 @@ export class Roles {
   })
   permissions: Permission[];
 
-  @OneToMany(() => RolePermission, (rp) => rp.permission)
+  @OneToMany(() => RolePermission, (rp) => rp.role)
   rolePermissions: RolePermission[];
 }
 
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-03-27 | Efren | Fixed rolePermissions inverse side to RolePermission.role.
+ * - 2026-03-27 | Efren | Added description and is_active for admin API.
  */

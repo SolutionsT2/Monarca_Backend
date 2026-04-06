@@ -8,12 +8,14 @@ import { User } from './entities/user.entity';
 import { Not, Repository } from 'typeorm';
 import { LogInDTO } from 'src/auth/dto/login.dto';
 import * as bcrypt from 'bcrypt';
+import { EffectivePermissionsService } from 'src/roles/effective-permissions.service';
 
 @Injectable()
 export class UserChecks {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly effectivePermissions: EffectivePermissionsService,
   ) {}
 
   /**
@@ -49,13 +51,23 @@ export class UserChecks {
   async getUserById(id: string): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { id: id },
-      select: ['id', 'name', 'email', 'department', 'lastName', 'role'], // lastName updated to camelCase
-      relations: ['department', 'role', 'role.permissions'],
+      select: ['id', 'name', 'email', 'department', 'lastName', 'role'],
+      relations: [
+        'department',
+        'role',
+        'role.rolePermissions',
+        'role.rolePermissions.permission',
+      ],
     });
 
     if (!user) {
       console.log('User not found');
       return null;
+    }
+
+    if (user.role) {
+      user.role.permissions =
+        await this.effectivePermissions.getActivePermissionsForUser(user);
     }
 
     return user;
@@ -141,4 +153,5 @@ export class UserChecks {
 /*
 Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+- 2026-03-27 | Efren | Profile loads rolePermissions and exposes only non-expired permissions on role.permissions.
 */

@@ -1,24 +1,44 @@
 /**
  * File: permissions.entity.ts
- * Description: TypeORM entity for permissions (e.g. action names); linked to roles via RolePermission.
+ * Description: Granular permission rows; name is the guard key (moduleId:action). Optional link to auth_modules.
  */
 
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { RolePermission } from './roles_permissions.entity';
+import { AuthModuleEntity } from './auth-module.entity';
 
 @Entity('permissions')
 export class Permission {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 512, unique: true })
   name: string;
 
-  @OneToMany(() => RolePermission, (rp) => rp.role)
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  action: string | null;
+
+  @ManyToOne(() => AuthModuleEntity, (m) => m.permissions, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'module_id' })
+  authModule: AuthModuleEntity | null;
+
+  @OneToMany(() => RolePermission, (rp) => rp.permission)
   rolePermissions: RolePermission[];
 }
 
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-03-27 | Efren | Fixed rolePermissions inverse side to RolePermission.permission.
+ * - 2026-03-27 | Efren | Added auth module relation, action, string id; name remains unique guard key.
  */

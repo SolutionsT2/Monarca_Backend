@@ -10,12 +10,18 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { DepartmentsModule } from 'src/departments/departments.module';
 import { RolesModule } from 'src/roles/roles.module';
+import { RolesCoreModule } from 'src/roles/roles-core.module';
 
 /**
  * UsersModule bundles everything related to user management and verification.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), DepartmentsModule, RolesModule],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    DepartmentsModule,
+    RolesModule,
+    RolesCoreModule,
+  ],
   controllers: [UsersController],
   providers: [UserChecks, UsersService],
   exports: [UserChecks, UsersService],

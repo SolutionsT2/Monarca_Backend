@@ -104,8 +104,20 @@ export class SeedService {
 
             for (const entity of entities) {
                 if (entityName === 'User') {
-                    let user: User | undefined;
-                    user = await hashPasswords(entity as User);
+                    const row = entity as Record<string, unknown>;
+                    const userPlain = {
+                        id: row.id as string,
+                        email: row.email as string,
+                        name: row.name as string,
+                        lastName: (row.last_name ?? row.lastName) as string,
+                        password: row.password as string,
+                        status: row.status as string,
+                        idDepartment: (row.id_department ?? row.idDepartment) as string,
+                        idRole: (row.id_role ?? row.idRole) as string,
+                        idTravelAgency: (row.id_travel_agency ??
+                            row.idTravelAgency) as string | undefined,
+                    };
+                    const user = await hashPasswords(userPlain as User);
                     await repo.save(user);
                 } else if (entityName === 'Department') {
                     const costCenter = await this.costCenterRepo.findOneByOrFail({ id: entity.cost_center_id });
