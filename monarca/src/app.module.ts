@@ -38,6 +38,8 @@ import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { Delegation } from './delegations/entities/delegation.entity';
+import { DelegationsModule } from './delegations/delegations.module';
 
 @Module({
   imports: [
@@ -60,6 +62,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     DestinationsModule,
     UserLogsModule,
     GuardsModule,
+    DelegationsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST,
@@ -85,6 +88,7 @@ import { NotificationsModule } from './notifications/notifications.module';
         Voucher,
         UserLogs,
         Revision,
+        Delegation,
       ],
       synchronize: true,
     }),
@@ -105,6 +109,7 @@ import { NotificationsModule } from './notifications/notifications.module';
       Voucher,
       UserLogs,
       Revision,
+      Delegation,
     ]),
 
   ],
@@ -116,4 +121,6 @@ export class AppModule {}
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-03-24:
+ *  - Added seed data for delegations.
  */
