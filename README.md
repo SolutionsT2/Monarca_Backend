@@ -158,8 +158,6 @@ Para iniciar el proyecto en modo desarrollo, corre:
 npm run start:dev
 ```
 
-Por defecto la API escucha en **http://127.0.0.1:3000**. Si usas el repositorio **Monarca_Frontend**, define `VITE_API_URL=http://127.0.0.1:3000` en el `.env` del front (o copia `.env.example`); si no, en modo desarrollo el `apiService` ya usa esa URL como respaldo.
-
 ### Variables de entorno
 Crear un archivo `.env` con el contenido especificado en el `.env.example`:
 
