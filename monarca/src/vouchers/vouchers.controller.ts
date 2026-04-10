@@ -13,7 +13,8 @@ import {
   Delete,
   Patch,
   Req,
-  UseGuards
+  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -25,12 +26,20 @@ import { UseInterceptors, UploadedFiles, InternalServerErrorException } from '@n
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
+import { promises as fs } from 'fs';
+import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.validator';
 
 @UseGuards(AuthGuard, PermissionsGuard)
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
 export class VouchersController {
   constructor(private readonly vouchersService: VouchersService) {}
+
+  private async cleanupUploadedFiles(uploadedFiles: Express.Multer.File[]) {
+    await Promise.allSettled(
+      uploadedFiles.map((file) => fs.unlink(file.path)),
+    );
+  }
 
   // Create a new voucher
   @UseInterceptors(UploadPdfInterceptor())
@@ -59,6 +68,30 @@ export class VouchersController {
       ...(files.file_url_pdf || []),
       ...(files.file_url_xml || []),
     ];
+
+    const xmlFile = files.file_url_xml?.[0];
+    if (xmlFile) {
+      let xmlContent: string;
+      try {
+        xmlContent = await fs.readFile(xmlFile.path, 'utf8');
+      } catch {
+        await this.cleanupUploadedFiles(uploaded);
+        throw new BadRequestException({
+          message: 'No se pudo leer el archivo XML cargado.',
+          errorCode: 'XML_READ_ERROR',
+        });
+      }
+
+      const validation = validateVoucherXmlRequiredFields(xmlContent);
+      if (!validation.isValid) {
+        await this.cleanupUploadedFiles(uploaded);
+        throw new BadRequestException({
+          message: 'El XML es inválido. Faltan campos obligatorios.',
+          errorCode: 'INVALID_XML_REQUIRED_FIELDS',
+          missingFields: validation.missingFields,
+        });
+      }
+    }
 
     for (const file of uploaded) {
       const publicUrl = `${baseDownloadLink}${pathToVocuherDownload}${file.filename}`;
