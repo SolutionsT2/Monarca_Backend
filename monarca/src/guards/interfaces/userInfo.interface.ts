@@ -8,7 +8,7 @@ export interface UserInfoInterface {
   email: string;
   name: string;
   last_name: string;
-  status: string;
+  availabilityStatus: string;
   id_department: string;
   id_role: string;
   id_travel_agency: string | undefined;
