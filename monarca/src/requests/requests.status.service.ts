@@ -18,6 +18,7 @@ import { RequestsService } from './requests.service';
 import { ApproveRequestDTO } from './dto/approve-request.dto';
 import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 
 // STATUSES:
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
@@ -27,6 +28,8 @@ export class RequestsStatusService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepo: Repository<RequestEntity>,
+    @InjectRepository(Voucher)
+    private readonly vouchersRepo: Repository<Voucher>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
@@ -254,6 +257,16 @@ export class RequestsStatusService {
       throw new ConflictException(
         'Unable to change status because of the requests current status.',
       );
+
+    const uploadedVouchersCount = await this.vouchersRepo.count({
+      where: { id_request },
+    });
+
+    if (uploadedVouchersCount === 0) {
+      throw new ConflictException(
+        'Unable to finish uploading vouchers because no valid voucher was uploaded for this request.',
+      );
+    }
 
     // Notify admin
     await this.notificationsService.notify(

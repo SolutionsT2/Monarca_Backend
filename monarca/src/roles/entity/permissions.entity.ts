@@ -1,6 +1,7 @@
 /**
  * File: permissions.entity.ts
  * Description: Granular permission rows; name is the guard key (moduleId:action). Optional link to auth_modules.
+ * Description: TypeORM entity for permissions; linked to roles via RolePermission.
  */
 
 import {
@@ -39,6 +40,13 @@ export class Permission {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * - 2026-03-27 | Efren | Fixed rolePermissions inverse side to RolePermission.permission.
- * - 2026-03-27 | Efren | Added auth module relation, action, string id; name remains unique guard key.
+ * - 2026-03-23:
+ *   - Added description, module, and action fields.
+ *   - Fixed OneToMany relation to correctly reference RolePermission.permission.
+ * - 2026-03-24:
+ *   - Marked permission name as unique.
+ *   - Set module and action as required fields.
+ * - 2026-03-27:
+ *   -Fixed rolePermissions inverse side to RolePermission.permission.
+ *   - Added auth module relation, action, string id; name remains unique guard key.
  */

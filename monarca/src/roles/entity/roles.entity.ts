@@ -1,18 +1,10 @@
 /**
  * File: roles.entity.ts
- * Description: TypeORM entity for roles; many-to-many with Permission via roles_permissions join table.
+ * Description: TypeORM entity for roles; related to permissions via roles_permissions join entity.
  */
 
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToMany,
-  JoinTable,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { RolePermission } from './roles_permissions.entity';
-import { Permission } from './permissions.entity';
 
 @Entity('roles')
 export class Roles {
@@ -43,6 +35,11 @@ export class Roles {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-03-23:
+ *   - Updated id type to string for UUID compatibility.
+ *   - Fixed OneToMany relation to correctly reference RolePermission.role.
+ * - 2026-03-24:
+ *   - Removed direct ManyToMany relation with Permission to rely on RolePermission join entity with metadata.
  * - 2026-03-27 | Efren | Fixed rolePermissions inverse side to RolePermission.role.
  * - 2026-03-27 | Efren | Added description and is_active for admin API.
  */

@@ -20,6 +20,7 @@ import { Revision } from 'src/revisions/entities/revision.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Permission } from 'src/roles/entity/permissions.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
+import { Delegation } from 'src/delegations/entities/delegation.entity';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -51,6 +52,7 @@ export class SeedService {
         @InjectRepository(Permission) private readonly permissionRepo: Repository<Permission>,
         @InjectRepository(Roles) private readonly rolesRepo: Repository<Roles>,
         @InjectRepository(RolePermission) private readonly rolePermissionRepo: Repository<RolePermission>,
+        @InjectRepository(Delegation) private readonly delegationRepo: Repository<Delegation>,
     ) {}
 
     async run() {
@@ -70,6 +72,7 @@ export class SeedService {
             { repo: this.requestLogRepo, file: 'request-logs.json', entityName: 'RequestLog' },
             { repo: this.revisionRepo, file: 'revisions.json', entityName: 'Revision' },
             { repo: this.voucherRepo, file: 'vouchers.json', entityName: 'Voucher' },
+            { repo: this.delegationRepo, file: 'delegations.json', entityName: 'Delegation' },
         ];
 
         const hashPasswords = async (user: User) => {
@@ -162,6 +165,7 @@ export class SeedService {
                 'requests_destinations',
                 'requests',
                 'user_logs',
+                'delegations',
                 'roles_permissions',
                 'users',
                 'roles',
@@ -215,4 +219,6 @@ export class SeedService {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history; fixed Department import path (./src/ -> src/).
+ * - 2026-03-24:
+ *  - Added seed data for delegations.
  */

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "d047353f-c68e-4993-9c8a-78b1d92f15a1",
+    "idDelegator": "5932b459-a3ea-46a1-8482-d56bfda8c866",
+    "idDelegate": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
+    "startDate": "2026-03-01T00:00:00Z",
+    "endDate": "2026-04-30T23:59:59Z",
+    "reason": "Delegation for annual leave",
+    "isActive": true
+  },
+  {
+    "id": "e058464a-d79f-5004-ad9b-89c2e03f26b2",
+    "idDelegator": "7528d97a-02d1-4c55-9477-8b368acc09f0",
+    "idDelegate": "d3b833d4-a445-4c1e-9d3d-06be11d115fd",
+    "startDate": "2026-04-01T00:00:00Z",
+    "endDate": "2026-04-15T23:59:59Z",
+    "reason": "Absence due to medical leave",
+    "isActive": true
+  }
+]

@@ -38,8 +38,8 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const user = await this.findById(userId);
-    if (!user?.role) {
-      throw new ForbiddenException('User or permissions not found');
+    if (!user || !user.role || !user.role.rolePermissions) {
+      throw new ForbiddenException('User or role permissions not found');
     }
 
     request.sessionInfo.id = user.id;
@@ -54,8 +54,11 @@ export class PermissionsGuard implements CanActivate {
       id_travel_agency: user.idTravelAgency,
     };
 
-    const userPermissions =
-      await this.effectivePermissions.getEffectivePermissionNames(user);
+    const now = new Date();
+    const userPermissions = user.role.rolePermissions
+      .filter((rp) => !rp.expiresAt || rp.expiresAt > now)
+      .map((rp) => rp.permission.name);
+
     request.userPermissions = userPermissions;
 
     const permissionsRequired =

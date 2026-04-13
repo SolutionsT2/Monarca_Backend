@@ -9,18 +9,14 @@ import { Permission } from './permissions.entity';
 
 @Entity('roles_permissions')
 export class RolePermission {
-  @PrimaryColumn()
-  id_role: string;
+  @PrimaryColumn({ name: 'id_role', type: 'uuid' })
+  idRole: string;
 
-  @PrimaryColumn()
-  id_permission: string;
+  @PrimaryColumn({ name: 'id_permission', type: 'uuid' })
+  idPermission: string;
 
-  /**
-   * When set, this assignment is ignored after this instant (UTC).
-   * Null means the assignment does not expire.
-   */
   @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
-  expiresAt: Date | null;
+  expiresAt?: Date | null;
 
   @ManyToOne(() => Roles, (role) => role.rolePermissions, {
     onDelete: 'CASCADE',
@@ -38,5 +34,12 @@ export class RolePermission {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * - 2026-03-27 | Efren | Added expires_at for time-bound permission assignments (P1).
+ * - 2026-03-23:
+ *   - Added expires_at field to support temporary permission assignments.
+ *   - Explicitly defined composite primary keys (id_role, id_permission).
+ *   - Ensured proper ManyToOne relationships with Roles and Permission entities.
+ * - 2026-03-24:
+ *   - Renamed entity properties to idRole and idPermission for consistency with database columns.
+ * - 2026-03-27:
+ *   - Added expires_at for time-bound permission assignments (P1).
  */
