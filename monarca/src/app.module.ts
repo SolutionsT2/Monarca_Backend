@@ -37,6 +37,8 @@ import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { Delegation } from './delegations/entities/delegation.entity';
+import { DelegationsModule } from './delegations/delegations.module';
 import { Policy } from './policy-engine/entities/policy.entity';
 import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
@@ -63,6 +65,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
     DestinationsModule,
     UserLogsModule,
     GuardsModule,
+    DelegationsModule,
     PolicyEngineModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -92,6 +95,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
         Policy,
         PolicyRule,
         PolicyViolation,
+        Delegation,
       ],
       synchronize: true,
     }),
@@ -115,6 +119,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
       Policy,
       PolicyRule,
       PolicyViolation,
+      Delegation,
     ]),
 
   ],
@@ -126,4 +131,6 @@ export class AppModule {}
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-03-24:
+ *  - Added seed data for delegations.
  */

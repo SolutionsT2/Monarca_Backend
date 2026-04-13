@@ -23,6 +23,7 @@ import { Roles } from 'src/roles/entity/roles.entity';
 import { Policy } from 'src/policy-engine/entities/policy.entity';
 import { PolicyRule } from 'src/policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { Delegation } from 'src/delegations/entities/delegation.entity';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -57,6 +58,7 @@ export class SeedService {
         @InjectRepository(Policy) private readonly policyRepo: Repository<Policy>,
         @InjectRepository(PolicyRule) private readonly policyRuleRepo: Repository<PolicyRule>,
         @InjectRepository(PolicyViolation) private readonly policyViolationRepo: Repository<PolicyViolation>,
+        @InjectRepository(Delegation) private readonly delegationRepo: Repository<Delegation>,
     ) {}
 
     async run() {
@@ -78,6 +80,7 @@ export class SeedService {
             { repo: this.requestLogRepo, file: 'request-logs.json', entityName: 'RequestLog' },
             { repo: this.revisionRepo, file: 'revisions.json', entityName: 'Revision' },
             { repo: this.voucherRepo, file: 'vouchers.json', entityName: 'Voucher' },
+            { repo: this.delegationRepo, file: 'delegations.json', entityName: 'Delegation' },
             { repo: this.policyViolationRepo, file: 'policy-violations.json', entityName: 'PolicyViolation' },
         ];
 
@@ -177,6 +180,7 @@ export class SeedService {
                 'requests_destinations',
                 'requests',
                 'user_logs',
+                'delegations',
                 'roles_permissions',
                 'users',
                 'roles',
@@ -230,4 +234,6 @@ export class SeedService {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history; fixed Department import path (./src/ -> src/).
+ * - 2026-03-24:
+ *  - Added seed data for delegations.
  */

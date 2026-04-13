@@ -44,7 +44,7 @@ export class User {
   password: string;
 
   @ApiProperty({ example: 'active' })
-  @Column()
+  @Column({ type: 'varchar', length: 30, default: 'active' })
   status: string;
 
   @ApiProperty({ example: 1 })
@@ -59,7 +59,7 @@ export class User {
   @Column({
     type: 'uuid',
     nullable: true,
-    name: 'id_travel_agency'
+    name: 'id_travel_agency',
   })
   idTravelAgency?: string;
 
@@ -92,4 +92,6 @@ export class User {
 /*
 Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+- 2026-03-24:
+ *   - Definition of rules for status
 */

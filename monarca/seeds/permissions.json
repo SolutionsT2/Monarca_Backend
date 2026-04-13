@@ -1,66 +1,114 @@
 [
   {
     "id": "c91a6104-4993-4653-8f39-c47dba9c9ce4",
-    "name": "create_request"
+    "name": "create_request",
+    "description": "Allows creating a new request",
+    "module": "request",
+    "action": "create"
   },
   {
     "id": "144d80a2-24b9-4826-a9bd-28d61d52c432",
-    "name": "edit_request"
+    "name": "edit_request",
+    "description": "Allows editing an existing request",
+    "module": "request",
+    "action": "edit"
   },
   {
     "id": "5d110d2b-8df6-413e-9255-9886faa598a5",
-    "name": "delete_request"
+    "name": "delete_request",
+    "description": "Allows deleting an existing request",
+    "module": "request",
+    "action": "delete"
   },
   {
     "id": "b4904143-de77-4557-aa04-2d9c7141666f",
-    "name": "upload_vouchers"
+    "name": "upload_vouchers",
+    "description": "Allows uploading an existing request",
+    "module": "request",
+    "action": "upload"
   },
   {
     "id": "6ccf23e4-3ed3-40aa-8eac-6473704acf0c",
-    "name": "approve_request"
+    "name": "approve_request",
+    "description": "Allows approving an existing request",
+    "module": "request",
+    "action": "approve"
   },
   {
     "id": "0ba035bf-eafc-4d57-a651-04aaf562f481",
-    "name": "deny_request"
+    "name": "deny_request",
+    "description": "Allows denying an existing request",
+    "module": "request",
+    "action": "deny"
   },
   {
     "id": "21bc13fe-f53a-4c3f-983a-9825f5f36e97",
-    "name": "approve_vouchers"
+    "name": "approve_vouchers",
+    "description": "Allows approving vouchers",
+    "module": "voucher",
+    "action": "approve"
   },
   {
     "id": "b4ea9a75-96ee-4f6e-b86e-9abf7117b106",
-    "name": "deny_vouchers"
+    "name": "deny_vouchers",
+    "description": "Allows denying vouchers",
+    "module": "voucher",
+    "action": "deny"
   },
   {
     "id": "43570c73-c7c4-433b-b3d8-1a130f89cf5d",
-    "name": "assign_request_to_travel_agency"
+    "name": "assign_request_to_travel_agency",
+    "description": "Allows assigning requests to travel agency",
+    "module": "request",
+    "action": "assign"
   },
   {
     "id": "088535d7-d639-47ca-8cf0-4cf6d593e327",
-    "name": "check_budgets"
+    "name": "check_budgets",
+    "description": "Allows checking budgets",
+    "module": "budget",
+    "action": "read"
   },
   {
     "id": "0e90a8c8-b7f3-4f02-a68b-bd44eb4d8b2d",
-    "name": "approve_budget"
+    "name": "approve_budget",
+    "description": "Allows approving budget",
+    "module": "budget",
+    "action": "approve"
   },
   {
     "id": "16acc4b6-12df-4f4d-bf01-7ac16c3c7cd0",
-    "name": "deny_budget"
+    "name": "deny_budget",
+    "description": "Allows denying budget",
+    "module": "budget",
+    "action": "deny"
   },
   {
     "id": "d4740d39-5221-4f76-8f51-acedba6a607f",
-    "name": "send_reservation_receipts"
+    "name": "send_reservation_receipts",
+    "description": "Allows sending reservation receipts",
+    "module": "reservation",
+    "action": "send_receipt"
   },
   {
     "id": "07aac50a-e679-4a7e-b6d8-6eaec6270846",
-    "name": "view_assigned_requests_readonly"
+    "name": "view_assigned_requests_readonly",
+    "description": "Allows viewing assigned requests in read-only mode",
+    "module": "request",
+    "action": "read_assigned"
   },
   {
     "id": "3e9ad5bb-563b-493f-8b67-808371e34e28",
-    "name": "request_history"
+    "name": "request_history",
+    "description": "Allows viewing request history",
+    "module": "request",
+    "action": "read_history"
   },
   {
     "id": "7fedb986-8761-4ffd-aa85-71e73a41f85d",
-    "name": "submit_reservations"
+    "name": "submit_reservations",
+    "description": "Allows submitting reservations",
+    "module": "reservation",
+    "action": "submit"
   }
 ]
