@@ -22,7 +22,7 @@ export class CreateUserDto {
   password: string;
 
   @ApiProperty({ example: 'active' })
-  status: string;
+  availabilityStatus: string;
 
   @ApiProperty({ example: 1 })
   idDepartment?: string;

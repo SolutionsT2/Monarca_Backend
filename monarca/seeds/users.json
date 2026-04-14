@@ -1,5 +1,18 @@
 [
   {
+    "id": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
+    "idDepartment": "883d9e05-612c-4d08-9efb-5099952fc850",
+    "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
+    "name": "Approver",
+    "lastName": "One",
+    "password": "password",
+    "email": "approver1@monarca.com",
+    "availabilityStatus": "active",
+    "employeeStatus": "active",
+    "username": "approver1",
+    "supplierNumber": "33333333"
+  },
+  {
     "id": "5932b459-a3ea-46a1-8482-d56bfda8c866",
     "idDepartment": "883d9e05-612c-4d08-9efb-5099952fc850",
     "idRole": "b0d4211d-457e-4d84-b8a4-320af380683f",
@@ -7,7 +20,11 @@
     "lastName": "One",
     "password": "password",
     "email": "requester1@monarca.com",
-    "status": "vacation"
+    "availabilityStatus": "vacation",
+    "employeeStatus": "active",
+    "username": "requester1",
+    "idManager": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
+    "supplierNumber": "11111111"
   },
   {
     "id": "7528d97a-02d1-4c55-9477-8b368acc09f0",
@@ -17,17 +34,11 @@
     "lastName": "Two",
     "password": "password",
     "email": "requester2@monarca.com",
-    "status": "vacation"
-  },
-  {
-    "id": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
-    "idDepartment": "883d9e05-612c-4d08-9efb-5099952fc850",
-    "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
-    "name": "Approver",
-    "lastName": "One",
-    "password": "password",
-    "email": "approver1@monarca.com",
-    "status": "active"
+    "availabilityStatus": "vacation",
+    "employeeStatus": "active",
+    "username": "requester2",
+    "idManager": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
+    "supplierNumber": "22222222"
   },
   {
     "id": "d3b833d4-a445-4c1e-9d3d-06be11d115fd",
@@ -37,7 +48,9 @@
     "lastName": "One",
     "password": "password",
     "email": "soi1@monarca.com",
-    "status": "active"
+    "availabilityStatus": "active",
+    "employeeStatus": "active",
+    "username": "soi1"
   },
   {
     "id": "0f89e2dd-3b30-4d46-b9c3-825328dbc9c9",
@@ -47,7 +60,9 @@
     "lastName": "One",
     "password": "password",
     "email": "travelagent1@monarca.com",
-    "status": "active",
-    "idTravelAgency": "24169971-6d7f-4bf7-982c-dad1aebac579"
+    "availabilityStatus": "active",
+    "idTravelAgency": "24169971-6d7f-4bf7-982c-dad1aebac579",
+    "employeeStatus": "active",
+    "username": "travelagent1"
   }
 ]
