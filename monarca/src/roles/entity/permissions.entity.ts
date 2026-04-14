@@ -20,7 +20,7 @@ export class Permission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 512, unique: true })
+  @Column({ type: 'varchar', length: 512, unique: true, default: 'legacy' })
   name: string;
 
   @Column({ type: 'varchar', length: 64, nullable: true })
