@@ -51,6 +51,9 @@ import { Company } from './companies/entity/company.entity';
 import { AccountingAccount } from './accounting-accounts/entity/accounting-account.entity';
 import { DocumentClass } from './document-classes/entity/document-class.entity';
 import { PolicyExport } from './policy-exports/entity/policy-export.entity';
+import { EnterprisesModule } from './enterprises/enterprises.module';
+import { Enterprise } from './enterprises/entities/enterprise.entity';
+import { EnterpriseDepartment } from './enterprises/entities/enterprise-department.entity';
 
 @Module({
   imports: [
@@ -65,6 +68,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     Roles,
     DepartmentsModule,
     CostCentersModule,
+    EnterprisesModule,
     RequestsModule,
     RequestLogsModule,
     ReservationsModule,
@@ -111,6 +115,8 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         AccountingAccount,
         DocumentClass,
         PolicyExport,
+        Enterprise,
+        EnterpriseDepartment,
       ],
       synchronize: true,
     }),
@@ -141,6 +147,8 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       AccountingAccount,
       DocumentClass,
       PolicyExport,
+      Enterprise,
+      EnterpriseDepartment,
     ]),
   ],
   controllers: [],
