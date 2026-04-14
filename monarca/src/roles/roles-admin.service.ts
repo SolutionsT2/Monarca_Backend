@@ -411,9 +411,7 @@ export class RolesAdminService implements OnModuleInit {
     roleId: string,
     modules: RolePermissionModuleDto[],
   ): Promise<void> {
-    await this.rolePermissionRepo.delete({
-      id_role: roleId,
-    } as unknown as { id_role: string });
+    await this.rolePermissionRepo.delete({ idRole: roleId });
 
     for (const mod of modules) {
       await this.ensureAuthModule(mod.moduleId, mod.moduleName);
@@ -444,8 +442,8 @@ export class RolesAdminService implements OnModuleInit {
 
         await this.rolePermissionRepo.save(
           this.rolePermissionRepo.create({
-            id_role: roleId,
-            id_permission: perm.id,
+            idRole: roleId,
+            idPermission: perm.id,
             expiresAt: null,
           }),
         );

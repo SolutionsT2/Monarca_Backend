@@ -4,6 +4,7 @@
  */
 
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Permission } from './permissions.entity';
 import { RolePermission } from './roles_permissions.entity';
 
 @Entity('roles')
@@ -20,13 +21,10 @@ export class Roles {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  @ManyToMany(() => Permission)
-  @JoinTable({
-    name: 'roles_permissions',
-    joinColumn: { name: 'id_role', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'id_permission', referencedColumnName: 'id' },
-  })
-  permissions: Permission[];
+  /**
+   * Not a DB column: populated at runtime (e.g. profile) with effective Permission rows.
+   */
+  permissions?: Permission[];
 
   @OneToMany(() => RolePermission, (rp) => rp.role)
   rolePermissions: RolePermission[];
@@ -42,4 +40,5 @@ export class Roles {
  *   - Removed direct ManyToMany relation with Permission to rely on RolePermission join entity with metadata.
  * - 2026-03-27 | Efren | Fixed rolePermissions inverse side to RolePermission.role.
  * - 2026-03-27 | Efren | Added description and is_active for admin API.
+ * - 2026-04-13: Removed stray duplicate ManyToMany/JoinTable block (relation is via RolePermission only).
  */
