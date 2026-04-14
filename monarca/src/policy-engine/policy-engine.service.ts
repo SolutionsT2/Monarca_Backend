@@ -90,6 +90,10 @@ export class PolicyEngineService {
     requestContext: RequestPolicyContext,
     vouchers: VoucherPolicyContext[],
   ): Promise<PolicyValidationSummary> {
+    const uniqueVouchers = Array.from(
+      new Map(vouchers.map((voucher) => [voucher.id, voucher])).values(),
+    );
+
     const rules = await this.policyRuleRepo.find({
       where: { is_active: true },
       relations: ['policy'],
@@ -102,11 +106,18 @@ export class PolicyEngineService {
       const operator = this.normalizeOperator(rule.operator);
 
       if (REQUEST_LEVEL_OPERATORS.has(operator)) {
-        evaluations.push(this.evaluateRequestLevelRule(rule, operator, requestContext, vouchers));
+        evaluations.push(
+          this.evaluateRequestLevelRule(
+            rule,
+            operator,
+            requestContext,
+            uniqueVouchers,
+          ),
+        );
         continue;
       }
 
-      for (const voucher of vouchers) {
+      for (const voucher of uniqueVouchers) {
         if (!this.ruleAppliesToVoucher(rule, voucher.class)) {
           continue;
         }
@@ -124,7 +135,7 @@ export class PolicyEngineService {
       violations: summary.violations,
     });
     await this.persistBlockingViolations(evaluations);
-    await this.updateVoucherPolicyStatus(vouchers, evaluations);
+    await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
 
     return summary;
   }
@@ -169,7 +180,10 @@ export class PolicyEngineService {
       operator === 'TOTAL_VOUCHERS_LIMIT' ||
       operator === 'TOTAL_VOUCHERS_LTE_ADVANCE'
     ) {
-      const totalVouchers = vouchers.reduce((sum, voucher) => sum + voucher.amount, 0);
+      const totalVouchers = vouchers.reduce((sum, voucher) => {
+        const amount = Number(voucher.amount);
+        return sum + (Number.isFinite(amount) ? amount : 0);
+      }, 0);
       const passed = totalVouchers <= requestContext.advance_money;
 
       return {

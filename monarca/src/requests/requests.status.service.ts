@@ -248,7 +248,7 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin', 'vouchers', 'requests_destinations'],
+      relations: ['admin', 'requests_destinations'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -261,17 +261,22 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    const uploadedVouchersCount = await this.vouchersRepo.count({
+    const vouchers = await this.vouchersRepo.find({
       where: { id_request },
     });
 
-    if (uploadedVouchersCount === 0) {
+    // Guard against duplicated relation state and ensure deterministic totals.
+    const uniqueVouchers = vouchers.filter(
+      (voucher, index, list) =>
+        list.findIndex((candidate) => candidate.id === voucher.id) === index,
+    );
+
+    if (uniqueVouchers.length === 0) {
       throw new ConflictException(
         'Unable to finish uploading vouchers because no valid voucher was uploaded for this request.',
       );
     }
 
-    const vouchers = request.vouchers || [];
     const hasAdvance = Number(request.advance_money || 0) > 0;
     const destinations = request.requests_destinations || [];
 
@@ -291,7 +296,7 @@ export class RequestsStatusService {
         )
       : null;
 
-    if (hasAdvance && vouchers.length === 0) {
+    if (hasAdvance && uniqueVouchers.length === 0) {
       throw new UnprocessableEntityException({
         statusCode: 422,
         message:
@@ -327,7 +332,7 @@ export class RequestsStatusService {
         trip_start_date: tripStartDate,
         trip_end_date: tripEndDate,
       },
-      vouchers.map((voucher) => ({
+      uniqueVouchers.map((voucher) => ({
         id: voucher.id,
         id_request: voucher.id_request,
         class: voucher.class,
