@@ -124,7 +124,13 @@ export class SeedService {
                         // Accept both snake_case and camelCase to keep old seed files compatible.
                         lastName: entity.last_name ?? entity.lastName,
                         password: entity.password,
-                        status: entity.status,
+                        availabilityStatus:
+                            entity.availability_status ?? entity.availabilityStatus ?? entity.status,
+                        employeeStatus:
+                            entity.employee_status ?? entity.employeeStatus ?? entity.status,
+                        username: entity.username,
+                        idManager: entity.id_manager ?? entity.idManager,
+                        supplierNumber: entity.supplier_number ?? entity.supplierNumber,
                         idDepartment: entity.id_department ?? entity.idDepartment,
                         idRole: entity.id_role ?? entity.idRole,
                         idTravelAgency: entity.id_travel_agency ?? entity.idTravelAgency,

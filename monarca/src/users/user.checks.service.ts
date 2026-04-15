@@ -50,7 +50,7 @@ export class UserChecks {
     const user = await this.userRepository.findOne({
       where: { id: id },
       select: ['id', 'name', 'email', 'department', 'lastName', 'role', 'availabilityStatus'],
-      relations: ['department', 'role', 'role.rolePermissions', 'role.rolePermissions.permission'
+      relations: ['department', 'role', 'role.rolePermissions', 'role.rolePermissions.permission'],
     });
 
     if (!user) {
