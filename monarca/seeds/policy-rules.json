@@ -1,0 +1,312 @@
+[
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f001",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "ALIF",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "dd92f393-9f53-4fe6-b4be-14e5311ab101",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "CAPA",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "0a028ea8-5d69-4f0d-b89f-02d16b4f3102",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "ALIF",
+    "operator": "LT",
+    "threshold_value": 50,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f002",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "CPF",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f003",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "FIDP",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f004",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "GAS",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f005",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "HTLP",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f006",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "LAUN",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f007",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "NDPR",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f008",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "NDVA",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f009",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "REAU",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f00a",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "TCCF",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f00b",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "TSCF",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f00c",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "TRAA",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "b9a89e83-6d21-4a61-8f0b-5d2ec4b0f00d",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "AIRP",
+    "operator": "MISSING_XML",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f002",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "CAPA",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f003",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "CPF",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f004",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "FIDP",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f005",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "GAS",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f006",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "HTLP",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f007",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "LAUN",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f008",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "NDPR",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f009",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "NDVA",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f00a",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "REAU",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f00b",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "TCCF",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f00c",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "TSCF",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f00d",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "TRAA",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c9a89e83-6d21-4a61-8f0b-5d2ec4b0f00e",
+    "id_policy": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "expense_class": "AIRP",
+    "operator": "LT",
+    "threshold_value": 5000,
+    "threshold_unit": "MXN",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "d18690b0-2474-4497-867e-e94cc6a62803",
+    "id_policy": "0f2ed8b1-1e7e-4c7b-8d65-4dd204d6d6a8",
+    "expense_class": "TODAS",
+    "operator": "DAYS_EXCEEDED",
+    "threshold_value": 28,
+    "threshold_unit": "DAYS",
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "c2f7407d-4f72-4f84-9baf-6999327fcb31",
+    "id_policy": "0f2ed8b1-1e7e-4c7b-8d65-4dd204d6d6a8",
+    "expense_class": "TODAS",
+    "operator": "VOUCHER_DATE_WITHIN_TRIP_WINDOW",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  },
+  {
+    "id": "a1f1b0aa-5d55-4ec2-8f79-2f4b8f6d3f31",
+    "id_policy": "7f6fa3ee-2f08-4e91-b1d2-1d8b17b8d8aa",
+    "expense_class": "TODAS",
+    "operator": "TOTAL_LTE_ADVANCE",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "consequence": "POLICY_VIOLATION",
+    "is_active": true
+  }
+]

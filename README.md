@@ -6,18 +6,36 @@ _Innovación en Tecnologías de la Información para Soluciones Empresariales Av
 
 ## 📚 Tabla de Contenido
 
-- [Introducción](#-introducción)
-- [Visión](#-visión)
-- [Misión](#-misión)
-- [Valores](#-valores)
-- [📌 Proyecto Monarca](#proyecto-monarca-sistema-integral-de-gestión-de-viajes-empresariales)
-- [🚀 Guía de Inicialización](#-guía-de-inicialización)
-  - [🛠️ Requisitos y Herramientas](#️-instalación-del-entorno-de-desarrollo)
+- [02 Solutions](#02-solutions)
+  - [📚 Tabla de Contenido](#-tabla-de-contenido)
+  - [📌 Introducción](#-introducción)
+  - [🎯 Visión](#-visión)
+  - [💼 Misión](#-misión)
+  - [💎 Valores](#-valores)
+  - [**Proyecto Monarca:** Sistema integral de gestión de viajes empresariales](#proyecto-monarca-sistema-integral-de-gestión-de-viajes-empresariales)
+- [🏛️ **Arquitectura**](#️-arquitectura)
+- [🚀 **Guía de Inicialización**](#-guía-de-inicialización)
+  - [🛠️ Instalación del Entorno de Desarrollo](#️-instalación-del-entorno-de-desarrollo)
+    - [Requisitos](#requisitos)
+  - [Instalación de herramientas](#instalación-de-herramientas)
+    - [Instalar **direnv**](#instalar-direnv)
+      - [Agregar hook a tu shell (macOS / Linux)](#agregar-hook-a-tu-shell-macos--linux)
+    - [Instalar **nvm** y **Node.js**](#instalar-nvm-y-nodejs)
   - [📥 Instalación del Proyecto](#-instalación-del-proyecto)
-  - [🐳 Inicio y gestión de los servicios Docker (PostgreSQL)](#-inicio-y-gestión-de-los-servicios-docker-postgresql)
+    - [Levantar en local](#levantar-en-local)
+    - [Variables de entorno](#variables-de-entorno)
+  - [🐳 Inicio y gestión de los servicios Docker (PostgreSQL + MailHog)](#-inicio-y-gestión-de-los-servicios-docker-postgresql--mailhog)
+  - [Opciones para el acceso hacia la base de datos](#opciones-para-el-acceso-hacia-la-base-de-datos)
+    - [Opción A: Usando pgAdmin](#opción-a-usando-pgadmin)
+    - [Opción B: Solo desde la Terminal (sin pgAdmin)](#opción-b-solo-desde-la-terminal-sin-pgadmin)
+  - [Insertar Datos](#insertar-datos)
   - [🔁 Reinicializar la Base de Datos](#-reinicializar-la-base-de-datos)
-- [🧪 Pruebas](#-ejecutar-pruebas-end-to-end)
-- [📑 Documentación API](#-documentación-de-los-endpoints-con-openapi)
+    - [Opción A: Reinicio sin eliminar el contenedor](#opción-a-reinicio-sin-eliminar-el-contenedor)
+    - [Opción B: Reinicio completo (contenedor y base de datos)](#opción-b-reinicio-completo-contenedor-y-base-de-datos)
+  - [🧪 Ejecutar Pruebas End-to-End](#-ejecutar-pruebas-end-to-end)
+  - [� MailHog (Servidor de correos para desarrollo)](#-mailhog-servidor-de-correos-para-desarrollo)
+  - [�� Documentación de los endpoints con OpenAPI](#-documentación-de-los-endpoints-con-openapi)
+    - [📦 Ejemplo de Endpoint: Crear Usuario:](#-ejemplo-de-endpoint-crear-usuario)
 
 
 ## 📌 Introducción
@@ -116,11 +134,19 @@ src/
 - `direnv`
 
 ## Instalación de herramientas
-Instalar **direnv**
 
-- macOS: `brew install direnv`
+### Instalar **direnv**
 
-Agrega el siguiente hook a tu shell:
+- **macOS:** `brew install direnv`
+- **Windows (Git Bash):**
+  1. Descarga el binario desde [direnv releases](https://github.com/direnv/direnv/releases) (`direnv.windows-amd64.exe`).
+  2. Renómbralo a `direnv.exe` y colócalo en una carpeta que esté en tu `PATH` (por ejemplo `C:\Users\<tu-usuario>\bin`).
+  3. Agrega el hook a tu `~/.bashrc`:
+     ```bash
+     echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+     ```
+
+#### Agregar hook a tu shell (macOS / Linux)
 ```bash
 # Bash
 echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
@@ -133,14 +159,22 @@ Habilitar **direnv** para este repositorio (desde `Monarca_Backend/monarca`):
 ```bash
 direnv allow
 ```
-> Al entrar al repositorio, corre `direnv allow` si es la primera vez despues de la descarga.
+> Al entrar al repositorio, corre `direnv allow` si es la primera vez después de la descarga.
 
-Instalar **nvm** y **Node.js** (solo si no están instalados previamente)
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+### Instalar **nvm** y **Node.js**
 
-source ~/.bashrc # o ~/.zshrc según tu shell
-```
+> Solo si no están instalados previamente.
+
+- **macOS / Linux:**
+  ```bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  source ~/.bashrc # o ~/.zshrc según tu shell
+  ```
+- **Windows:** Instala [nvm-windows](https://github.com/coreybutler/nvm-windows/releases) y luego:
+  ```bash
+  nvm install 22.14.0
+  nvm use 22.14.0
+  ```
 
 ## 📥 Instalación del Proyecto
 
@@ -161,9 +195,24 @@ npm run start:dev
 ### Variables de entorno
 Crear un archivo `.env` con el contenido especificado en el `.env.example`:
 
-> Son credenciales necesarias que la base de datos utiliza
+> Si usas `direnv`, el archivo `.env` se crea automáticamente al hacer `direnv allow`.
 
-## 🐳 Inicio y gestión de los servicios Docker (PostgreSQL)
+| Variable | Descripción | Ejemplo (dev) |
+|---|---|---|
+| `JWT_SECRET` | Secreto para firmar tokens JWT | `mi-secreto` |
+| `POSTGRES_HOST` | Host de la base de datos | `localhost` |
+| `POSTGRES_PORT` | Puerto mapeado de PostgreSQL | `25000` |
+| `POSTGRES_USER` | Usuario de PostgreSQL | `postgres` |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | `test123` |
+| `POSTGRES_DATABASE` | Nombre de la base de datos | `Monarca` |
+| `DOWNLOAD_LINK` | URL de descarga (frontend) | |
+| `FRONTEND_URL` | URL del frontend | `http://localhost:5173/` |
+| `EMAIL_HOST` | Host SMTP (MailHog en dev) | `localhost` |
+| `EMAIL_PORT` | Puerto SMTP | `1025` |
+| `EMAIL_USER` | Usuario SMTP (vacío con MailHog) | |
+| `EMAIL_PASSWORD` | Contraseña SMTP (vacío con MailHog) | |
+
+## 🐳 Inicio y gestión de los servicios Docker (PostgreSQL + MailHog)
 
 **Construir la imagen Docker (solo una vez si no existe):**
 
@@ -184,7 +233,11 @@ Desde el root del proyecto `Monarca_Backend`, ejecuta:
 docker compose up -d
 ```
 
-> Esto iniciará los contenedores definidos en el archivo docker-compose.yaml y generará automáticamente una carpeta llamada `postgres` dentro de `Monarca_Backend/BD`, la cual contendrá los datos de la base de datos
+> Esto iniciará los contenedores definidos en `compose.yaml`:
+> - **monarca_database** — PostgreSQL en el puerto `25000`
+> - **monarca_mailhog** — Servidor SMTP de prueba en el puerto `1025`, con interfaz web en el puerto `8025`
+>
+> También generará automáticamente una carpeta `postgres` dentro de `Monarca_Backend/DB`, la cual contendrá los datos de la base de datos.
 
 Alternativa: también se puede iniciar el contenedor desde Docker Desktop, desde la pestaña Containers y haciendo clic en Start sobre el contenedor correspondiente.
 
@@ -283,7 +336,7 @@ npm run db:seed
 Elimina manualmente o desde la terminal la carpeta postgres ubicada en Monarca_Backend/BD
 
 ```bash
-rm -rf Monarca_Backend/BD/postgres
+rm -rf Monarca_Backend/DB/postgres
 ```
 
 2. **Levantar nuevamente los contenedores:**
@@ -316,7 +369,18 @@ npm run test:e2e
 
 
 
-## 📑 Documentación de los endpoints con OpenAPI
+## � MailHog (Servidor de correos para desarrollo)
+
+MailHog intercepta todos los correos que envía el backend en desarrollo. No se envía ningún correo real.
+
+- **SMTP:** `localhost:1025` (ya configurado en `.env`)
+- **Web UI:** [http://localhost:8025](http://localhost:8025) — para ver los correos enviados
+
+> MailHog se levanta automáticamente con `docker compose up -d`.
+
+---
+
+## �� Documentación de los endpoints con OpenAPI
 
 La documentación de los endpoints está disponible en Swagger/OpenAPI.
 

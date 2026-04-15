@@ -20,6 +20,9 @@ import { Revision } from 'src/revisions/entities/revision.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Permission } from 'src/roles/entity/permissions.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
+import { Policy } from 'src/policy-engine/entities/policy.entity';
+import { PolicyRule } from 'src/policy-engine/entities/policy-rule.entity';
+import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Delegation } from 'src/delegations/entities/delegation.entity';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
@@ -52,6 +55,9 @@ export class SeedService {
         @InjectRepository(Permission) private readonly permissionRepo: Repository<Permission>,
         @InjectRepository(Roles) private readonly rolesRepo: Repository<Roles>,
         @InjectRepository(RolePermission) private readonly rolePermissionRepo: Repository<RolePermission>,
+        @InjectRepository(Policy) private readonly policyRepo: Repository<Policy>,
+        @InjectRepository(PolicyRule) private readonly policyRuleRepo: Repository<PolicyRule>,
+        @InjectRepository(PolicyViolation) private readonly policyViolationRepo: Repository<PolicyViolation>,
         @InjectRepository(Delegation) private readonly delegationRepo: Repository<Delegation>,
     ) {}
 
@@ -65,6 +71,8 @@ export class SeedService {
             { repo: this.rolesRepo, file: 'roles.json', entityName: 'Roles' },
             { repo: this.userRepo, file: 'users.json', entityName: 'User' },
             { repo: this.rolePermissionRepo, file: 'roles-permissions.json', entityName: 'RolePermission' },
+            { repo: this.policyRepo, file: 'policies.json', entityName: 'Policy' },
+            { repo: this.policyRuleRepo, file: 'policy-rules.json', entityName: 'PolicyRule' },
             { repo: this.userLogsRepo, file: 'user-logs.json', entityName: 'UserLogs' },
             { repo: this.requestRepo, file: 'requests.json', entityName: 'Request' },
             { repo: this.requestsDestinationRepo, file: 'requests-destinations.json', entityName: 'RequestsDestination' },
@@ -73,6 +81,7 @@ export class SeedService {
             { repo: this.revisionRepo, file: 'revisions.json', entityName: 'Revision' },
             { repo: this.voucherRepo, file: 'vouchers.json', entityName: 'Voucher' },
             { repo: this.delegationRepo, file: 'delegations.json', entityName: 'Delegation' },
+            { repo: this.policyViolationRepo, file: 'policy-violations.json', entityName: 'PolicyViolation' },
         ];
 
         const hashPasswords = async (user: User) => {
@@ -107,6 +116,7 @@ export class SeedService {
 
             for (const entity of entities) {
                 if (entityName === 'User') {
+
                     const mappedUser = this.userRepo.create({
                         id: entity.id,
                         email: entity.email,
@@ -114,13 +124,20 @@ export class SeedService {
                         // Accept both snake_case and camelCase to keep old seed files compatible.
                         lastName: entity.last_name ?? entity.lastName,
                         password: entity.password,
-                        status: entity.status,
+                        availabilityStatus:
+                            entity.availability_status ?? entity.availabilityStatus ?? entity.status,
+                        employeeStatus:
+                            entity.employee_status ?? entity.employeeStatus ?? entity.status,
+                        username: entity.username,
+                        idManager: entity.id_manager ?? entity.idManager,
+                        supplierNumber: entity.supplier_number ?? entity.supplierNumber,
                         idDepartment: entity.id_department ?? entity.idDepartment,
                         idRole: entity.id_role ?? entity.idRole,
                         idTravelAgency: entity.id_travel_agency ?? entity.idTravelAgency,
                     });
 
                     const user = await hashPasswords(mappedUser);
+
                     await repo.save(user);
                 } else if (entityName === 'Department') {
                     const costCenter = await this.costCenterRepo.findOneByOrFail({ id: entity.cost_center_id });
@@ -158,6 +175,9 @@ export class SeedService {
             await queryRunner.startTransaction();
 
             const tables = [
+                'policy_violations',
+                'policy_rules',
+                'policies',
                 'vouchers',
                 'revisions',
                 'request_logs',

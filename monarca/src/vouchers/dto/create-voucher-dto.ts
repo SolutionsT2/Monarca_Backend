@@ -10,8 +10,13 @@ import {
   IsNumber,
   IsDateString,
   IsOptional,
+  IsIn,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import {
+  normalizeVoucherSpendClass,
+  VOUCHER_SPEND_CODES,
+} from '../types/voucher-spend.types';
 export class CreateVoucherDto {
   @ApiProperty({
     description: 'Identifier of the related travel request',
@@ -22,9 +27,13 @@ export class CreateVoucherDto {
 
   @ApiProperty({
     description: 'Voucher classification or type',
-    example: 'GAS Gasolina',
+    example: 'ALIF',
   })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? normalizeVoucherSpendClass(value) : value,
+  )
   @IsString()
+  @IsIn(VOUCHER_SPEND_CODES)
   class: string;
 
   @ApiProperty({

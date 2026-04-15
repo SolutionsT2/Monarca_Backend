@@ -74,6 +74,14 @@ export class RequestsController {
     return this.requestsService.findAll();
   }
 
+  @Get(':id/policy-violations')
+  async findPolicyViolationsByRequest(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.requestsService.findPolicyViolationsByRequest(req, id);
+  }
+
   @Get(':id')
   async findOne(
     @Request() req: RequestInterface,

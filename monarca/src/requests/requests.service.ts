@@ -23,12 +23,15 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 
 @Injectable()
 export class RequestsService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepo: Repository<RequestEntity>,
+    @InjectRepository(PolicyViolation)
+    private readonly policyViolationRepo: Repository<PolicyViolation>,
     private readonly userChecks: UserChecks,
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
@@ -154,20 +157,20 @@ export class RequestsService {
   }
 
   async findAll(): Promise<RequestEntity[]> {
-    return this.requestsRepo.find({
-      relations: [
-        'requests_destinations',
-        'requests_destinations.destination',
-        'revisions',
-        'user',
-        'admin',
-        'SOI',
-        'destination',
-        'travel_agency',
-        'travel_agency.users',
-      ],
-    });
-  }
+  return this.requestsRepo.find({
+    relations: [
+      'requests_destinations',
+      'requests_destinations.destination',
+      'revisions',
+      'user',
+      'admin',
+      'SOI',
+      'destination',
+      'travelAgency',           
+      'travelAgency.users',     
+    ],
+  });
+}
 
   async findOne(req: RequestInterface, id: string): Promise<RequestEntity> {
     const userId = req.sessionInfo.id;
@@ -307,6 +310,47 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
       ],
     });
     return list;
+  }
+
+  async findPolicyViolationsByRequest(req: RequestInterface, id: string) {
+    await this.findOne(req, id);
+
+    const violations = await this.policyViolationRepo.find({
+      where: {
+        voucher: {
+          id_request: id,
+        },
+      },
+      relations: ['voucher', 'policy_rule'],
+      order: {
+        created_at: 'DESC',
+      },
+    });
+
+    return {
+      request_id: id,
+      total: violations.length,
+      violations: violations.map((violation) => ({
+        id: violation.id,
+        id_voucher: violation.id_voucher,
+        id_policy_rule: violation.id_policy_rule,
+        detail: violation.detail,
+        created_at: violation.created_at,
+        voucher: {
+          class: violation.voucher?.class,
+          amount: violation.voucher?.amount,
+          currency: violation.voucher?.currency,
+          date: violation.voucher?.date,
+        },
+        rule: {
+          expense_class: violation.policy_rule?.expense_class,
+          operator: violation.policy_rule?.operator,
+          threshold_value: violation.policy_rule?.threshold_value,
+          threshold_unit: violation.policy_rule?.threshold_unit,
+          consequence: violation.policy_rule?.consequence,
+        },
+      })),
+    };
   }
 
   async updateRequest(

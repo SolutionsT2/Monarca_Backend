@@ -4,7 +4,6 @@
  */
 
 import { Module } from '@nestjs/common';
-
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -40,6 +39,10 @@ import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Delegation } from './delegations/entities/delegation.entity';
 import { DelegationsModule } from './delegations/delegations.module';
+import { Policy } from './policy-engine/entities/policy.entity';
+import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
+import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
+import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 
 @Module({
   imports: [
@@ -63,6 +66,7 @@ import { DelegationsModule } from './delegations/delegations.module';
     UserLogsModule,
     GuardsModule,
     DelegationsModule,
+    PolicyEngineModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST,
@@ -88,6 +92,9 @@ import { DelegationsModule } from './delegations/delegations.module';
         Voucher,
         UserLogs,
         Revision,
+        Policy,
+        PolicyRule,
+        PolicyViolation,
         Delegation,
       ],
       synchronize: true,
@@ -109,6 +116,9 @@ import { DelegationsModule } from './delegations/delegations.module';
       Voucher,
       UserLogs,
       Revision,
+      Policy,
+      PolicyRule,
+      PolicyViolation,
       Delegation,
     ]),
 
