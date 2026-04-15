@@ -116,23 +116,22 @@ export class SeedService {
 
             for (const entity of entities) {
                 if (entityName === 'User') {
-                    const user_seed = {
-                        ...entity,
-                        last_name: entity.last_name ?? entity.lastName,
-                        id_department: entity.id_department ?? entity.idDepartment,
-                        id_role: entity.id_role ?? entity.idRole,
-                        id_travel_agency: entity.id_travel_agency ?? entity.idTravelAgency,
-                    };
 
-                    let user = this.userRepo.create({
-                        ...user_seed,
-                        lastName: user_seed.last_name,
-                        idDepartment: user_seed.id_department,
-                        idRole: user_seed.id_role,
-                        idTravelAgency: user_seed.id_travel_agency,
+                    const mappedUser = this.userRepo.create({
+                        id: entity.id,
+                        email: entity.email,
+                        name: entity.name,
+                        // Accept both snake_case and camelCase to keep old seed files compatible.
+                        lastName: entity.last_name ?? entity.lastName,
+                        password: entity.password,
+                        status: entity.status,
+                        idDepartment: entity.id_department ?? entity.idDepartment,
+                        idRole: entity.id_role ?? entity.idRole,
+                        idTravelAgency: entity.id_travel_agency ?? entity.idTravelAgency,
                     });
 
-                    user = await hashPasswords(user);
+                    const user = await hashPasswords(mappedUser);
+
                     await repo.save(user);
                 } else if (entityName === 'Department') {
                     const costCenter = await this.costCenterRepo.findOneByOrFail({ id: entity.cost_center_id });
