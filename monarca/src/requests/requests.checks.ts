@@ -49,7 +49,7 @@ export class RequestsChecks {
 
     return !!request;
   }
-  
+
   async requestDestinationExists(id_request_destination: string) {
     const requestDestination = await this.requestsDestinationRepo.findOne({
       where: { id: id_request_destination },
@@ -61,8 +61,7 @@ export class RequestsChecks {
   async getRequestStatus(id_request: string) {
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      select: ['status']
-      
+      select: ['status'],
     });
 
     return request!.status;
@@ -70,31 +69,32 @@ export class RequestsChecks {
 
   async getRequestStatusFromRequestDestination(id_request_destination: string) {
     const requestDestination = await this.requestsDestinationRepo.findOne({
-      where: { id: id_request_destination},
-      relations: ['request']
+      where: { id: id_request_destination },
+      relations: ['request'],
     });
 
     return requestDestination!.request.status;
   }
 
-  async isRequestDestinationTravelAgencyId(id_request_destination: string, id_travel_agency: string)
-  {
+  async isRequestDestinationTravelAgencyId(
+    id_request_destination: string,
+    id_travel_agency: string,
+  ) {
     const requestDestination = await this.requestsDestinationRepo.findOne({
-      where: { id: id_request_destination, 
+      where: {
+        id: id_request_destination,
         request: {
-          id_travel_agency: id_travel_agency
-        }},
-      relations: ['request']
+          id_travel_agency: id_travel_agency,
+        },
+      },
+      relations: ['request'],
     });
 
     // console.log(!!requestDestination);
 
     return !!requestDestination;
   }
-
 }
-
-
 
 /*
 Modification History:

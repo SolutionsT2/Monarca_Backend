@@ -3,7 +3,11 @@
  * Description: Service for voucher CRUD, create (with creator check), approve/deny, and findByRequest.
  */
 
-import { Injectable, NotFoundException,ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -20,7 +24,7 @@ export class VouchersService {
     private readonly rRepo: Repository<Request>,
   ) {}
 
-  async create(id_user:string, data: CreateVoucherDto): Promise<Voucher> {
+  async create(id_user: string, data: CreateVoucherDto): Promise<Voucher> {
     const request = await this.rRepo.findOne({
       where: { id: data.id_request },
     });
@@ -30,7 +34,7 @@ export class VouchersService {
       );
     }
     const approverId = request.id_admin;
-    const id_creator= request.id_user;
+    const id_creator = request.id_user;
     if (id_user !== id_creator) {
       throw new ForbiddenException(
         `User ${id_user} is not authorized to create a voucher for this request`,
@@ -68,7 +72,7 @@ export class VouchersService {
 
     const updatedVoucherData = {
       // Update only provided fields
-      id_request:data.id_request ?? existingVoucher.id_request, // Use existing if not provided
+      id_request: data.id_request ?? existingVoucher.id_request, // Use existing if not provided
       class: data.class ?? existingVoucher.class, // Use existing if not provided
       amount: data.amount ?? existingVoucher.amount, // Use existing if not provided
       tax_type: data.tax_type ?? existingVoucher.tax_type, // Use existing if not provided
@@ -95,7 +99,7 @@ export class VouchersService {
   async approve(id: string): Promise<{ status: boolean; message: string }> {
     // 1) run the update
     const result: UpdateResult = await this.voucherRepo.update(id, {
-      status: 'Voucher Approved',         // ← your “determined value” here
+      status: 'Voucher Approved', // ← your “determined value” here
     });
 
     // 2) if nothing was affected, the id didn’t exist
@@ -113,7 +117,7 @@ export class VouchersService {
   async deny(id: string): Promise<{ status: boolean; message: string }> {
     // 1) run the update
     const result: UpdateResult = await this.voucherRepo.update(id, {
-      status: 'Voucher Denied',         // ← your “determined value” here
+      status: 'Voucher Denied', // ← your “determined value” here
     });
 
     // 2) if nothing was affected, the id didn’t exist
@@ -130,11 +134,11 @@ export class VouchersService {
 
   async findByRequest(requestId: string): Promise<Voucher[]> {
     const vouchers = await this.voucherRepo.find({
-      where: { id_request: requestId},
+      where: { id_request: requestId },
     });
     if (vouchers.length === 0) {
       throw new NotFoundException(
-        `No vouchers found for Request ID ${requestId}`
+        `No vouchers found for Request ID ${requestId}`,
       );
     }
     return vouchers;

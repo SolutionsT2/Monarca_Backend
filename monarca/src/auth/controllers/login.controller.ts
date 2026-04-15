@@ -81,4 +81,3 @@ export class LoginController {
  * Modification History:
  * - 2026-02-26: Added description header and modification history footer; translated comments to English.
  */
-

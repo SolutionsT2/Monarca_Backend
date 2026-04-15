@@ -1,0 +1,7 @@
+{
+  "uuid": "test-uuid-123",
+  "issuerRfc": "AAA010101AAA",
+  "receiverRfc": "BBB010101BBB",
+  "total": 100,
+  "status": "PENDING"
+}

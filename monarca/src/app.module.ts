@@ -38,6 +38,8 @@ import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CfdiModule } from './cfdi/cfdi.module';
+import { Cfdi } from './cfdi/cfdi.entity';
 
 @Module({
   imports: [
@@ -60,6 +62,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     DestinationsModule,
     UserLogsModule,
     GuardsModule,
+    CfdiModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST,
@@ -85,6 +88,7 @@ import { NotificationsModule } from './notifications/notifications.module';
         Voucher,
         UserLogs,
         Revision,
+        Cfdi,
       ],
       synchronize: true,
     }),
@@ -105,8 +109,8 @@ import { NotificationsModule } from './notifications/notifications.module';
       Voucher,
       UserLogs,
       Revision,
+      Cfdi,
     ]),
-
   ],
   controllers: [],
   providers: [SeedService],

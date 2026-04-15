@@ -25,8 +25,6 @@ describe('NotificationsController', () => {
   });
 });
 
-
-
 /*
 Modification History:
 

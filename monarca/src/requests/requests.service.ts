@@ -146,9 +146,8 @@ export class RequestsService {
 <p>Se te ha asignado una nueva solicitud de viaje con ID: <strong>${saved.id}</strong>.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
-<p>Equipo de Monarca</p>`
+<p>Equipo de Monarca</p>`,
     );
-
 
     return saved;
   }
@@ -219,32 +218,31 @@ export class RequestsService {
     return list;
   }
 
-async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
-  const userId = req.sessionInfo.id;
+  async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
+    const userId = req.sessionInfo.id;
 
-  return this.requestsRepo
-    .createQueryBuilder('r')
-    .leftJoinAndSelect('r.requests_destinations', 'rd')
-    .leftJoinAndSelect('rd.destination', 'd')
-    .leftJoinAndSelect('r.revisions', 'rev')
-    .leftJoinAndSelect('r.user', 'u')
-    .leftJoinAndSelect('u.department', 'dept')
-    .leftJoinAndSelect('r.admin', 'adm')
-    .leftJoinAndSelect('r.SOI', 'soi')
-    .leftJoinAndSelect('r.destination', 'dest')
-    .where('r.id_admin = :userId', { userId })
-    .andWhere('r.status = :status', { status: 'Pending Review' })
-    .orderBy(
-      `CASE r.priority
+    return this.requestsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.requests_destinations', 'rd')
+      .leftJoinAndSelect('rd.destination', 'd')
+      .leftJoinAndSelect('r.revisions', 'rev')
+      .leftJoinAndSelect('r.user', 'u')
+      .leftJoinAndSelect('u.department', 'dept')
+      .leftJoinAndSelect('r.admin', 'adm')
+      .leftJoinAndSelect('r.SOI', 'soi')
+      .leftJoinAndSelect('r.destination', 'dest')
+      .where('r.id_admin = :userId', { userId })
+      .andWhere('r.status = :status', { status: 'Pending Review' })
+      .orderBy(
+        `CASE r.priority
          WHEN 'alta' THEN 1
          WHEN 'media' THEN 2
          WHEN 'baja' THEN 3
        END`,
-      'ASC'
-    )
-    .getMany();
-}
-
+        'ASC',
+      )
+      .getMany();
+  }
 
   async findBySOI(req: RequestInterface): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
@@ -264,12 +262,14 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
   }
 
   // Para jalar todos los requests en estatus de Pending Refund Approval asignados a un SOI
-  async findPendingRefundApproval(req: RequestInterface): Promise<RequestEntity[]> {
+  async findPendingRefundApproval(
+    req: RequestInterface,
+  ): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
     const list = await this.requestsRepo.find({
-      where: { 
+      where: {
         status: 'Pending Refund Approval',
-        id_SOI: userId
+        id_SOI: userId,
       },
       relations: [
         'requests_destinations',
@@ -376,7 +376,9 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
       // Notificar al admin asignado
       const admin = await this.userChecks.getUserById(updated.id_admin);
       if (!admin) {
-        throw new NotFoundException(`Admin with ID ${updated.id_admin} not found.`);
+        throw new NotFoundException(
+          `Admin with ID ${updated.id_admin} not found.`,
+        );
       }
       await this.notificationsService.notify(
         admin.email,
@@ -386,7 +388,7 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
 <p>La solicitud de viaje con ID: <strong>${updated.id}</strong> ha sido actualizada.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
-<p>Equipo de Monarca</p>`
+<p>Equipo de Monarca</p>`,
       );
 
       return updated;

@@ -41,10 +41,16 @@ export class RevisionsService {
       throw new UnauthorizedException('Unable to write to that request.');
     }
 
-    const requestStatus = await this.requestChecks.getRequestStatus(data.id_request)
-    if (requestStatus !== 'Pending Review' &&
-        requestStatus !== 'Changes Needed') {
-      throw new UnauthorizedException('Unable to create a revision because of the requets status.');
+    const requestStatus = await this.requestChecks.getRequestStatus(
+      data.id_request,
+    );
+    if (
+      requestStatus !== 'Pending Review' &&
+      requestStatus !== 'Changes Needed'
+    ) {
+      throw new UnauthorizedException(
+        'Unable to create a revision because of the requets status.',
+      );
     }
 
     const revision = this.revisionRepository.create({
@@ -73,7 +79,7 @@ export class RevisionsService {
 <p>${data.comment}</p>
 <p>Para más detalles, visita tu panel de solicitudes.</p>
 <p>Saludos,</p>
-<p>Equipo de Monarca</p>`,      
+<p>Equipo de Monarca</p>`,
     );
 
     // const revision = this.revisionRepository.create(data);

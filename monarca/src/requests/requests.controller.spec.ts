@@ -27,8 +27,6 @@ describe('RequestsController', () => {
   });
 });
 
-
-
 /*
 Modification History:
 

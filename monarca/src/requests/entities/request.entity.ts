@@ -118,8 +118,6 @@ export class Request {
   vouchers: Voucher[];
 }
 
-
-
 /*
 Modification History:
 

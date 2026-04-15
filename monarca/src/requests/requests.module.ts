@@ -37,12 +37,15 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
     NotificationsModule, // Assuming this is a controller that handles notifications related to requests
   ],
   controllers: [RequestsController, RequestsStatusController],
-  providers: [RequestsService, RequestsChecks, RequestsStatusService, NotificationsService],
+  providers: [
+    RequestsService,
+    RequestsChecks,
+    RequestsStatusService,
+    NotificationsService,
+  ],
   exports: [RequestsService, RequestsChecks],
 })
 export class RequestsModule {}
-
-
 
 /*
 Modification History:

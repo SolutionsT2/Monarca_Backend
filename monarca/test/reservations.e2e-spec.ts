@@ -159,4 +159,3 @@ describe('Reservations e2e', () => {
 Modification History:
 - 2026-02-25 | Standards applied | File description, test descriptions and comments in English, camelCase variables, removed debug log, modification history.
 */
-

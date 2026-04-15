@@ -35,7 +35,7 @@ export class Voucher {
   @Column({ name: 'date', type: 'timestamptz' })
   date: Date;
 
-  @Column({ name: 'file_url_pdf', type: 'varchar',nullable: true })
+  @Column({ name: 'file_url_pdf', type: 'varchar', nullable: true })
   file_url_pdf: string | null;
 
   @Column({ name: 'file_url_xml', type: 'varchar', nullable: true })
@@ -47,11 +47,7 @@ export class Voucher {
   @Column({ name: 'id_approver', type: 'uuid' })
   id_approver: string;
 
-  @ManyToOne(
-    () => Request,
-    (requests) => requests.id,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne(() => Request, (requests) => requests.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_request' })
   requests: Request;
 }

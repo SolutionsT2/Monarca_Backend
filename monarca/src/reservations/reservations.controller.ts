@@ -15,7 +15,7 @@ import {
   UseGuards,
   Request,
   UseInterceptors,
-  UploadedFiles
+  UploadedFiles,
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import {
@@ -27,7 +27,7 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { UploadPdfInterceptor } from 'src/utils/uploadPdf.middleware';
 
-@UseGuards(AuthGuard,PermissionsGuard)
+@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('reservations')
 export class ReservationsController {
   constructor(private readonly reservationsService: ReservationsService) {}
@@ -35,18 +35,15 @@ export class ReservationsController {
   @UseInterceptors(UploadPdfInterceptor())
   @Post()
   async createReservation(
-    @Request() req : RequestInterface,
+    @Request() req: RequestInterface,
     @UploadedFiles()
-        files: {
-          file?: Express.Multer.File[];
-        },
+    files: {
+      file?: Express.Multer.File[];
+    },
     @Body() createReservationDto: CreateReservationDto,
-    ) {
-      // flatten both arrays into one list
-    const uploaded = [
-      ...(files.file || []),
-
-    ];
+  ) {
+    // flatten both arrays into one list
+    const uploaded = [...(files.file || [])];
 
     const fileMap: Record<string, string> = {};
 
@@ -54,14 +51,12 @@ export class ReservationsController {
       const publicUrl = `${process.env.DOWNLOAD_LINK}/files/reservations/${file.filename}`;
       if (file.fieldname === 'file') {
         fileMap.link = publicUrl;
-      } }
-    return this.reservationsService.createReservation(req, 
-      {
-        ...createReservationDto,
-        ...fileMap,
-      } as CreateReservationDto
-    );
-    
+      }
+    }
+    return this.reservationsService.createReservation(req, {
+      ...createReservationDto,
+      ...fileMap,
+    } as CreateReservationDto);
   }
 
   @Get()

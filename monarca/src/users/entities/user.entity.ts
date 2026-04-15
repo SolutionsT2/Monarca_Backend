@@ -59,7 +59,7 @@ export class User {
   @Column({
     type: 'uuid',
     nullable: true,
-    name: 'id_travel_agency'
+    name: 'id_travel_agency',
   })
   idTravelAgency?: string;
 

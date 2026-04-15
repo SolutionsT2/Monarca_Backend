@@ -3,7 +3,14 @@
  * Description: TypeORM entity representing a department, its users and related cost center.
  */
 
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 @Entity({ name: 'departments' })
@@ -21,7 +28,6 @@ export class Department {
   @ManyToOne(() => CostCenter, (costCenter) => costCenter.departments)
   @JoinColumn({ name: 'cost_center_id' })
   cost_center: CostCenter;
-
 }
 
 /**

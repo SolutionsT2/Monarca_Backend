@@ -26,9 +26,9 @@ export class NotificationsService {
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
       auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-      }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
     });
   }
 
@@ -66,14 +66,9 @@ export class NotificationsService {
     to: string,
     subject: string,
     text: string,
-    html?: string
+    html?: string,
   ) {
-    return this.sendMail(
-      to, 
-      subject, 
-      text, 
-      html
-  );
+    return this.sendMail(to, subject, text, html);
   }
 
   /**
@@ -86,14 +81,8 @@ export class NotificationsService {
    * @param message Plain text message content.
    * @param html Optional raw HTML body.
    */
-  async notify(
-  to: string,
-  subject: string,
-  message: string,
-  html?: string
-) {
-  
-  // Escapes plain text to prevent HTML injection.
+  async notify(to: string, subject: string, message: string, html?: string) {
+    // Escapes plain text to prevent HTML injection.
     const escapeHtml = (str: string) =>
       str
         .replace(/&/g, '&amp;')
@@ -122,8 +111,7 @@ export class NotificationsService {
     `;
 
     return this.sendMail(to, subject, message, htmlComplete);
-}
-
+  }
 }
 
 /*

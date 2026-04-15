@@ -1,0 +1,26 @@
+name: Monarca Tests
+
+on: push
+
+jobs:
+  monarca_tests:
+    name: Run tests (Jest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify monarca layout
+        run: test -f monarca/package.json && test -d monarca/src
+
+      - name: Install dependencies
+        working-directory: ./monarca
+        run: npm ci
+
+      - name: Typecheck (no emit)
+        working-directory: ./monarca
+        run: npx tsc --noEmit
+
+      - name: Run login unit tests
+        working-directory: ./monarca
+        run: npm test -- --testPathPattern=login.service.spec
