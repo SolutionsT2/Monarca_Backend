@@ -33,8 +33,8 @@ export class PermissionsGuard implements CanActivate {
     if (!userId) throw new ForbiddenException('User session not found');
 
     const user = await this.findById(userId);
-    if (!user || !user.role || !user.role.permissions) {
-      throw new ForbiddenException('User or permissions not found');
+    if (!user || !user.role || !user.role.rolePermissions) {
+      throw new ForbiddenException('User or role permissions not found');
     }
 
     // console.log('User found:', user.id);
@@ -45,14 +45,18 @@ export class PermissionsGuard implements CanActivate {
       email: user.email,
       name: user.name,
       last_name: user.lastName,
-      status: user.status,
+      availabilityStatus: user.availabilityStatus,
       id_department: user.idDepartment,
       id_role: user.idRole,
       id_travel_agency: user.idTravelAgency,
     };
     // console.log(`request.sessionInfo.id: ${request.sessionInfo.id}`)
 
-    const userPermissions = user.role.permissions.map((p) => p.name);
+    const now = new Date();
+    const userPermissions = user.role.rolePermissions
+      .filter((rp) => !rp.expiresAt || rp.expiresAt > now)
+      .map((rp) => rp.permission.name);
+
     request.userPermissions = userPermissions;
 
     const permissionsRequired = this.reflector.get<string[]>(
@@ -76,7 +80,7 @@ export class PermissionsGuard implements CanActivate {
   async findById(id: string): Promise<User> {
     const user = await this.userRepository123.findOne({
       where: { id },
-      relations: ['role', 'role.permissions'],
+      relations: ['role', 'role.rolePermissions', 'role.rolePermissions.permission'],
     });
 
     if (!user) {

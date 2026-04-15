@@ -111,7 +111,7 @@ export class Request {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_travel_agency' })
-  travel_agency: TravelAgency;
+  travelAgency: TravelAgency;
 
   @OneToMany(() => Voucher, (v) => v.requests, {})
   @JoinColumn({ name: 'id_request' })

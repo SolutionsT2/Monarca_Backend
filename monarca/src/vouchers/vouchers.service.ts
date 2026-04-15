@@ -4,6 +4,7 @@
  */
 
 import { Injectable, NotFoundException,ForbiddenException } from '@nestjs/common';
+import { UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -11,6 +12,7 @@ import { UpdateVoucherDto } from './dto/update-voucher-dto';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { privateDecrypt } from 'crypto';
+import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 @Injectable()
 export class VouchersService {
   constructor(
@@ -18,6 +20,7 @@ export class VouchersService {
     private readonly voucherRepo: Repository<Voucher>,
     @InjectRepository(Request)
     private readonly rRepo: Repository<Request>,
+    private readonly policyEngineService: PolicyEngineService,
   ) {}
 
   async create(id_user:string, data: CreateVoucherDto): Promise<Voucher> {
@@ -48,7 +51,34 @@ export class VouchersService {
       status: data.status,
       id_approver: approverId, // Mapping the correct file URL
     });
-    return await this.voucherRepo.save(voucher);
+    const savedVoucher = await this.voucherRepo.save(voucher);
+
+    const violations = await this.policyEngineService.evaluate(savedVoucher);
+    if (violations.length > 0) {
+      await this.voucherRepo.delete(savedVoucher.id);
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        message: 'Voucher violates reimbursement policies.',
+        policy_summary: {
+          total_rules: violations.length,
+          passed: 0,
+          failed: violations.length,
+          blocking_violations: violations.length,
+          can_submit: false,
+          violations: violations.map((violation) => ({
+            policy_id: violation.id_policy_rule,
+            policy_code: violation.id_policy_rule,
+            passed: false,
+            message: violation.detail,
+            severity: 'BLOCKING',
+            consequence: 'POLICY_VIOLATION',
+            can_override: false,
+          })),
+        },
+      });
+    }
+
+    return savedVoucher;
   }
 
   async findAll(): Promise<Voucher[]> {

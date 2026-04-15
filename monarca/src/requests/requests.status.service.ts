@@ -9,6 +9,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -18,6 +19,8 @@ import { RequestsService } from './requests.service';
 import { ApproveRequestDTO } from './dto/approve-request.dto';
 import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 
 // STATUSES:
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
@@ -27,9 +30,12 @@ export class RequestsStatusService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepo: Repository<RequestEntity>,
+    @InjectRepository(Voucher)
+    private readonly vouchersRepo: Repository<Voucher>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
+    private readonly policyEngineService: PolicyEngineService,
   ) {}
 
   async approve(
@@ -242,7 +248,7 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin'],
+      relations: ['admin', 'requests_destinations'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -254,6 +260,97 @@ export class RequestsStatusService {
       throw new ConflictException(
         'Unable to change status because of the requests current status.',
       );
+
+    const vouchers = await this.vouchersRepo.find({
+      where: { id_request },
+    });
+
+    // Guard against duplicated relation state and ensure deterministic totals.
+    const uniqueVouchers = vouchers.filter(
+      (voucher, index, list) =>
+        list.findIndex((candidate) => candidate.id === voucher.id) === index,
+    );
+
+    if (uniqueVouchers.length === 0) {
+      throw new ConflictException(
+        'Unable to finish uploading vouchers because no valid voucher was uploaded for this request.',
+      );
+    }
+
+    const hasAdvance = Number(request.advance_money || 0) > 0;
+    const destinations = request.requests_destinations || [];
+
+    const tripStartDate = destinations.length
+      ? new Date(
+          Math.min(
+            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
+          ),
+        )
+      : null;
+
+    const tripEndDate = destinations.length
+      ? new Date(
+          Math.max(
+            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
+          ),
+        )
+      : null;
+
+    if (hasAdvance && uniqueVouchers.length === 0) {
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        message:
+          'Cannot submit reimbursement without vouchers when an advance was requested.',
+        policy_summary: {
+          total_rules: 1,
+          passed: 0,
+          failed: 1,
+          blocking_violations: 1,
+          can_submit: false,
+          violations: [
+            {
+              policy_id: 'ADVANCE_REQUIRES_VOUCHERS',
+              policy_code: 'ADVANCE_REQUIRES_VOUCHERS',
+              passed: false,
+              message:
+                'Advance exists on request, but no vouchers were uploaded for reimbursement.',
+              severity: 'BLOCKING',
+              consequence: 'POLICY_VIOLATION',
+              can_override: false,
+            },
+          ],
+        },
+      });
+    }
+
+    // Evaluate reimbursement policies before moving the request to approval.
+    const summary = await this.policyEngineService.evaluateRequestSubmission(
+      {
+        id: request.id,
+        advance_money: request.advance_money,
+        createdAt: request.createdAt,
+        trip_start_date: tripStartDate,
+        trip_end_date: tripEndDate,
+      },
+      uniqueVouchers.map((voucher) => ({
+        id: voucher.id,
+        id_request: voucher.id_request,
+        class: voucher.class,
+        amount: voucher.amount,
+        currency: voucher.currency,
+        file_url_pdf: voucher.file_url_pdf,
+        file_url_xml: voucher.file_url_xml,
+        date: voucher.date,
+      })),
+    );
+
+    if (!summary.can_submit) {
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        message: 'Policy validation failed. Resolve violations before submit.',
+        policy_summary: summary,
+      });
+    }
 
     // Notify admin
     await this.notificationsService.notify(

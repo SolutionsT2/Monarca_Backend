@@ -9,29 +9,27 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { SessionInfoInterface } from './interfaces/sessionInfo.interface';
+import { RequestInterface } from './interfaces/request.interface';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest() as Request & {
-      sessionInfo: SessionInfoInterface;
-    };
+    const request = context.switchToHttp().getRequest<RequestInterface>();
 
-    const token = request.cookies['sessionInfo'];
+    const token = request.cookies?.sessionInfo as string | undefined;
     if (!token) {
       throw new UnauthorizedException('No token provided');
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(token);
+      const payload = await this.jwtService.verifyAsync<SessionInfoInterface>(token);
       request.sessionInfo = payload as SessionInfoInterface;
       return true;
-    } catch (err) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
   }

@@ -16,6 +16,8 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 /**
@@ -44,8 +46,32 @@ export class User {
   password: string;
 
   @ApiProperty({ example: 'active' })
-  @Column()
-  status: string;
+  @Column({ name: 'availability_status', type: 'varchar', length: 30, default: 'active' })
+  availabilityStatus: string;
+
+  @ApiProperty({ example: 'active' })
+  @Column({ name: 'employee_status', type: 'varchar', length: 20, default: 'active' })
+  employeeStatus: string;
+
+  @ApiProperty({ example: 'mperez' })
+  @Column({ unique: true, nullable: true })
+  username: string;
+
+  @ApiProperty({ example: '883d9e05-612c-4d08-9efb-5099952fc850' })
+  @Column({ name: 'id_manager', type: 'uuid', nullable: true })
+  idManager?: string;
+
+  @ApiProperty({ example: '12345678' })
+  @Column({ name: 'supplier_number', type: 'varchar', length: 8, nullable: true })
+  supplierNumber?: string;
+
+  @ApiProperty()
+  @CreateDateColumn({ name: 'signup_date' })
+  signupDate: Date;
+
+  @ApiProperty()
+  @UpdateDateColumn({ name: 'lastchange_date' })
+  lastchangeDate: Date;
 
   @ApiProperty({ example: 1 })
   @Column({ name: 'id_department' })
@@ -59,7 +85,7 @@ export class User {
   @Column({
     type: 'uuid',
     nullable: true,
-    name: 'id_travel_agency'
+    name: 'id_travel_agency',
   })
   idTravelAgency?: string;
 
@@ -74,6 +100,13 @@ export class User {
   @ManyToOne(() => TravelAgency, (travelAgency) => travelAgency.users)
   @JoinColumn({ name: 'id_travel_agency' })
   travelAgency?: TravelAgency;
+
+  @ManyToOne(() => User, (user) => user.managedUsers)
+  @JoinColumn({ name: 'id_manager' })
+  manager?: User;
+
+  @OneToMany(() => User, (user) => user.manager)
+  managedUsers: User[];
 
   // Hacer conexion despues
   @OneToMany(() => Revision, (log) => log.request, {})
@@ -92,4 +125,8 @@ export class User {
 /*
 Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+ - 2026-03-24:
+ *   - Definition of rules for status
+ - 2026-04-10:
+ *   - Added employeeStatus, username, manager_id, supplier_number, signupDate, and lastchangeDate.
 */
