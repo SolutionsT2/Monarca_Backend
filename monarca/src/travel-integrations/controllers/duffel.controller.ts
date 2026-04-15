@@ -15,11 +15,8 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsChecks } from 'src/requests/requests.checks';
-import { ReservationsService } from 'src/reservations/reservations.service';
 import {
   CreateDuffelOfferRequestDto,
-  CreateDuffelOrderDto,
-  CreateDuffelPaymentDto,
   ListDuffelOffersQueryDto,
 } from '../dto/duffel.dto';
 import { DuffelService } from '../services/duffel.service';
@@ -31,7 +28,6 @@ export class DuffelController {
   constructor(
     private readonly duffelService: DuffelService,
     private readonly requestsChecks: RequestsChecks,
-    private readonly reservationsService: ReservationsService,
   ) {}
 
   @Post('offer-requests')
@@ -77,68 +73,6 @@ export class DuffelController {
     return this.duffelService.getOfferById(offerId);
   }
 
-  @Post('orders')
-  @ApiOperation({ summary: 'Create Duffel order from selected offer(s)' })
-  async createOrder(
-    @Request() req: RequestInterface,
-    @Body() body: CreateDuffelOrderDto,
-  ) {
-    await this.assertRequestDestinationAccess(req, body.requestDestinationId);
-
-    const selectedOffers = Array.isArray(
-      body.data.selected_offers,
-    )
-      ? (body.data.selected_offers as string[])
-      : [body.offerId];
-
-    const orderResponse = await this.duffelService.createOrder({
-      ...body.data,
-      selected_offers: selectedOffers,
-      metadata: {
-        ...(body.data.metadata && typeof body.data.metadata === 'object'
-          ? (body.data.metadata as Record<string, unknown>)
-          : {}),
-        monarca_request_destination_id: body.requestDestinationId,
-      },
-    });
-
-    const orderDetails = this.extractOrderDetails(orderResponse);
-
-    const reservation = await this.reservationsService.createReservation(req, {
-      title: body.reservationTitle,
-      comments: body.reservationComments,
-      price: body.reservationPrice,
-      id_request_destination: body.requestDestinationId,
-      provider_name: 'duffel',
-      provider_offer_id:
-        orderDetails.offerId ?? selectedOffers[0] ?? null,
-      booking_reference: orderDetails.bookingReference ?? orderDetails.orderId,
-      hold_expires_at: orderDetails.holdExpiresAt ?? undefined,
-      provider_meta: {
-        duffel_order: orderResponse,
-      },
-    });
-
-    return {
-      order: orderResponse,
-      reservation,
-    };
-  }
-
-  @Post('payments')
-  @ApiOperation({ summary: 'Create Duffel payment for an existing order' })
-  async createPayment(
-    @Request() req: RequestInterface,
-    @Body() body: CreateDuffelPaymentDto,
-  ) {
-    await this.assertRequestDestinationAccess(req, body.requestDestinationId);
-
-    return this.duffelService.createPayment({
-      ...body.data,
-      order_id: body.orderId,
-    });
-  }
-
   private async assertRequestDestinationAccess(
     req: RequestInterface,
     requestDestinationId: string,
@@ -169,39 +103,5 @@ export class DuffelController {
         'Unable to use Duffel because the request is not in Pending Reservations.',
       );
     }
-  }
-
-  private extractOrderDetails(orderResponse: unknown): {
-    orderId?: string;
-    offerId?: string;
-    bookingReference?: string;
-    holdExpiresAt?: string;
-  } {
-    const root =
-      typeof orderResponse === 'object' && orderResponse !== null
-        ? (orderResponse as Record<string, unknown>)
-        : {};
-    const order =
-      typeof root.order === 'object' && root.order !== null
-        ? (root.order as Record<string, unknown>)
-        : root;
-
-    return {
-      orderId: this.asString(order.id) ?? this.asString(root.id),
-      offerId:
-        this.asString(order.offer_id) ?? this.asString(root.offer_id) ?? this.asString(root.offerId),
-      bookingReference:
-        this.asString(order.booking_reference) ??
-        this.asString(root.booking_reference) ??
-        this.asString(root.bookingReference),
-      holdExpiresAt:
-        this.asString(order.hold_expires_at) ??
-        this.asString(root.hold_expires_at) ??
-        this.asString(root.holdExpiresAt),
-    };
-  }
-
-  private asString(value: unknown): string | undefined {
-    return typeof value === 'string' ? value : undefined;
   }
 }

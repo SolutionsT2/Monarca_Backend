@@ -16,12 +16,6 @@ interface DuffelClient {
     list(params: JsonMap): Promise<unknown>;
     get(offerId: string): Promise<unknown>;
   };
-  orders: {
-    create(payload: JsonMap): Promise<unknown>;
-  };
-  payments: {
-    create(payload: JsonMap): Promise<unknown>;
-  };
 }
 
 @Injectable()
@@ -57,14 +51,6 @@ export class DuffelService {
 
   async getOfferById(offerId: string): Promise<unknown> {
     return this.executeDuffelCall(() => this.duffel.offers.get(offerId));
-  }
-
-  async createOrder(payload: JsonMap): Promise<unknown> {
-    return this.executeDuffelCall(() => this.duffel.orders.create(payload));
-  }
-
-  async createPayment(payload: JsonMap): Promise<unknown> {
-    return this.executeDuffelCall(() => this.duffel.payments.create(payload));
   }
 
   private async executeDuffelCall<T>(action: () => Promise<T>): Promise<T> {
