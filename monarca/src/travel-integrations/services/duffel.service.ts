@@ -14,7 +14,7 @@ interface DuffelClient {
   };
   offers: {
     list(params: JsonMap): Promise<unknown>;
-    get(offerId: string): Promise<unknown>;
+    get(offerId: string, params?: JsonMap): Promise<unknown>;
   };
 }
 
@@ -40,17 +40,35 @@ export class DuffelService {
   }
 
   // Duffel supports cursor pagination through after/limit query params.
-  async listOffers(offerRequestId: string, after?: string, limit?: string) {
+  async listOffers(
+    offerRequestId: string,
+    after?: string,
+    limit?: number,
+    sort?: string,
+    maxConnections?: number,
+  ) {
     const params: JsonMap = { offer_request_id: offerRequestId };
 
     if (after) params.after = after;
     if (limit) params.limit = limit;
+    if (sort) params.sort = sort;
+    if (typeof maxConnections === 'number') {
+      params.max_connections = maxConnections;
+    }
 
     return this.executeDuffelCall(() => this.duffel.offers.list(params));
   }
 
-  async getOfferById(offerId: string): Promise<unknown> {
-    return this.executeDuffelCall(() => this.duffel.offers.get(offerId));
+  async getOfferById(
+    offerId: string,
+    returnAvailableServices?: boolean,
+  ): Promise<unknown> {
+    const params: JsonMap | undefined =
+      typeof returnAvailableServices === 'boolean'
+        ? { return_available_services: returnAvailableServices }
+        : undefined;
+
+    return this.executeDuffelCall(() => this.duffel.offers.get(offerId, params));
   }
 
   private async executeDuffelCall<T>(action: () => Promise<T>): Promise<T> {

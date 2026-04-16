@@ -17,9 +17,15 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsChecks } from 'src/requests/requests.checks';
 import {
   CreateDuffelOfferRequestDto,
+  GetDuffelOfferByIdQueryDto,
   ListDuffelOffersQueryDto,
 } from '../dto/duffel.dto';
 import { DuffelService } from '../services/duffel.service';
+import {
+  normalizeOfferDetailResponse,
+  normalizeOfferRequestResponse,
+  normalizeOffersListResponse,
+} from '../utils/duffel-offers.normalizer';
 
 @ApiTags('travel-integrations')
 @UseGuards(AuthGuard, PermissionsGuard)
@@ -46,7 +52,7 @@ export class DuffelController {
         ? (body.data.metadata as Record<string, unknown>)
         : {};
 
-    return this.duffelService.createOfferRequest({
+    const response = await this.duffelService.createOfferRequest({
       ...body.data,
       metadata: {
         ...baseMetadata,
@@ -55,22 +61,36 @@ export class DuffelController {
         monarca_travel_agency_id: req.userInfo?.id_travel_agency,
       },
     });
+
+    return normalizeOfferRequestResponse(response);
   }
 
   @Get('offers')
   @ApiOperation({ summary: 'List Duffel offers by offer request id' })
   async listOffers(@Query() query: ListDuffelOffersQueryDto) {
-    return this.duffelService.listOffers(
+    const response = await this.duffelService.listOffers(
       query.offerRequestId,
       query.after,
       query.limit,
+      query.sort,
+      query.maxConnections,
     );
+
+    return normalizeOffersListResponse(response, query.offerRequestId);
   }
 
   @Get('offers/:offerId')
   @ApiOperation({ summary: 'Get a fresh Duffel offer by id' })
-  async getOfferById(@Param('offerId') offerId: string) {
-    return this.duffelService.getOfferById(offerId);
+  async getOfferById(
+    @Param('offerId') offerId: string,
+    @Query() query: GetDuffelOfferByIdQueryDto,
+  ) {
+    const response = await this.duffelService.getOfferById(
+      offerId,
+      query.returnAvailableServices,
+    );
+
+    return normalizeOfferDetailResponse(response);
   }
 
   private async assertRequestDestinationAccess(
