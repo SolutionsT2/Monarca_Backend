@@ -13,8 +13,12 @@ describe('NotificationsController', () => {
   let controller: NotificationsController;
 
   beforeEach(async () => {
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
+      providers: [
+        require('./notifications.service').NotificationsService,
+      ],
     }).compile();
 
     controller = module.get<NotificationsController>(NotificationsController);

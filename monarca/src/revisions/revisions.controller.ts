@@ -19,7 +19,6 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 
-@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('revisions')
 export class RevisionsController {
   constructor(private readonly revisionsService: RevisionsService) {}

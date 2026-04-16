@@ -21,6 +21,6 @@ jobs:
         working-directory: ./monarca
         run: npx tsc --noEmit
 
-      - name: Run login unit tests
+      - name: Run all backend unit tests
         working-directory: ./monarca
-        run: npm test -- --testPathPattern=login.service.spec
+        run: npm test -- --passWithNoTests
