@@ -16,30 +16,25 @@ export const UploadPdfInterceptor = () => {
     fs.mkdirSync(uploadPath, { recursive: true });
   }
 
-  return FileFieldsInterceptor(
-    [
-      { name: 'file', maxCount: 1 },
-    ],
-    {
-      storage: diskStorage({
-        destination: uploadPath,
-        filename: (_, file, cb) => {
-          const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
-          cb(null, uniqueName);
-        },
-      }),
-      fileFilter: (_, file, cb) => {
-        // allow only pdf or xml
-        if (!file.mimetype.match(/\/pdf$/) ) {
-          return cb(new Error('Only PDF files are allowed'), false);
-        }
-        cb(null, true);
+  return FileFieldsInterceptor([{ name: 'file', maxCount: 1 }], {
+    storage: diskStorage({
+      destination: uploadPath,
+      filename: (_, file, cb) => {
+        const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+        cb(null, uniqueName);
       },
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB
-      },
+    }),
+    fileFilter: (_, file, cb) => {
+      // allow only pdf or xml
+      if (!file.mimetype.match(/\/pdf$/)) {
+        return cb(new Error('Only PDF files are allowed'), false);
+      }
+      cb(null, true);
     },
-  );
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+    },
+  });
 };
 
 /**

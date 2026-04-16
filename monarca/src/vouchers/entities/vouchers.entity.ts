@@ -50,11 +50,7 @@ export class Voucher {
   @Column({ name: 'id_approver', type: 'uuid' })
   id_approver: string;
 
-  @ManyToOne(
-    () => Request,
-    (requests) => requests.id,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne(() => Request, (requests) => requests.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_request' })
   requests: Request;
 }

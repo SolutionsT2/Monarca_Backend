@@ -37,6 +37,8 @@ import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CfdiModule } from './cfdi/cfdi.module';
+import { Cfdi } from './cfdi/cfdi.entity';
 import { Delegation } from './delegations/entities/delegation.entity';
 import { DelegationsModule } from './delegations/delegations.module';
 import { Policy } from './policy-engine/entities/policy.entity';
@@ -65,6 +67,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
     DestinationsModule,
     UserLogsModule,
     GuardsModule,
+    CfdiModule,
     DelegationsModule,
     PolicyEngineModule,
     TypeOrmModule.forRoot({
@@ -92,6 +95,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
         Voucher,
         UserLogs,
         Revision,
+        Cfdi,
         Policy,
         PolicyRule,
         PolicyViolation,
@@ -116,12 +120,12 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
       Voucher,
       UserLogs,
       Revision,
+      Cfdi,
       Policy,
       PolicyRule,
       PolicyViolation,
       Delegation,
     ]),
-
   ],
   controllers: [],
   providers: [SeedService],

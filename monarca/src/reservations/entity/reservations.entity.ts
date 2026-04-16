@@ -26,7 +26,6 @@ export class Reservation {
   @Column({ type: 'varchar', nullable: false })
   link: string;
 
-  
   @Column({ type: 'float', nullable: false })
   price: number;
 

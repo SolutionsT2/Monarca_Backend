@@ -37,8 +37,7 @@ export class CreateReservationDto {
   comments: string;
 
   @ApiProperty({
-    example:
-      '250.00',
+    example: '250.00',
     description: 'Price of the reservation',
     required: true,
   })
@@ -46,12 +45,11 @@ export class CreateReservationDto {
   price: number;
 
   @ApiProperty({
-      description: 'pdf file of the reservation',
-      example: 'file',
-    })
-   @IsOptional()
-    file?: string;
-
+    description: 'pdf file of the reservation',
+    example: 'file',
+  })
+  @IsOptional()
+  file?: string;
 
   @ApiProperty({
     description: 'ID of the request destination',

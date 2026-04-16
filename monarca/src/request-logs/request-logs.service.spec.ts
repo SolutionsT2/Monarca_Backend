@@ -25,8 +25,6 @@ describe('RequestLogsService', () => {
   });
 });
 
-
-
 /*
 Modification History:
 

@@ -68,7 +68,7 @@ export class RequestsStatusService {
       { id: id_request },
       { id_travel_agency: id_travel_agency },
     );
-    
+
     await this.notificationsService.notify(
       request.user.email,
       'Solicitud de viaje aprobada',
@@ -81,7 +81,8 @@ export class RequestsStatusService {
     );
 
     // notify to the travel agents
-    const agents = await this.travelAgenciesChecks.getTravelAgencyUsers(id_travel_agency);
+    const agents =
+      await this.travelAgenciesChecks.getTravelAgencyUsers(id_travel_agency);
 
     for (const agent of agents) {
       await this.notificationsService.notify(
@@ -153,16 +154,16 @@ export class RequestsStatusService {
         'Unable to cancel because of the requests current status.',
       );
 
-      await this.notificationsService.notify(
-        request.user.email,
-        'Solicitud de viaje cancelada',
-        `Tu solicitud de viaje con el título "${request.title}" ha sido cancelada.`,
-        `<p>Hola ${request.user.name},</p>
+    await this.notificationsService.notify(
+      request.user.email,
+      'Solicitud de viaje cancelada',
+      `Tu solicitud de viaje con el título "${request.title}" ha sido cancelada.`,
+      `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido cancelada.</p>
 <p>Si tienes alguna pregunta o necesitas más información, no dudes en contactarnos.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
+    );
 
     return await this.requestsService.updateStatus(id_request, 'Cancelled');
   }
@@ -177,14 +178,14 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    
     // console.log("Scenario 1: ")
     // console.log (`(!(id_travel_agency && id_travel_agency === request.id_travel_agency)) ${(!(id_travel_agency && id_travel_agency === request.id_travel_agency))}`)
     // console.log("Scenario 2: ")
     // console.log (` (!!id_travel_agency && id_travel_agency !== request.id_travel_agency) ${ (!!id_travel_agency && id_travel_agency !== request.id_travel_agency)}`)
-    
-    if  (!(id_travel_agency && id_travel_agency === request.id_travel_agency)) //Testear mas
-      throw new UnauthorizedException('Unable to change requests status.')
+
+    if (!(id_travel_agency && id_travel_agency === request.id_travel_agency))
+      //Testear mas
+      throw new UnauthorizedException('Unable to change requests status.');
 
     if (request.status !== 'Pending Reservations')
       throw new ConflictException(
@@ -203,7 +204,6 @@ export class RequestsStatusService {
 <p>Equipo de Monarca</p>`,
     );
 
-
     return await this.requestsService.updateStatus(
       id_request,
       'Pending Accounting Approval',
@@ -218,7 +218,6 @@ export class RequestsStatusService {
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
-
 
     if (request.id_SOI !== id_user)
       throw new UnauthorizedException('Unable to approve request.');
@@ -412,7 +411,10 @@ export class RequestsStatusService {
 <p>Equipo de Monarca</p>`,
     );
 
-    return await this.requestsService.updateStatus(id_request, 'Pending Refund Approval');
+    return await this.requestsService.updateStatus(
+      id_request,
+      'Pending Refund Approval',
+    );
   }
 
   //finsihedRegisteringRequest

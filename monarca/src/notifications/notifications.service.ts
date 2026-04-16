@@ -75,14 +75,9 @@ export class NotificationsService {
     to: string,
     subject: string,
     text: string,
-    html?: string
+    html?: string,
   ) {
-    return this.sendMail(
-      to, 
-      subject, 
-      text, 
-      html
-  );
+    return this.sendMail(to, subject, text, html);
   }
 
   /**
@@ -95,14 +90,8 @@ export class NotificationsService {
    * @param message Plain text message content.
    * @param html Optional raw HTML body.
    */
-  async notify(
-  to: string,
-  subject: string,
-  message: string,
-  html?: string
-) {
-  
-  // Escapes plain text to prevent HTML injection.
+  async notify(to: string, subject: string, message: string, html?: string) {
+    // Escapes plain text to prevent HTML injection.
     const escapeHtml = (str: string) =>
       str
         .replace(/&/g, '&amp;')

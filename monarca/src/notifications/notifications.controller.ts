@@ -37,8 +37,6 @@ export class NotificationsController {
 	}
 }
 
-
-
 /*
 Modification History:
 

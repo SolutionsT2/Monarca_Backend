@@ -17,7 +17,7 @@ export class DestinationsChecks {
     private readonly destRepo: Repository<Destination>,
   ) {}
 
-  async isValid(id: string): Promise<Boolean> {
+  async isValid(id: string): Promise<boolean> {
     const dest = await this.destRepo.findOneBy({ id });
 
     return !!dest;

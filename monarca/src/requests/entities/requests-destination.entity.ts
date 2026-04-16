@@ -77,8 +77,6 @@ export class RequestsDestination {
   destination: Destination;
 }
 
-
-
 /*
 Modification History:
 
