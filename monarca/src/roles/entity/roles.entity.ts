@@ -14,6 +14,12 @@ export class Roles {
   @Column()
   name: string;
 
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({ name: 'is_active', default: true })
+  isActive: boolean;
+
   @OneToMany(() => RolePermission, (rp) => rp.role)
   rolePermissions: RolePermission[];
 }
