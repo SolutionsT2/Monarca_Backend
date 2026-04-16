@@ -16,11 +16,13 @@ import { DestinationsModule } from 'src/destinations/destinations.module';
 import { RequestsChecks } from './requests.checks';
 import { RequestsStatusController } from './requests.status.controller';
 import { RequestsStatusService } from './requests.status.service';
-import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { TravelAgenciesModule } from 'src/travel-agencies/travel-agencies.module';
 import { RequestLogsModule } from 'src/request-logs/request-logs.module';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
+import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 
 /**
  * Module encapsulating request domain logic
@@ -28,13 +30,14 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Request, RequestsDestination]),
+    TypeOrmModule.forFeature([Request, RequestsDestination, Voucher, PolicyViolation]),
     GuardsModule,
     UsersModule,
     DestinationsModule,
     TravelAgenciesModule,
     RequestLogsModule,
     NotificationsModule, // Assuming this is a controller that handles notifications related to requests
+    PolicyEngineModule,
   ],
   controllers: [RequestsController, RequestsStatusController],
   providers: [

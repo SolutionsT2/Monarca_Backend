@@ -10,10 +10,32 @@
  * Controller responsible for managing notification endpoints.
  */
 
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
+import { NotificationsService } from './notifications.service';
+
+type SendNotificationDto = {
+	to: string;
+	subject: string;
+	text: string;
+	html?: string;
+};
 
 @Controller('notifications')
-export class NotificationsController {}
+export class NotificationsController {
+	constructor(private readonly notificationsService: NotificationsService) {}
+
+	@Post('send')
+	async send(@Body() body: SendNotificationDto) {
+		await this.notificationsService.sendNotification(
+			body.to,
+			body.subject,
+			body.text,
+			body.html,
+		);
+
+		return { message: 'Correo enviado correctamente.' };
+	}
+}
 
 /*
 Modification History:

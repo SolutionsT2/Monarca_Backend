@@ -24,7 +24,7 @@ export class UserChecks {
   async logIn(data: LogInDTO): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { email: data.email },
-      relations: ['department', 'role', 'role.permissions'],
+      relations: ['department', 'role', 'role.rolePermissions', 'role.rolePermissions.permission'],
     });
 
     if (!user) {
@@ -49,8 +49,8 @@ export class UserChecks {
   async getUserById(id: string): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { id: id },
-      select: ['id', 'name', 'email', 'department', 'lastName', 'role'], // lastName updated to camelCase
-      relations: ['department', 'role', 'role.permissions'],
+      select: ['id', 'name', 'email', 'department', 'lastName', 'role', 'availabilityStatus'],
+      relations: ['department', 'role', 'role.rolePermissions', 'role.rolePermissions.permission'],
     });
 
     if (!user) {

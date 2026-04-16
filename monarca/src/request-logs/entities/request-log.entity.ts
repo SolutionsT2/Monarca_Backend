@@ -46,7 +46,7 @@ export class RequestLog {
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  change_date: string;
+  change_date: Date;
 
   // Defines relationship with the parent Request entity.
   @ManyToOne(() => Request, (request) => request.requestLogs, {
@@ -60,4 +60,6 @@ export class RequestLog {
 Modification History:
 
 - 2026-02-26 | Diego Vergara | Added entity documentation, class JSDoc, and standardized comments.
+- 2026-03-24:
+    - Changed change_date type from string to Date.
 */

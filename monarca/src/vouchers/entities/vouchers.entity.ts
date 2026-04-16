@@ -44,6 +44,9 @@ export class Voucher {
   @Column({ name: 'status', type: 'varchar' })
   status: string;
 
+  @Column({ name: 'policy_status', type: 'varchar', default: 'PENDING', nullable: true })
+  policy_status: string; // new column to track policy evaluation status
+
   @Column({ name: 'id_approver', type: 'uuid' })
   id_approver: string;
 
