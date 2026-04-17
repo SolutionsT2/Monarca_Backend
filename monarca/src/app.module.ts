@@ -9,6 +9,9 @@ import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DepartmentsModule } from './departments/departments.module';
 import { Roles } from './roles/entity/roles.entity';
+import { RolesModule } from './roles/roles.module';
+import { AuthModuleEntity } from './roles/entity/auth-module.entity';
+import { AuthorizationSubstitute } from './roles/entity/authorization-substitute.entity';
 import { TravelAgenciesModule } from './travel-agencies/travel-agencies.module';
 import { RequestsModule } from './requests/requests.module';
 import { RequestLogsModule } from './request-logs/request-logs.module';
@@ -56,7 +59,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
     AuthModule,
     UsersModule,
     TravelAgenciesModule,
-    Roles,
+    RolesModule,
     DepartmentsModule,
     CostCentersModule,
     RequestsModule,
@@ -89,6 +92,8 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
         Roles,
         RolePermission,
         Permission,
+        AuthModuleEntity,
+        AuthorizationSubstitute,
         Reservation,
         RequestLog,
         TravelAgency,
@@ -114,6 +119,8 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
       Roles,
       RolePermission,
       Permission,
+      AuthModuleEntity,
+      AuthorizationSubstitute,
       Reservation,
       RequestLog,
       TravelAgency,
@@ -135,6 +142,6 @@ export class AppModule {}
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * - 2026-03-24:
- *  - Added seed data for delegations.
+ * - 2026-03-24: Added seed data for delegations.
+ * - 2026-03-27 | Efren | Register RolesModule; add auth_modules and authorization_substitutes entities.
  */

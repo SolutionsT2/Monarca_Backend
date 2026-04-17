@@ -15,7 +15,7 @@ export class Roles {
   name: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description?: string | null;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
