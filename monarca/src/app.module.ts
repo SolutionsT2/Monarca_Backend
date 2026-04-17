@@ -49,6 +49,12 @@ import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
 import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 
+// ---- Ditta Consulting integration entities ----
+import { Company } from './companies/entity/company.entity';
+import { AccountingAccount } from './accounting-accounts/entity/accounting-account.entity';
+import { DocumentClass } from './document-classes/entity/document-class.entity';
+import { PolicyExport } from './policy-exports/entity/policy-export.entity';
+
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -105,6 +111,11 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
         PolicyRule,
         PolicyViolation,
         Delegation,
+        // Ditta Consulting
+        Company,
+        AccountingAccount,
+        DocumentClass,
+        PolicyExport,
       ],
       synchronize: true,
     }),
@@ -132,6 +143,11 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
       PolicyRule,
       PolicyViolation,
       Delegation,
+      // Ditta Consulting
+      Company,
+      AccountingAccount,
+      DocumentClass,
+      PolicyExport,
     ]),
   ],
   controllers: [],
@@ -144,4 +160,5 @@ export class AppModule {}
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-03-24: Added seed data for delegations.
  * - 2026-03-27 | Efren | Register RolesModule; add auth_modules and authorization_substitutes entities.
+ * - 2026-04-13 | Diego Vergara | Registered Ditta Consulting entities (Company, AccountingAccount, DocumentClass, PolicyExport) in TypeOrmModule for schema sync and dependency injection.
  */

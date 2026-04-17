@@ -33,7 +33,6 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { promises as fs } from 'fs';
 import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.validator';
 
-@UseGuards(AuthGuard, PermissionsGuard)
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
 export class VouchersController {

@@ -5,13 +5,18 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { TravelAgenciesService } from './travel-agencies.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { TravelAgency } from './entities/travel-agency.entity';
 
 describe('TravelAgenciesService', () => {
   let service: TravelAgenciesService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TravelAgenciesService],
+      providers: [
+        TravelAgenciesService,
+        { provide: getRepositoryToken(TravelAgency), useValue: {} },
+      ],
     }).compile();
 
     service = module.get<TravelAgenciesService>(TravelAgenciesService);
@@ -25,4 +30,5 @@ describe('TravelAgenciesService', () => {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-04-15: Santiago Arista | Refactored providers for testing
  */
