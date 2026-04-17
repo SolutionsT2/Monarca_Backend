@@ -76,8 +76,8 @@ export class User {
   lastchangeDate: Date;
 
   @ApiProperty({ example: 1 })
-  @Column({ name: 'id_department' })
-  idDepartment: string;
+  @Column({ name: 'id_department', type: 'uuid', nullable: true })
+  idDepartment?: string;
 
   @ApiProperty({ example: 2 })
   @Column({ name: 'id_role' })
@@ -101,15 +101,14 @@ export class User {
   @Column({ name: 'id_cost_center', type: 'uuid', nullable: true })
   idCostCenter?: string;
 
-  @ApiProperty()
-  @Column({ name: 'id_company', type: 'uuid', nullable: true })
-  idCompany?: string;
-
   // ---- Relationships ----
 
-  @ManyToOne(() => Department, (department) => department.users)
+  @ManyToOne(() => Department, (department) => department.users, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'id_department' })
-  department: Department;
+  department?: Department;
 
   @ManyToOne(() => Roles)
   @JoinColumn({ name: 'id_role' })
@@ -129,10 +128,6 @@ export class User {
   @ManyToOne(() => CostCenter, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'id_cost_center' })
   costCenter?: CostCenter;
-
-  @ManyToOne(() => Company, (company) => company.users, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'id_company' })
-  company?: Company;
 
   // Hacer conexion despues
   @OneToMany(() => Revision, (log) => log.request, {})

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -11,6 +11,11 @@ import {
 import { Company } from './entity/company.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Roles } from 'src/roles/entity/roles.entity';
+import * as bcrypt from 'bcrypt';
+
+const ADMIN_DEPARTMENT_NAME = 'Admin Department';
 
 @Injectable()
 export class CompaniesService {
@@ -21,16 +26,70 @@ export class CompaniesService {
     private readonly departmentRepo: Repository<Department>,
     @InjectRepository(CostCenter)
     private readonly costCenterRepo: Repository<CostCenter>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(Roles)
+    private readonly roleRepo: Repository<Roles>,
   ) {}
 
-  create(data: CreateCompanyDto): Promise<CompanyDto> {
-    const company = this.companyRepo.create({
-      key: data.key.trim(),
-      name: data.name.trim(),
-      localCurrency: data.localCurrency.trim().toUpperCase(),
+  async create(data: CreateCompanyDto): Promise<CompanyDto> {
+    const companyAdminRole = await this.findCompanyAdminRole();
+
+    const [defaultCostCenter] = await this.costCenterRepo.find({
+      order: { name: 'ASC' },
+      take: 1,
     });
 
-    return this.companyRepo.save(company);
+    if (!defaultCostCenter) {
+      throw new NotFoundException(
+        'No cost center found. At least one cost center is required before creating a company.',
+      );
+    }
+
+    const adminEmail = data.admin.email.trim().toLowerCase();
+    const existingAdmin = await this.userRepo.findOne({
+      where: { email: adminEmail },
+    });
+
+    if (existingAdmin) {
+      throw new NotFoundException(`User with email ${adminEmail} already exists`);
+    }
+
+    return this.companyRepo.manager.transaction(async (manager) => {
+      const company = manager.create(Company, {
+        key: data.key.trim(),
+        name: data.name.trim(),
+        localCurrency: data.localCurrency.trim().toUpperCase(),
+      });
+
+      const savedCompany = await manager.save(Company, company);
+
+      const adminDepartment = manager.create(Department, {
+        name: ADMIN_DEPARTMENT_NAME,
+        id_company: savedCompany.id,
+        isProtected: true,
+        cost_center: defaultCostCenter,
+      });
+
+      const savedDepartment = await manager.save(Department, adminDepartment);
+
+      const hashedPassword = await bcrypt.hash(data.admin.password, 10);
+      const adminUser = manager.create(User, {
+        email: adminEmail,
+        name: data.admin.name.trim(),
+        lastName: data.admin.lastName.trim(),
+        password: hashedPassword,
+        availabilityStatus: 'active',
+        employeeStatus: 'active',
+        username:
+          data.admin.username?.trim() || adminEmail.split('@')[0] || undefined,
+        idDepartment: savedDepartment.id,
+        idRole: companyAdminRole.id,
+      });
+
+      await manager.save(User, adminUser);
+      return savedCompany;
+    });
   }
 
   findAll(): Promise<CompanyDto[]> {
@@ -63,7 +122,7 @@ export class CompaniesService {
     await this.findOne(idCompany);
 
     const costCenter = await this.costCenterRepo.findOne({
-      where: { id: data.cost_center_id },
+      where: { numericId: data.cost_center_id },
     });
 
     if (!costCenter) {
@@ -75,6 +134,7 @@ export class CompaniesService {
     const department = this.departmentRepo.create({
       name: data.name.trim(),
       id_company: idCompany,
+      isProtected: false,
       cost_center: costCenter,
     });
 
@@ -87,5 +147,94 @@ export class CompaniesService {
       relations: ['cost_center'],
       order: { name: 'ASC' },
     });
+  }
+
+  async assertSuperAdmin(idRole: string): Promise<void> {
+    const role = await this.roleRepo.findOne({ where: { id: idRole } });
+    if (!role) {
+      throw new ForbiddenException('Role not found');
+    }
+
+    const normalizedRole = role.name.trim().toLowerCase();
+    const allowedSuperAdminNames = [
+      'superadmin',
+      'super admin',
+      'superadministrador',
+      'super administrador',
+    ];
+
+    if (!allowedSuperAdminNames.includes(normalizedRole)) {
+      throw new ForbiddenException('Only SuperAdmin can access companies endpoints.');
+    }
+  }
+
+  async assertCompanyDepartmentAccess(
+    idRole: string,
+    userDepartmentId: string | undefined,
+    targetCompanyId: string,
+  ): Promise<void> {
+    const role = await this.roleRepo.findOne({ where: { id: idRole } });
+    if (!role) {
+      throw new ForbiddenException('Role not found');
+    }
+
+    const normalizedRole = role.name.trim().toLowerCase();
+    const isCompanyAdmin = [
+      'companyadmin',
+      'company admin',
+      'administrador de empresa',
+      'admin empresa',
+    ].includes(normalizedRole);
+
+    if (!isCompanyAdmin) {
+      throw new ForbiddenException(
+        'Only CompanyAdmin can access company departments endpoints.',
+      );
+    }
+
+    if (!userDepartmentId) {
+      throw new ForbiddenException(
+        'CompanyAdmin must belong to a department associated with a company.',
+      );
+    }
+
+    const department = await this.departmentRepo.findOne({
+      where: { id: userDepartmentId },
+    });
+
+    const departmentCompanyId = department?.id_company;
+
+    if (!departmentCompanyId || departmentCompanyId !== targetCompanyId) {
+      throw new ForbiddenException(
+        'CompanyAdmin can only access departments for their own company.',
+      );
+    }
+  }
+
+  private async findCompanyAdminRole(): Promise<Roles> {
+    const preferredRoleName =
+      process.env.COMPANY_ADMIN_ROLE_NAME?.trim() || 'CompanyAdmin';
+
+    const role = await this.roleRepo
+      .createQueryBuilder('role')
+      .where('LOWER(role.name) = LOWER(:name)', { name: preferredRoleName })
+      .orWhere('LOWER(role.name) = LOWER(:alt1)', {
+        alt1: 'Administrador de Empresa',
+      })
+      .orWhere('LOWER(role.name) = LOWER(:alt2)', {
+        alt2: 'Company Admin',
+      })
+      .orWhere('LOWER(role.name) = LOWER(:alt3)', {
+        alt3: 'Admin Empresa',
+      })
+      .getOne();
+
+    if (!role) {
+      throw new NotFoundException(
+        'CompanyAdmin role not found. Seed/create this role before creating companies.',
+      );
+    }
+
+    return role;
   }
 }

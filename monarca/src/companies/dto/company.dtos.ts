@@ -1,7 +1,41 @@
 import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID, Length } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  Length,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Company } from '../entity/company.entity';
 import { Department } from 'src/departments/entity/department.entity';
+
+export class CreateCompanyAdminDto {
+  @ApiProperty({ example: 'admin@acme.com' })
+  @IsEmail()
+  email!: string;
+
+  @ApiProperty({ example: 'Admin' })
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @ApiProperty({ example: 'One' })
+  @IsString()
+  @IsNotEmpty()
+  lastName!: string;
+
+  @ApiProperty({ example: 'secure-password' })
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+
+  @ApiProperty({ example: 'admin.acme' })
+  @IsString()
+  username?: string;
+}
 
 export class CreateCompanyDto {
   @ApiProperty({ example: 'ACME' })
@@ -20,6 +54,11 @@ export class CreateCompanyDto {
   @IsNotEmpty()
   @Length(3, 3)
   localCurrency!: string;
+
+  @ApiProperty({ type: CreateCompanyAdminDto })
+  @ValidateNested()
+  @Type(() => CreateCompanyAdminDto)
+  admin!: CreateCompanyAdminDto;
 }
 
 export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {}
@@ -32,9 +71,10 @@ export class CreateCompanyDepartmentDto {
   @IsNotEmpty()
   name!: string;
 
-  @ApiProperty({ example: 'a1f4e0e1-1b89-4ccf-9e57-43f4b3d1a001' })
-  @IsUUID()
-  cost_center_id!: string;
+  @ApiProperty({ example: 100 })
+  @IsInt()
+  @Min(1)
+  cost_center_id!: number;
 }
 
 export class CompanyDepartmentDto extends OmitType(Department, ['users']) {}

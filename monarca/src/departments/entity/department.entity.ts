@@ -22,6 +22,9 @@ export class Department {
   @Column()
   name: string;
 
+  @Column({ name: 'is_protected', type: 'boolean', default: false })
+  isProtected: boolean;
+
   // One department can have many users.
   @OneToMany(() => User, (user) => user.department)
   users: User[];
