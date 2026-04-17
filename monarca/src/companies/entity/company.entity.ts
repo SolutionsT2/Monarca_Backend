@@ -12,7 +12,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { Department } from 'src/departments/entity/department.entity';
 
@@ -35,9 +34,6 @@ export class Company {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  @OneToMany(() => User, (user) => user.company)
-  users: User[];
 
   @OneToMany(() => Request, (request) => request.company)
   requests: Request[];

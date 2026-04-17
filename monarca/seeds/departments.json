@@ -9,16 +9,19 @@
   {
     "id": "883d9e05-612c-4d08-9efb-5099952fc850",
     "name": "Technology",
-    "cost_center_id": 102
+    "cost_center_id": 102,
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   },
   {
     "id": "28ba8a09-f4ba-450e-8259-6196d50f1bff",
     "name": "Human Resources",
-    "cost_center_id": 101
+    "cost_center_id": 101,
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   },
   {
     "id": "118424c8-a563-4452-921f-795e25c58b3a",
     "name": "Sales",
-    "cost_center_id": 103
+    "cost_center_id": 103,
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   }
 ]
