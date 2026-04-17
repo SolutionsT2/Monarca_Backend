@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
+import { Company } from 'src/companies/entity/company.entity';
 @Entity({ name: 'departments' })
 export class Department {
   @PrimaryGeneratedColumn('uuid')
@@ -28,6 +29,16 @@ export class Department {
   @ManyToOne(() => CostCenter, (costCenter) => costCenter.departments)
   @JoinColumn({ name: 'cost_center_id' })
   cost_center: CostCenter;
+
+  @Column({ name: 'id_company', type: 'uuid', nullable: true })
+  id_company?: string;
+
+  @ManyToOne(() => Company, (company) => company.departments, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'id_company' })
+  company?: Company;
 }
 
 /**

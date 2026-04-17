@@ -145,6 +145,7 @@ export class SeedService {
                     const department = this.departmentRepo.create({
                         id: entity.id,
                         name: entity.name,
+                        id_company: entity.id_company ?? entity.idCompany,
                         cost_center: costCenter,
                     });
                 

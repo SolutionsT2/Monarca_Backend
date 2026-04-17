@@ -48,12 +48,10 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
+import { CompaniesModule } from './companies/companies.module';
 import { AccountingAccount } from './accounting-accounts/entity/accounting-account.entity';
 import { DocumentClass } from './document-classes/entity/document-class.entity';
 import { PolicyExport } from './policy-exports/entity/policy-export.entity';
-import { EnterprisesModule } from './enterprises/enterprises.module';
-import { Enterprise } from './enterprises/entities/enterprise.entity';
-import { EnterpriseDepartment } from './enterprises/entities/enterprise-department.entity';
 
 @Module({
   imports: [
@@ -68,7 +66,7 @@ import { EnterpriseDepartment } from './enterprises/entities/enterprise-departme
     Roles,
     DepartmentsModule,
     CostCentersModule,
-    EnterprisesModule,
+    CompaniesModule,
     RequestsModule,
     RequestLogsModule,
     ReservationsModule,
@@ -115,8 +113,6 @@ import { EnterpriseDepartment } from './enterprises/entities/enterprise-departme
         AccountingAccount,
         DocumentClass,
         PolicyExport,
-        Enterprise,
-        EnterpriseDepartment,
       ],
       synchronize: true,
     }),
@@ -147,8 +143,6 @@ import { EnterpriseDepartment } from './enterprises/entities/enterprise-departme
       AccountingAccount,
       DocumentClass,
       PolicyExport,
-      Enterprise,
-      EnterpriseDepartment,
     ]),
   ],
   controllers: [],
