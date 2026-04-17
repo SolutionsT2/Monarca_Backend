@@ -3,6 +3,7 @@
  * Description: Service containing the business logic for user creation, retrieval, updating, and deletion.
  */
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -11,12 +12,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto, UserDto } from './dto/user.dtos';
+import { Roles } from 'src/roles/entity/roles.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly repo: Repository<User>,
+    @InjectRepository(Roles)
+    private readonly roleRepo: Repository<Roles>,
   ) {}
 
   /**
@@ -51,6 +55,7 @@ export class UsersService {
    * @returns The newly created user entity.
    */
   async create(data: CreateUserDto): Promise<User> {
+    await this.validateCompanyRoleInvariant(data.idRole, data.idDepartment);
     const ent = this.repo.create(data);
     return this.repo.save(ent);
   }
@@ -76,6 +81,17 @@ export class UsersService {
    * @returns The updated user data transfer object.
    */
   async update(id: string, data: UpdateUserDto): Promise<UserDto> {
+    const currentUser = await this.repo.findOne({ where: { id } });
+    if (!currentUser) {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+
+    const targetRoleId = data.idRole ?? currentUser.idRole;
+    const targetDepartmentId =
+      data.idDepartment !== undefined ? data.idDepartment : currentUser.idDepartment;
+
+    await this.validateCompanyRoleInvariant(targetRoleId, targetDepartmentId);
+
     await this.repo.update(id, data);
     return this.findOne(id);
   }
@@ -88,6 +104,44 @@ export class UsersService {
   async delete(id: string): Promise<{ status: boolean; message: string }> {
     await this.repo.delete(id);
     return { status: true, message: `User ${id} deleted` };
+  }
+
+  private async validateCompanyRoleInvariant(
+    idRole: string,
+    idDepartment?: string,
+  ): Promise<void> {
+    const role = await this.roleRepo.findOne({ where: { id: idRole } });
+    if (!role) {
+      throw new BadRequestException(`Role ${idRole} not found`);
+    }
+
+    const roleName = role.name.toLowerCase();
+
+    const isSuperAdmin = [
+      'superadmin',
+      'super admin',
+      'superadministrador',
+      'super administrador',
+    ].includes(roleName);
+
+    const isCompanyAdmin = [
+      'companyadmin',
+      'company admin',
+      'administrador de empresa',
+      'admin empresa',
+    ].includes(roleName);
+
+    if (isSuperAdmin && idDepartment) {
+      throw new BadRequestException(
+        'SuperAdmin users must not be assigned to any department.',
+      );
+    }
+
+    if (isCompanyAdmin && !idDepartment) {
+      throw new BadRequestException(
+        'CompanyAdmin users must be assigned to a department.',
+      );
+    }
   }
 }
 

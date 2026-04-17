@@ -24,6 +24,7 @@ import { Policy } from 'src/policy-engine/entities/policy.entity';
 import { PolicyRule } from 'src/policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Delegation } from 'src/delegations/entities/delegation.entity';
+import { Company } from 'src/companies/entity/company.entity';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -59,11 +60,13 @@ export class SeedService {
         @InjectRepository(PolicyRule) private readonly policyRuleRepo: Repository<PolicyRule>,
         @InjectRepository(PolicyViolation) private readonly policyViolationRepo: Repository<PolicyViolation>,
         @InjectRepository(Delegation) private readonly delegationRepo: Repository<Delegation>,
+        @InjectRepository(Company) private readonly companyRepo: Repository<Company>,
     ) {}
 
     async run() {
         const seedData: SeedData[] = [
             { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
+            { repo: this.companyRepo, file: 'companies.json', entityName: 'Company' },
             { repo: this.departmentRepo, file: 'departments.json', entityName: 'Department' },
             { repo: this.permissionRepo, file: 'permissions.json', entityName: 'Permission' },
             { repo: this.destinationRepo, file: 'destinations.json', entityName: 'Destination' },
@@ -140,14 +143,20 @@ export class SeedService {
 
                     await repo.save(user);
                 } else if (entityName === 'Department') {
-                    const costCenter = await this.costCenterRepo.findOneByOrFail({ id: entity.cost_center_id });
-                    
+                    const rawCostCenterId = entity.cost_center_id;
+                    const costCenter =
+                        typeof rawCostCenterId === 'number'
+                            ? await this.costCenterRepo.findOneByOrFail({ numericId: rawCostCenterId })
+                            : await this.costCenterRepo.findOneByOrFail({ id: rawCostCenterId });
+
                     const department = this.departmentRepo.create({
                         id: entity.id,
                         name: entity.name,
+                        isProtected: entity.is_protected ?? entity.isProtected ?? false,
+                        id_company: entity.id_company ?? entity.idCompany,
                         cost_center: costCenter,
                     });
-                
+
                     await this.departmentRepo.save(department);
                 } else {
                     const newEntity = repo.create(entity);
@@ -193,6 +202,7 @@ export class SeedService {
                 'destinations',
                 'permissions',
                 'departments',
+                'companies',
                 'cost_centers'
             ];
 
@@ -240,5 +250,5 @@ export class SeedService {
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history; fixed Department import path (./src/ -> src/).
  * - 2026-03-24:
- *  - Added seed data for delegations.
+ * - Added seed data for delegations.
  */

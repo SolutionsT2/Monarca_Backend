@@ -11,6 +11,12 @@ export class CostCenter {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'numeric_id', type: 'int', unique: true, nullable: true })
+  numericId?: number;
+
+  @Column({ name: 'key', type: 'varchar', length: 10, unique: true, nullable: true })
+  key: string;
+
   @Column()
   name: string;
 
@@ -22,4 +28,5 @@ export class CostCenter {
 /**
  * Modification History:
  * - 2026-02-26: Added description header and modification history footer.
+ * - 2026-04-13 | Diego Vergara | Added `key` column to map CostCenter to Ditta Consulting CeCo catalog (100, 101, 102, 103).
  */

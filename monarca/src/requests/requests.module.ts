@@ -40,12 +40,15 @@ import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.ent
     PolicyEngineModule,
   ],
   controllers: [RequestsController, RequestsStatusController],
-  providers: [RequestsService, RequestsChecks, RequestsStatusService, NotificationsService],
+  providers: [
+    RequestsService,
+    RequestsChecks,
+    RequestsStatusService,
+    NotificationsService,
+  ],
   exports: [RequestsService, RequestsChecks],
 })
 export class RequestsModule {}
-
-
 
 /*
 Modification History:

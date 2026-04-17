@@ -23,6 +23,8 @@ import { Destination } from 'src/destinations/entities/destination.entity';
 import { User } from 'src/users/entities/user.entity';
 import { TravelAgency } from 'src/travel-agencies/entities/travel-agency.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { Company } from 'src/companies/entity/company.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 
 /**
  * Entity representing a travel request.
@@ -70,6 +72,14 @@ export class Request {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
+  // ---- Ditta Consulting integration fields ----
+
+  @Column({ name: 'id_company', type: 'uuid', nullable: true })
+  id_company?: string;
+
+  @Column({ name: 'id_document_class', type: 'uuid', nullable: true })
+  id_document_class?: string;
+
   // Defines entity relationships and database associations.
 
   @OneToMany(() => RequestsDestination, (dest) => dest.request, {
@@ -116,12 +126,18 @@ export class Request {
   @OneToMany(() => Voucher, (v) => v.requests, {})
   @JoinColumn({ name: 'id_request' })
   vouchers: Voucher[];
+
+  @ManyToOne(() => Company, (company) => company.requests, { nullable: true })
+  @JoinColumn({ name: 'id_company' })
+  company?: Company;
+
+  @ManyToOne(() => DocumentClass, (dc) => dc.requests, { nullable: true })
+  @JoinColumn({ name: 'id_document_class' })
+  document_class?: DocumentClass;
 }
-
-
 
 /*
 Modification History:
-
 - 2026-02-26 | Diego Vergara | Added entity documentation and improved relationship comments.
+- 2026-04-13 | Diego Vergara | Added Ditta Consulting fields: id_company and id_document_class with relationships to Company and DocumentClass.
 */

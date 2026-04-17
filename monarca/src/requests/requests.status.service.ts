@@ -52,7 +52,7 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    //CHECAR SI ES VALIDO EL TRAVEL AGENCY ID
+    // Validate travel agency id
     if (!(await this.travelAgenciesChecks.Exists(id_travel_agency)))
       throw new BadRequestException('Invalid travel agency id.');
 
@@ -68,32 +68,49 @@ export class RequestsStatusService {
       { id: id_request },
       { id_travel_agency: id_travel_agency },
     );
-    
-    await this.notificationsService.notify(
-      request.user.email,
-      'Solicitud de viaje aprobada',
-      `Tu solicitud de viaje con el título "${request.title}" ha sido aprobada y está pendiente de reservaciones.`,
-      `<p>Hola ${request.user.name},</p>
+
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.user.email,
+        'Solicitud de viaje aprobada',
+        `Tu solicitud de viaje con el título "${request.title}" ha sido aprobada y está pendiente de reservaciones.`,
+        `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de reservaciones.</p>
 <p>Por favor, espera a que se realicen las reservaciones necesarias.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error(
+        'Failed to send approval notification to requester:',
+        emailError,
+      );
+    }
 
-    // notify to the travel agents
-    const agents = await this.travelAgenciesChecks.getTravelAgencyUsers(id_travel_agency);
+    // Notify to the travel agents
+    const agents =
+      await this.travelAgenciesChecks.getTravelAgencyUsers(id_travel_agency);
 
     for (const agent of agents) {
-      await this.notificationsService.notify(
-        agent.email,
-        'Nueva solicitud de viaje aprobada',
-        `La solicitud de viaje con el título "${request.title}" ha sido aprobada y está pendiente de reservaciones.`,
-        `<p>Hola ${agent.name},</p>
+      // Email failure should not abort status transition
+      try {
+        await this.notificationsService.notify(
+          agent.email,
+          'Nueva solicitud de viaje aprobada',
+          `La solicitud de viaje con el título "${request.title}" ha sido aprobada y está pendiente de reservaciones.`,
+          `<p>Hola ${agent.name},</p>
 <p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de reservaciones.</p>
 <p>Por favor, revisa los detalles de la solicitud y procede con las reservaciones necesarias.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
+        );
+      } catch (emailError) {
+        console.error(
+          `Failed to send approval notification to agent ${agent.email}:`,
+          emailError,
+        );
+      }
     }
 
     return await this.requestsService.updateStatus(
@@ -119,16 +136,21 @@ export class RequestsStatusService {
         'Unable to deny because of the requests current status.',
       );
 
-    await this.notificationsService.notify(
-      request.user.email,
-      'Solicitud de viaje denegada',
-      `Tu solicitud de viaje con el título "${request.title}" ha sido denegada.`,
-      `<p>Hola ${request.user.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.user.email,
+        'Solicitud de viaje denegada',
+        `Tu solicitud de viaje con el título "${request.title}" ha sido denegada.`,
+        `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido denegada.</p>
 <p>Por favor, revisa los detalles de tu solicitud y considera realizar los cambios necesarios.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error('Failed to send denial notification:', emailError);
+    }
 
     return await this.requestsService.updateStatus(id_request, 'Denied');
   }
@@ -153,6 +175,8 @@ export class RequestsStatusService {
         'Unable to cancel because of the requests current status.',
       );
 
+    // Email failure should not abort status transition
+    try {
       await this.notificationsService.notify(
         request.user.email,
         'Solicitud de viaje cancelada',
@@ -163,6 +187,9 @@ export class RequestsStatusService {
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       );
+    } catch (emailError) {
+      console.error('Failed to send cancellation notification:', emailError);
+    }
 
     return await this.requestsService.updateStatus(id_request, 'Cancelled');
   }
@@ -177,32 +204,38 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    
     // console.log("Scenario 1: ")
     // console.log (`(!(id_travel_agency && id_travel_agency === request.id_travel_agency)) ${(!(id_travel_agency && id_travel_agency === request.id_travel_agency))}`)
     // console.log("Scenario 2: ")
     // console.log (` (!!id_travel_agency && id_travel_agency !== request.id_travel_agency) ${ (!!id_travel_agency && id_travel_agency !== request.id_travel_agency)}`)
-    
-    if  (!(id_travel_agency && id_travel_agency === request.id_travel_agency)) //Testear mas
-      throw new UnauthorizedException('Unable to change requests status.')
+
+    if (!(id_travel_agency && id_travel_agency === request.id_travel_agency))
+      // Needs further testing
+      throw new UnauthorizedException('Unable to change requests status.');
 
     if (request.status !== 'Pending Reservations')
       throw new ConflictException(
         'Unable to change status because of the requests current status.',
       );
 
-    // Notify SOI
-    await this.notificationsService.notify(
-      request.SOI.email,
-      'Solicitud de viaje pendiente de aprobación contable',
-      `La solicitud de viaje con el título "${request.title}" ha finalizado las reservaciones y está pendiente de tu aprobación contable.`,
-      `<p>Hola ${request.SOI.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.SOI.email,
+        'Solicitud de viaje pendiente de aprobación contable',
+        `La solicitud de viaje con el título "${request.title}" ha finalizado las reservaciones y está pendiente de tu aprobación contable.`,
+        `<p>Hola ${request.SOI.name},</p>
 <p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado las reservaciones y está pendiente de tu aprobación contable.</p>
 <p>Por favor, revisa los detalles de la solicitud y espera la aprobación contable.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
-
+      );
+    } catch (emailError) {
+      console.error(
+        'Failed to send finished reservations notification:',
+        emailError,
+      );
+    }
 
     return await this.requestsService.updateStatus(
       id_request,
@@ -219,7 +252,6 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-
     if (request.id_SOI !== id_user)
       throw new UnauthorizedException('Unable to approve request.');
 
@@ -228,18 +260,22 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    // Notify user
-    await this.notificationsService.notify(
-      request.user.email,
-      'Solicitud de viaje aprobada contablemente',
-      `Tu solicitud de viaje con el título "${request.title}" ha sido aprobada contablemente.`,
-      `<p>Hola ${request.user.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.user.email,
+        'Solicitud de viaje aprobada contablemente',
+        `Tu solicitud de viaje con el título "${request.title}" ha sido aprobada contablemente.`,
+        `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada contablemente.</p>
 <p>Ya puedes descargar tus reservaciones y llevar a cabo tu viaje.</p>
 <p>Una vez concluyas el viaje, puedes iniciar la comprobación de gastos.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error('Failed to send SOI approval notification:', emailError);
+    }
 
     return await this.requestsService.updateStatus(id_request, 'In Progress');
   }
@@ -352,17 +388,21 @@ export class RequestsStatusService {
       });
     }
 
-    // Notify admin
-    await this.notificationsService.notify(
-      request.admin.email,
-      'Solicitud de viaje pendiente de aprobación de comprobantes',
-      `La solicitud de viaje con el título "${request.title}" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.`,
-      `<p>Hola ${request.admin.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.admin.email,
+        'Solicitud de viaje pendiente de aprobación de comprobantes',
+        `La solicitud de viaje con el título "${request.title}" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.`,
+        `<p>Hola ${request.admin.name},</p>
 <p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.</p>
 <p>Por favor, revisa los comprobantes cargados y procede con la aprobación.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error('Failed to send voucher upload notification:', emailError);
+    }
 
     return await this.requestsService.updateStatus(
       id_request,
@@ -370,7 +410,7 @@ export class RequestsStatusService {
     );
   }
 
-  // Se cambia el estatus final de Completed a Pending Refund Approval
+  // Status changes from Pending Vouchers Approval to Pending Refund Approval
   async finishedApprovingVouchers(req: RequestInterface, id_request: string) {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
@@ -388,34 +428,50 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    // Notify user
-    await this.notificationsService.notify(
-      request.user.email,
-      'Comprobación de gastos del viaje completada',
-      `Tu comprobación de gastos del viaje con el título "${request.title}" ha sido completada y está pendiente de aprobación de reembolso.`,
-      `<p>Hola ${request.user.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.user.email,
+        'Comprobación de gastos del viaje completada',
+        `Tu comprobación de gastos del viaje con el título "${request.title}" ha sido completada y está pendiente de aprobación de reembolso.`,
+        `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de aprobación de reembolso.</p>
 <p>Por favor, espera a que se realice la aprobación de reembolso.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error(
+        'Failed to send voucher approval notification to user:',
+        emailError,
+      );
+    }
 
-    // Notify SOI
-    await this.notificationsService.notify(
-      request.SOI.email,
-      'Solicitud de viaje pendiente de aprobación de reembolso',
-      `La solicitud de viaje con el título "${request.title}" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.`,
-      `<p>Hola ${request.SOI.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.SOI.email,
+        'Solicitud de viaje pendiente de aprobación de reembolso',
+        `La solicitud de viaje con el título "${request.title}" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.`,
+        `<p>Hola ${request.SOI.name},</p>
 <p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.</p>
 <p>Por favor, revisa los detalles de la solicitud y procede con la aprobación de reembolso.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error(
+        'Failed to send refund approval notification to SOI:',
+        emailError,
+      );
+    }
 
-    return await this.requestsService.updateStatus(id_request, 'Pending Refund Approval');
+    return await this.requestsService.updateStatus(
+      id_request,
+      'Pending Refund Approval',
+    );
   }
 
-  //finsihedRegisteringRequest
   async finsihedRegisteringRequest(req: RequestInterface, id_request: string) {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
@@ -433,18 +489,22 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    // Notify user
-    await this.notificationsService.notify(
-      request.user.email,
-      'Solicitud de viaje completada',
-      `Tu solicitud de viaje con el título "${request.title}" ha sido completada y registrada.`,
-      `<p>Hola ${request.user.name},</p>
+    // Email failure should not abort status transition
+    try {
+      await this.notificationsService.notify(
+        request.user.email,
+        'Solicitud de viaje completada',
+        `Tu solicitud de viaje con el título "${request.title}" ha sido completada y registrada.`,
+        `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido completada y registrada.</p>
 <p>En breve se realizará su reembolso si aplica.</p>
 <p>Gracias por utilizar Monarca para gestionar tus viajes.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      );
+    } catch (emailError) {
+      console.error('Failed to send completion notification:', emailError);
+    }
 
     return await this.requestsService.updateStatus(id_request, 'Completed');
   }
@@ -453,4 +513,5 @@ export class RequestsStatusService {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped all notificationsService.notify() calls in try-catch to prevent email failures from aborting status transitions.
  */

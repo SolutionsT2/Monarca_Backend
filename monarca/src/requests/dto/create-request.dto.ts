@@ -146,8 +146,6 @@ export class CreateRequestDto {
   requests_destinations: RequestDestinationtDto[];
 }
 
-
-
 /*
 Modification History:
 

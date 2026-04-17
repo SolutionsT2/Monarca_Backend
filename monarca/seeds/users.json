@@ -1,5 +1,29 @@
 [
   {
+    "id": "4f2f7a9e-65fd-4f10-a289-64e8f5b2b0f1",
+    "idDepartment": null,
+    "idRole": "11111111-1111-4111-8111-111111111111",
+    "name": "Super",
+    "lastName": "Admin",
+    "password": "password",
+    "email": "superadmin@monarca.com",
+    "availabilityStatus": "active",
+    "employeeStatus": "active",
+    "username": "superadmin"
+  },
+  {
+    "id": "c8d3442a-2649-4822-ab94-6c218f18f923",
+    "idDepartment": "7b5e12f8-6cb5-4a2b-b56d-6c7e1c9e55aa",
+    "idRole": "22222222-2222-4222-8222-222222222222",
+    "name": "Company",
+    "lastName": "Admin",
+    "password": "password",
+    "email": "companyadmin@monarca.com",
+    "availabilityStatus": "active",
+    "employeeStatus": "active",
+    "username": "companyadmin"
+  },
+  {
     "id": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
     "idDepartment": "883d9e05-612c-4d08-9efb-5099952fc850",
     "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",

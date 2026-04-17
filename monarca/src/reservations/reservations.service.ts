@@ -3,12 +3,7 @@
  * Description: Service for reservation CRUD; validates travel agency and request status on create.
  */
 
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Reservation } from './entity/reservations.entity';
@@ -31,6 +26,7 @@ export class ReservationsService {
     req: RequestInterface,
     reservation: CreateReservationDto,
   ) {
+    // //VALIDAR USER Y id_request_destination
     const id_travel_agency = req.userInfo.id_travel_agency;
     if (
       !(
@@ -41,15 +37,20 @@ export class ReservationsService {
         ))
       )
     ) {
-      throw new UnauthorizedException('Unable to add reservation to that request.');
+      throw new UnauthorizedException(
+        'Unable to add reservation to that request.',
+      );
     }
 
+    //VALIDAR ESTADO DE REQUEST
     const requestStatus =
       await this.requestChecks.getRequestStatusFromRequestDestination(
         reservation.id_request_destination,
       );
     if (requestStatus !== 'Pending Reservations') {
-      throw new UnauthorizedException('Unable to create reservation because of the requests status.');
+      throw new UnauthorizedException(
+        'Unable to create reservation because of the requests status.',
+      );
     }
 
     if (reservation.provider_name === 'duffel' && !reservation.provider_offer_id) {

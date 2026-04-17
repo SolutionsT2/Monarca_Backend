@@ -51,8 +51,6 @@ export class RequestLogsController {
   }
 }
 
-
-
 /*
 Modification History:
 

@@ -106,7 +106,6 @@ export class CreateReservationDto {
   @IsOptional()
   file?: string;
 
-
   @ApiProperty({
     description: 'ID of the request destination',
     example: '123e4567-e89b-12d3-a456-426614174000',
