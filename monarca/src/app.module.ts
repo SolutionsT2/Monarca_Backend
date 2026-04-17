@@ -9,6 +9,9 @@ import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DepartmentsModule } from './departments/departments.module';
 import { Roles } from './roles/entity/roles.entity';
+import { RolesModule } from './roles/roles.module';
+import { AuthModuleEntity } from './roles/entity/auth-module.entity';
+import { AuthorizationSubstitute } from './roles/entity/authorization-substitute.entity';
 import { TravelAgenciesModule } from './travel-agencies/travel-agencies.module';
 import { RequestsModule } from './requests/requests.module';
 import { RequestLogsModule } from './request-logs/request-logs.module';
@@ -62,7 +65,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     AuthModule,
     UsersModule,
     TravelAgenciesModule,
-    Roles,
+    RolesModule,
     DepartmentsModule,
     CostCentersModule,
     RequestsModule,
@@ -95,6 +98,8 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         Roles,
         RolePermission,
         Permission,
+        AuthModuleEntity,
+        AuthorizationSubstitute,
         Reservation,
         RequestLog,
         TravelAgency,
@@ -125,6 +130,8 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       Roles,
       RolePermission,
       Permission,
+      AuthModuleEntity,
+      AuthorizationSubstitute,
       Reservation,
       RequestLog,
       TravelAgency,
@@ -152,5 +159,6 @@ export class AppModule {}
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-03-24: Added seed data for delegations.
+ * - 2026-03-27 | Efren | Register RolesModule; add auth_modules and authorization_substitutes entities.
  * - 2026-04-13 | Diego Vergara | Registered Ditta Consulting entities (Company, AccountingAccount, DocumentClass, PolicyExport) in TypeOrmModule for schema sync and dependency injection.
  */

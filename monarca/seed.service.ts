@@ -240,5 +240,5 @@ export class SeedService {
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history; fixed Department import path (./src/ -> src/).
  * - 2026-03-24:
- *  - Added seed data for delegations.
+ * - Added seed data for delegations.
  */
