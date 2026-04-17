@@ -88,6 +88,11 @@ export class RequestsService {
 
     // Assign approver
     const id_department = req.userInfo.id_department;
+    if (!id_department) {
+      throw new BadRequestException(
+        'User must belong to a company department  to create requests.',
+      );
+    }
     const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
       id_department,
       userId,

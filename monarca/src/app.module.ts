@@ -51,6 +51,7 @@ import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
+import { CompaniesModule } from './companies/companies.module';
 import { AccountingAccount } from './accounting-accounts/entity/accounting-account.entity';
 import { DocumentClass } from './document-classes/entity/document-class.entity';
 import { PolicyExport } from './policy-exports/entity/policy-export.entity';
@@ -68,6 +69,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     RolesModule,
     DepartmentsModule,
     CostCentersModule,
+    CompaniesModule,
     RequestsModule,
     RequestLogsModule,
     ReservationsModule,

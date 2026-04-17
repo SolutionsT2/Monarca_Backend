@@ -11,6 +11,9 @@ export class CostCenter {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'numeric_id', type: 'int', unique: true, nullable: true })
+  numericId?: number;
+
   @Column({ name: 'key', type: 'varchar', length: 10, unique: true, nullable: true })
   key: string;
 
