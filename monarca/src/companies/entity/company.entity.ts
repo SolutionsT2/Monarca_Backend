@@ -14,6 +14,7 @@ import {
 } from 'typeorm';
 import { Request } from 'src/requests/entities/request.entity';
 import { Department } from 'src/departments/entity/department.entity';
+import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 
 @Entity({ name: 'companies' })
 export class Company {
@@ -40,6 +41,9 @@ export class Company {
 
   @OneToMany(() => Department, (department) => department.company)
   departments: Department[];
+
+  @OneToMany(() => CostCenter, (costCenter) => costCenter.company)
+  costCenters: CostCenter[];
 }
 
 /*

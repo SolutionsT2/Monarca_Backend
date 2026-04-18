@@ -2,7 +2,6 @@
   {
     "id": "7b5e12f8-6cb5-4a2b-b56d-6c7e1c9e55aa",
     "name": "Admin Department",
-    "cost_center_id": 100,
     "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
     "is_protected": true
   },

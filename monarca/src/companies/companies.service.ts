@@ -35,17 +35,6 @@ export class CompaniesService {
   async create(data: CreateCompanyDto): Promise<CompanyDto> {
     const companyAdminRole = await this.findCompanyAdminRole();
 
-    const [defaultCostCenter] = await this.costCenterRepo.find({
-      order: { name: 'ASC' },
-      take: 1,
-    });
-
-    if (!defaultCostCenter) {
-      throw new NotFoundException(
-        'No cost center found. At least one cost center is required before creating a company.',
-      );
-    }
-
     const adminEmail = data.admin.email.trim().toLowerCase();
     const existingAdmin = await this.userRepo.findOne({
       where: { email: adminEmail },
@@ -68,7 +57,6 @@ export class CompaniesService {
         name: ADMIN_DEPARTMENT_NAME,
         id_company: savedCompany.id,
         isProtected: true,
-        cost_center: defaultCostCenter,
       });
 
       const savedDepartment = await manager.save(Department, adminDepartment);
@@ -122,7 +110,7 @@ export class CompaniesService {
     await this.findOne(idCompany);
 
     const costCenter = await this.costCenterRepo.findOne({
-      where: { numericId: data.cost_center_id },
+      where: { numericId: data.cost_center_id, id_company: idCompany },
     });
 
     if (!costCenter) {
