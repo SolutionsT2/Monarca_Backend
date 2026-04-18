@@ -15,6 +15,7 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -35,6 +36,7 @@ import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.va
 
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
+@UseGuards(AuthGuard, PermissionsGuard)
 export class VouchersController {
   constructor(private readonly vouchersService: VouchersService) {}
 
@@ -62,7 +64,10 @@ export class VouchersController {
       throw new InternalServerErrorException('DOWNLOAD_LINK not configured');
     }
 
-    const id_user = req.sessionInfo.id;
+    const id_user = req?.sessionInfo?.id;
+    if (!id_user) {
+      throw new UnauthorizedException('Missing authenticated session context.');
+    }
     const fileMap: Record<string, string> = {};
 
     // flatten both arrays into one list

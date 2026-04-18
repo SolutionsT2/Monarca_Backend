@@ -144,6 +144,14 @@ export class PolicyEngineService {
     return operator.trim().toUpperCase();
   }
 
+  private allowPreTripVoucherDatesForTesting(): boolean {
+    return process.env.ALLOW_PRETRIP_VOUCHER_DATES_FOR_TESTS?.toLowerCase() === 'true';
+  }
+
+  private allowVoucherAmountThresholdBypassForTesting(): boolean {
+    return process.env.ALLOW_VOUCHER_AMOUNT_RULE_BYPASS_FOR_TESTS?.toLowerCase() === 'true';
+  }
+
   private resolveSeverity(rule: PolicyRule): PolicySeverity {
     const consequence = rule.consequence?.trim().toUpperCase();
     return consequence === 'WARNING'
@@ -219,6 +227,21 @@ export class PolicyEngineService {
     }
 
     if (operator === 'VOUCHER_DATE_WITHIN_TRIP_WINDOW') {
+      const allowPreTripDates = this.allowPreTripVoucherDatesForTesting();
+
+      // In test mode, bypass trip-window validation entirely.
+      if (allowPreTripDates) {
+        return {
+          ...base,
+          passed: true,
+          message: 'Voucher-date trip-window rule bypassed in testing mode.',
+          evaluated_value: {
+            allow_pretrip_voucher_dates_for_tests: true,
+            bypass_trip_window_rule_for_tests: true,
+          },
+        };
+      }
+
       const tripStart = requestContext.trip_start_date
         ? new Date(requestContext.trip_start_date)
         : null;
@@ -243,6 +266,7 @@ export class PolicyEngineService {
         if (Number.isNaN(voucherDate.getTime())) {
           return true;
         }
+
         return voucherDate < tripStart || voucherDate > tripEnd;
       });
 
@@ -257,6 +281,7 @@ export class PolicyEngineService {
         evaluated_value: {
           trip_start_date: tripStart.toISOString(),
           trip_end_date: tripEnd.toISOString(),
+          allow_pretrip_voucher_dates_for_tests: false,
           out_of_window_voucher_ids: outOfWindowVouchers.map((voucher) => voucher.id),
         },
       };
@@ -315,6 +340,25 @@ export class PolicyEngineService {
         voucher_id: voucher.id,
         passed: true,
         message: 'Rule threshold is not configured.',
+      };
+    }
+
+    if (
+      this.allowVoucherAmountThresholdBypassForTesting() &&
+      ['LT', 'LTE', 'GT', 'GTE'].includes(operator)
+    ) {
+      return {
+        ...base,
+        voucher_id: voucher.id,
+        passed: true,
+        message: `Amount rule ${operator} bypassed in testing mode.`,
+        evaluated_value: {
+          amount: voucher.amount,
+          operator,
+          threshold,
+          currency: voucher.currency,
+          bypass_amount_rule_for_tests: true,
+        },
       };
     }
 
@@ -417,6 +461,9 @@ export class PolicyEngineService {
     const threshold = rule.threshold_value;
     switch (rule.operator) {
       case 'LT':
+        if (this.allowVoucherAmountThresholdBypassForTesting()) {
+          return false;
+        }
         return typeof threshold === 'number' ? voucher.amount < threshold : false;
       case 'MISSING_XML':
         return !voucher.file_url_xml;

@@ -75,7 +75,15 @@ export class RequestsService {
   }
 
   async create(req: RequestInterface, data: CreateRequestDto) {
-    const userId = req.sessionInfo.id;
+    const userId = req?.sessionInfo?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Missing authenticated session context.');
+    }
+
+    if (!req?.userInfo) {
+      throw new UnauthorizedException('Missing user context for request creation.');
+    }
+
     // Validate origin city
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');

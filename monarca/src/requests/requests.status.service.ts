@@ -277,6 +277,9 @@ export class RequestsStatusService {
       console.error('Failed to send SOI approval notification:', emailError);
     }
 
+    // Start each voucher-upload cycle from a clean slate for this request.
+    await this.vouchersRepo.delete({ id_request });
+
     return await this.requestsService.updateStatus(id_request, 'In Progress');
   }
 
@@ -381,6 +384,13 @@ export class RequestsStatusService {
     );
 
     if (!summary.can_submit) {
+      if (
+        process.env.RESET_VOUCHERS_ON_POLICY_FAILURE_FOR_TESTS?.toLowerCase() ===
+        'true'
+      ) {
+        await this.vouchersRepo.delete({ id_request });
+      }
+
       throw new UnprocessableEntityException({
         statusCode: 422,
         message: 'Policy validation failed. Resolve violations before submit.',

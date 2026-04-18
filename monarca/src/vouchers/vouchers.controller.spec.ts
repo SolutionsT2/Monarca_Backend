@@ -4,11 +4,36 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { VouchersController } from './vouchers.controller';
 import { VouchersService } from './vouchers.service';
 
+jest.mock(
+  'src/guards/auth.guard',
+  () => ({
+    AuthGuard: class AuthGuard {
+      canActivate() {
+        return true;
+      }
+    },
+  }),
+  { virtual: true },
+);
+
+jest.mock(
+  'src/guards/permissions.guard',
+  () => ({
+    PermissionsGuard: class PermissionsGuard {
+      canActivate() {
+        return true;
+      }
+    },
+  }),
+  { virtual: true },
+);
+
+const { VouchersController } = require('./vouchers.controller');
+
 describe('VouchersController', () => {
-  let controller: VouchersController;
+  let controller: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,7 +43,7 @@ describe('VouchersController', () => {
       ],
     }).compile();
 
-    controller = module.get<VouchersController>(VouchersController);
+    controller = module.get(VouchersController);
   });
 
   it('should be defined', () => {
