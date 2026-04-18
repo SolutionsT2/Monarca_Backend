@@ -15,6 +15,7 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -45,6 +46,7 @@ export class VouchersController {
   }
 
   // Create a new voucher
+  @UseGuards(AuthGuard, PermissionsGuard)
   @UseInterceptors(UploadPdfInterceptor())
   @Post('upload')
   async uploadVoucher(
@@ -60,6 +62,10 @@ export class VouchersController {
     const pathToVocuherDownload = '/files/vouchers/';
     if (!baseDownloadLink) {
       throw new InternalServerErrorException('DOWNLOAD_LINK not configured');
+    }
+
+    if (!req.sessionInfo?.id) {
+      throw new UnauthorizedException('User session not found');
     }
 
     const id_user = req.sessionInfo.id;

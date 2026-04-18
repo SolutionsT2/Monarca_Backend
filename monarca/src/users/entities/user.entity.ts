@@ -8,8 +8,6 @@ import { Request } from 'src/requests/entities/request.entity';
 import { Revision } from 'src/revisions/entities/revision.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
 import { TravelAgency } from 'src/travel-agencies/entities/travel-agency.entity';
-import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
-import { Company } from 'src/companies/entity/company.entity';
 
 import {
   Entity,
@@ -97,10 +95,6 @@ export class User {
   @Column({ name: 'employee_number', type: 'varchar', length: 20, nullable: true, unique: true })
   employeeNumber?: string;
 
-  @ApiProperty()
-  @Column({ name: 'id_cost_center', type: 'uuid', nullable: true })
-  idCostCenter?: string;
-
   // ---- Relationships ----
 
   @ManyToOne(() => Department, (department) => department.users, {
@@ -125,10 +119,6 @@ export class User {
   @OneToMany(() => User, (user) => user.manager)
   managedUsers: User[];
 
-  @ManyToOne(() => CostCenter, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'id_cost_center' })
-  costCenter?: CostCenter;
-
   // Hacer conexion despues
   @OneToMany(() => Revision, (log) => log.request, {})
   revisions: Revision[];
@@ -148,5 +138,5 @@ Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
 - 2026-03-24 | Definition of rules for status.
 - 2026-04-10 | Added employeeStatus, username, manager_id, supplier_number, signupDate, and lastchangeDate.
-- 2026-04-13 | Diego Vergara | Added Ditta Consulting fields: employeeNumber, idCostCenter, idCompany. Added relationships to CostCenter and Company. Reused existing idManager and supplierNumber as semantic mapping for "Jefe Inmediato" and "Proveedor" from Ditta catalog.
+- 2026-04-13 | Diego Vergara | Added Ditta Consulting fields and mappings for employee metadata.
 */

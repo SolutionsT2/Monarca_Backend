@@ -65,8 +65,8 @@ export class SeedService {
 
     async run() {
         const seedData: SeedData[] = [
-            { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
             { repo: this.companyRepo, file: 'companies.json', entityName: 'Company' },
+            { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
             { repo: this.departmentRepo, file: 'departments.json', entityName: 'Department' },
             { repo: this.permissionRepo, file: 'permissions.json', entityName: 'Permission' },
             { repo: this.destinationRepo, file: 'destinations.json', entityName: 'Destination' },
@@ -144,16 +144,24 @@ export class SeedService {
                     await repo.save(user);
                 } else if (entityName === 'Department') {
                     const rawCostCenterId = entity.cost_center_id;
-                    const costCenter =
-                        typeof rawCostCenterId === 'number'
-                            ? await this.costCenterRepo.findOneByOrFail({ numericId: rawCostCenterId })
-                            : await this.costCenterRepo.findOneByOrFail({ id: rawCostCenterId });
+                    const companyId = entity.id_company ?? entity.idCompany;
+                    let costCenter: CostCenter | undefined;
+
+                    if (rawCostCenterId !== undefined && rawCostCenterId !== null) {
+                        costCenter =
+                            typeof rawCostCenterId === 'number'
+                                ? await this.costCenterRepo.findOneByOrFail({
+                                      numericId: rawCostCenterId,
+                                      id_company: companyId,
+                                  })
+                                : await this.costCenterRepo.findOneByOrFail({ id: rawCostCenterId });
+                    }
 
                     const department = this.departmentRepo.create({
                         id: entity.id,
                         name: entity.name,
                         isProtected: entity.is_protected ?? entity.isProtected ?? false,
-                        id_company: entity.id_company ?? entity.idCompany,
+                        id_company: companyId,
                         cost_center: costCenter,
                     });
 
