@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
+import { Roles } from 'src/roles/entity/roles.entity';
 
 describe('UsersService', () => {
   let service: UsersService;
   let repo: { findOne: jest.Mock; find: jest.Mock; create: jest.Mock; save: jest.Mock; update: jest.Mock; delete: jest.Mock };
+  let roleRepo: { findOne: jest.Mock };
 
   beforeEach(async () => {
     repo = {
@@ -16,10 +18,18 @@ describe('UsersService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     };
+
+    roleRepo = {
+      findOne: jest.fn(),
+    };
+
+    roleRepo.findOne.mockResolvedValue({ id: 'r1', name: 'superadmin' });
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: getRepositoryToken(User), useValue: repo },
+        { provide: getRepositoryToken(Roles), useValue: roleRepo },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
@@ -45,15 +55,32 @@ describe('UsersService', () => {
   });
 
   it('should create a user', async () => {
-    repo.create.mockReturnValue({ id: 'u1' });
-    repo.save.mockResolvedValue({ id: 'u1' });
-    await expect(service.create({ name: 'Test' } as any)).resolves.toEqual({ id: 'u1' });
+    const createDto = {
+      email: 'test@example.com',
+      name: 'Test',
+      lastName: 'User',
+      password: 'password',
+      availabilityStatus: 'active',
+      idRole: 'r1',
+    };
+
+    repo.create.mockReturnValue({ id: 'u1', ...createDto });
+    repo.save.mockResolvedValue({ id: 'u1', ...createDto });
+
+    await expect(service.create(createDto as any)).resolves.toEqual({
+      id: 'u1',
+      ...createDto,
+    });
+    expect(roleRepo.findOne).toHaveBeenCalledWith({ where: { id: 'r1' } });
   });
 
   it('should update a user', async () => {
     repo.update.mockResolvedValue(undefined);
-    repo.findOne.mockResolvedValue({ id: 'u1' });
+    repo.findOne
+      .mockResolvedValueOnce({ id: 'u1', idRole: 'r1', idDepartment: undefined })
+      .mockResolvedValueOnce({ id: 'u1' });
     await expect(service.update('u1', { name: 'Updated' } as any)).resolves.toEqual({ id: 'u1' });
+    expect(roleRepo.findOne).toHaveBeenCalledWith({ where: { id: 'r1' } });
   });
 
   it('should delete a user', async () => {

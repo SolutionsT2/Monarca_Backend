@@ -19,6 +19,7 @@ import { GuardsModule } from 'src/guards/guards.module';
   ],
   providers: [ReservationsService],
   controllers: [ReservationsController],
+  exports: [ReservationsService],
 })
 export class ReservationsModule {}
 

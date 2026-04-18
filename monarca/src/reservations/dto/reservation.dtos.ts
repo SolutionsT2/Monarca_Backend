@@ -7,13 +7,12 @@ import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsString,
-  IsNumber,
-  Length,
   IsDateString,
-  isNotEmpty,
   IsOptional,
-  IsInstance,
+  IsObject,
+  IsNumber,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { Reservation } from '../entity/reservations.entity';
 
 export class CreateReservationDto {
@@ -42,7 +41,63 @@ export class CreateReservationDto {
     required: true,
   })
   @IsNotEmpty()
+  @Type(() => Number)
+  @IsNumber()
   price: number;
+
+  @ApiProperty({
+    example: '/files/reservations/flight-confirmation.pdf',
+    description: 'Public link or reference for the reservation artifact',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  link?: string;
+
+  @ApiProperty({
+    description: 'Name of the external provider used for this reservation',
+    required: false,
+    example: 'duffel',
+  })
+  @IsOptional()
+  @IsString()
+  provider_name?: string;
+
+  @ApiProperty({
+    description: 'Provider offer identifier when reservation comes from Duffel',
+    required: false,
+    example: 'off_00009htYpSCXrwaB9DnUm0',
+  })
+  @IsOptional()
+  @IsString()
+  provider_offer_id?: string;
+
+  @ApiProperty({
+    description: 'Provider booking confirmation or order reference',
+    required: false,
+    example: 'ord_00009hthhsUZ8W4LxQgkjo',
+  })
+  @IsOptional()
+  @IsString()
+  booking_reference?: string;
+
+  @ApiProperty({
+    description: 'Hold expiration date returned by provider',
+    required: false,
+    example: '2026-04-05T18:30:00.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  hold_expires_at?: string;
+
+  @ApiProperty({
+    description: 'Reduced provider snapshot for tracing and support',
+    required: false,
+    example: { provider: 'duffel', offer_id: 'off_123' },
+  })
+  @IsOptional()
+  @IsObject()
+  provider_meta?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'pdf file of the reservation',
