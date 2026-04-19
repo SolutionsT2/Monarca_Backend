@@ -305,8 +305,7 @@ export class RequestsService {
   }
 
   async findByTA(req: RequestInterface): Promise<RequestEntity[]> {
-    const userId = req.sessionInfo.id;
-    const travelAgencyId = req.userInfo.id_travel_agency;
+    const travelAgencyId = req?.userInfo?.id_travel_agency;
 
     if (!travelAgencyId)
       throw new UnauthorizedException('Cannot access this endpoint.');
