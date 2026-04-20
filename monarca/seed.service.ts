@@ -134,6 +134,7 @@ export class SeedService {
                         username: entity.username,
                         idManager: entity.id_manager ?? entity.idManager,
                         supplierNumber: entity.supplier_number ?? entity.supplierNumber,
+                        employeeNumber: entity.employee_number ?? entity.employeeNumber,
                         idDepartment: entity.id_department ?? entity.idDepartment,
                         idRole: entity.id_role ?? entity.idRole,
                         idTravelAgency: entity.id_travel_agency ?? entity.idTravelAgency,

@@ -19,13 +19,9 @@ import { GuardsModule } from 'src/guards/guards.module';
  */
 @Module({
   imports: [
-    
     TypeOrmModule.forFeature([User, Roles]),
-   
     DepartmentsModule,
-   
     RolesModule,
-  ,
     CostCentersModule,
     GuardsModule,
   ],

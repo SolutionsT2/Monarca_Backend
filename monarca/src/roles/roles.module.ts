@@ -29,7 +29,8 @@ import { SubstitutesController } from './substitutes.controller';
     GuardsModule,
   ],
   controllers: [RolesAdminController, SubstitutesController],
-  providers: [RolesAdminServiceTypeOrmModule],
+  providers: [RolesAdminService],
+  exports: [TypeOrmModule],
 })
 export class RolesModule {}
 
