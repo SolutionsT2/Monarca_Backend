@@ -6,10 +6,14 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
+/** Dev-only default so login does not 500 when .env was copied from .env.example with an empty JWT_SECRET. */
+const jwtSecret =
+  process.env.JWT_SECRET?.trim() || 'monarca-dev-jwt-secret-not-for-production';
+
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET,
+      secret: jwtSecret,
       signOptions: { expiresIn: '1h' },
     }),
   ],
