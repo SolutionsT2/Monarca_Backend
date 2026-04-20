@@ -23,6 +23,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { Department } from 'src/departments/entity/department.entity';
 
 /**
  * Module encapsulating request domain logic
@@ -30,7 +31,13 @@ import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.ent
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Request, RequestsDestination, Voucher, PolicyViolation]),
+    TypeOrmModule.forFeature([
+      Request,
+      RequestsDestination,
+      Voucher,
+      PolicyViolation,
+      Department,
+    ]),
     GuardsModule,
     UsersModule,
     DestinationsModule,

@@ -24,6 +24,7 @@ import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { Department } from 'src/departments/entity/department.entity';
 
 @Injectable()
 export class RequestsService {
@@ -32,6 +33,8 @@ export class RequestsService {
     private readonly requestsRepo: Repository<RequestEntity>,
     @InjectRepository(PolicyViolation)
     private readonly policyViolationRepo: Repository<PolicyViolation>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
     private readonly userChecks: UserChecks,
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
@@ -164,6 +167,17 @@ export class RequestsService {
         'User must belong to a company department  to create requests.',
       );
     }
+
+    const department = await this.departmentRepo.findOne({
+      where: { id: id_department },
+      select: ['id', 'id_company'],
+    });
+
+    if (!department?.id_company) {
+      throw new BadRequestException(
+        'User department is missing company context for request creation.',
+      );
+    }
     const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
       id_department,
       userId,
@@ -188,6 +202,7 @@ export class RequestsService {
       id_user: userId,
       id_admin: adminId,
       id_SOI: SOIId,
+      id_company: department.id_company,
       ...data,
       requests_destinations: data.requests_destinations.map((destDto) => ({
         ...destDto,
@@ -490,6 +505,17 @@ export class RequestsService {
       entity.motive = data.motive;
       entity.requirements = data.requirements;
       entity.priority = data.priority;
+
+      if (!entity.id_company && req.userInfo.id_department) {
+        const department = await this.departmentRepo.findOne({
+          where: { id: req.userInfo.id_department },
+          select: ['id', 'id_company'],
+        });
+
+        if (department?.id_company) {
+          entity.id_company = department.id_company;
+        }
+      }
 
       // Replace all request destinations
       const destRepo = manager.getRepository(RequestsDestination);

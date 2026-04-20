@@ -21,6 +21,7 @@ import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
+import { Department } from 'src/departments/entity/department.entity';
 
 // STATUSES:
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
@@ -32,6 +33,8 @@ export class RequestsStatusService {
     private readonly requestsRepo: Repository<RequestEntity>,
     @InjectRepository(Voucher)
     private readonly vouchersRepo: Repository<Voucher>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
@@ -287,7 +290,7 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin', 'requests_destinations'],
+      relations: ['admin', 'requests_destinations', 'user', 'user.department'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -363,9 +366,25 @@ export class RequestsStatusService {
     }
 
     if (!request.id_company) {
-      throw new ConflictException(
-        'Unable to evaluate reimbursement policies because request company context is missing.',
-      );
+      const fallbackCompanyId =
+        request.user?.department?.id_company ||
+        (request.user?.idDepartment
+          ? (
+              await this.departmentRepo.findOne({
+                where: { id: request.user.idDepartment },
+                select: ['id', 'id_company'],
+              })
+            )?.id_company
+          : undefined);
+
+      if (!fallbackCompanyId) {
+        throw new ConflictException(
+          'Unable to evaluate reimbursement policies because request company context is missing.',
+        );
+      }
+
+      request.id_company = fallbackCompanyId;
+      await this.requestsRepo.update(request.id, { id_company: fallbackCompanyId });
     }
 
     // Evaluate reimbursement policies before moving the request to approval.
