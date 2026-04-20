@@ -15,6 +15,7 @@ export enum PolicyConsequence {
 
 export interface RequestPolicyContext {
   id: string;
+  id_company: string;
   advance_money: number;
   createdAt: Date;
   trip_start_date?: Date | null;

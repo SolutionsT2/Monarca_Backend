@@ -12,30 +12,30 @@ import { Policy } from './policy.entity';
 @Entity({ name: 'policy_rules' })
 export class PolicyRule {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'id_policy', type: 'uuid' })
-  id_policy: string;
+  id_policy!: string;
 
   @Column({ name: 'expense_class', type: 'varchar' })
-  expense_class: string;
+  expense_class!: string;
 
   @Column({ name: 'operator', type: 'varchar' })
-  operator: string;
+  operator!: string;
 
   @Column({ name: 'threshold_value', type: 'float', nullable: true })
-  threshold_value: number | null;
+  threshold_value!: number | null;
 
   @Column({ name: 'threshold_unit', type: 'varchar', nullable: true })
-  threshold_unit: string | null;
+  threshold_unit!: string | null;
 
   @Column({ name: 'consequence', type: 'varchar', default: 'POLICY_VIOLATION' })
-  consequence: string;
+  consequence!: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
-  is_active: boolean;
+  is_active!: boolean;
 
-  @ManyToOne(() => Policy, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Policy, (policy) => policy.rules, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_policy' })
-  policy: Policy;
+  policy!: Policy;
 }

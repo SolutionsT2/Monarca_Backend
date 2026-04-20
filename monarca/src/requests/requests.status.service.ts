@@ -362,10 +362,17 @@ export class RequestsStatusService {
       });
     }
 
+    if (!request.id_company) {
+      throw new ConflictException(
+        'Unable to evaluate reimbursement policies because request company context is missing.',
+      );
+    }
+
     // Evaluate reimbursement policies before moving the request to approval.
     const summary = await this.policyEngineService.evaluateRequestSubmission(
       {
         id: request.id,
+        id_company: request.id_company,
         advance_money: request.advance_money,
         createdAt: request.createdAt,
         trip_start_date: tripStartDate,

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PolicyRule } from './entities/policy-rule.entity';
 import { PolicyViolation } from './entities/policy-violation.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { Request } from 'src/requests/entities/request.entity';
 import {
   PolicyConsequence,
   PolicyEvaluationResult,
@@ -39,15 +40,32 @@ export class PolicyEngineService {
     private readonly policyViolationRepo: Repository<PolicyViolation>,
     @InjectRepository(Voucher)
     private readonly voucherRepo: Repository<Voucher>,
+    @InjectRepository(Request)
+    private readonly requestRepo: Repository<Request>,
   ) {}
 
   async evaluate(voucher: Voucher): Promise<PolicyViolation[]> {
-    const rules = await this.policyRuleRepo.find({
-      where: [
-        { expense_class: voucher.class, is_active: true },
-        { expense_class: 'Todas', is_active: true },
-      ],
+    const request = await this.requestRepo.findOne({
+      where: { id: voucher.id_request },
+      select: ['id', 'id_company'],
     });
+
+    const companyId = request?.id_company;
+    if (!companyId) {
+      await this.voucherRepo.update(voucher.id, { policy_status: 'PENDING' });
+      return [];
+    }
+
+    const rules = await this.policyRuleRepo
+      .createQueryBuilder('rule')
+      .innerJoinAndSelect('rule.policy', 'policy')
+      .where('rule.is_active = :ruleActive', { ruleActive: true })
+      .andWhere('policy.is_active = :policyActive', { policyActive: true })
+      .andWhere('policy.id_company = :companyId', { companyId })
+      .andWhere('UPPER(rule.expense_class) IN (:...expenseClasses)', {
+        expenseClasses: [voucher.class.toUpperCase(), 'TODAS', 'ALL'],
+      })
+      .getMany();
 
     const violations: PolicyViolation[] = [];
 
@@ -94,12 +112,15 @@ export class PolicyEngineService {
       new Map(vouchers.map((voucher) => [voucher.id, voucher])).values(),
     );
 
-    const rules = await this.policyRuleRepo.find({
-      where: { is_active: true },
-      relations: ['policy'],
-    });
-
-    const activeRules = rules.filter((rule) => rule.policy?.is_active !== false);
+    const activeRules = await this.policyRuleRepo
+      .createQueryBuilder('rule')
+      .innerJoinAndSelect('rule.policy', 'policy')
+      .where('rule.is_active = :ruleActive', { ruleActive: true })
+      .andWhere('policy.is_active = :policyActive', { policyActive: true })
+      .andWhere('policy.id_company = :companyId', {
+        companyId: requestContext.id_company,
+      })
+      .getMany();
     const evaluations: EvaluatedRuleResult[] = [];
 
     for (const rule of activeRules) {
