@@ -6,6 +6,7 @@
 import { Request } from 'src/requests/entities/request.entity';
 import { RequestsDestination } from 'src/requests/entities/requests-destination.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Airport } from './airport.entity';
 
 @Entity({ name: 'destinations' })
 export class Destination {
@@ -28,7 +29,10 @@ export class Destination {
   @OneToMany(() => RequestsDestination, (reqdest) => reqdest.destination, {
     cascade: true,
   })
-  requests_destinations: RequestDestination[];
+  requests_destinations: RequestsDestination[];
+
+  @OneToMany(() => Airport, (airport) => airport.destination)
+  airports: Airport[];
 }
 
 /**

@@ -20,6 +20,7 @@ import { User } from './users/entities/user.entity';
 import { UserLogs } from './user-logs/entity/user-logs.entity';
 import { Department } from './departments/entity/department.entity';
 import { Destination } from './destinations/entities/destination.entity';
+import { Airport } from './destinations/entities/airport.entity';
 import { Request } from './requests/entities/request.entity';
 import { Reservation } from './reservations/entity/reservations.entity';
 import { RequestsDestination } from './requests/entities/requests-destination.entity';
@@ -97,6 +98,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         Department,
         CostCenter,
         Destination,
+        Airport,
         Request,
         RequestsDestination,
         Roles,
@@ -132,6 +134,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       Department,
       CostCenter,
       Destination,
+      Airport,
       Request,
       RequestsDestination,
       Roles,

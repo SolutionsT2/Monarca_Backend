@@ -31,6 +31,15 @@ export class RequestDestinationtDto {
   id_destination: string;
 
   @ApiProperty({
+    description: 'Destination airport identifier when plane is required',
+    example: '6a9d95f7-3376-40db-a6f6-3499d56f2203',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  id_airport?: string;
+
+  @ApiProperty({
     description: 'Order of the destination in the trip sequence',
     example: 1,
   })
@@ -100,6 +109,15 @@ export class CreateRequestDto {
   })
   @IsUUID()
   id_origin_city: string;
+
+  @ApiProperty({
+    description: 'Origin airport identifier used for flight searches',
+    example: '0bb26339-5ce7-4d2d-bf4c-4e81d8dc9d01',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  id_origin_airport?: string;
 
   @ApiProperty({
     description: 'Short title for the trip',

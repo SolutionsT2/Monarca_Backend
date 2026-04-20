@@ -42,6 +42,67 @@ export class RequestsService {
     return await this.destinationChecks.getCityNameById(id);
   }
 
+  private async validateAirportSelection(data: CreateRequestDto): Promise<void> {
+    if (data.id_origin_airport) {
+      const isOriginAirportValid = await this.destinationChecks.isAirportValid(
+        data.id_origin_airport,
+      );
+      if (!isOriginAirportValid) {
+        throw new BadRequestException('Invalid id_origin_airport.');
+      }
+
+      const isOriginAirportInCity =
+        await this.destinationChecks.isAirportInDestination(
+          data.id_origin_airport,
+          data.id_origin_city,
+        );
+
+      if (!isOriginAirportInCity) {
+        throw new BadRequestException(
+          'id_origin_airport does not belong to id_origin_city.',
+        );
+      }
+    }
+
+    for (const rd of data.requests_destinations) {
+      if (rd.is_plane_required && !rd.id_airport) {
+        throw new BadRequestException(
+          'id_airport is required when is_plane_required is true.',
+        );
+      }
+
+      if (!rd.is_plane_required && rd.id_airport) {
+        throw new BadRequestException(
+          'id_airport must be omitted when is_plane_required is false.',
+        );
+      }
+
+      if (!rd.id_airport) {
+        continue;
+      }
+
+      const isAirportValid = await this.destinationChecks.isAirportValid(
+        rd.id_airport,
+      );
+
+      if (!isAirportValid) {
+        throw new BadRequestException('Invalid id_airport.');
+      }
+
+      const isAirportInDestination =
+        await this.destinationChecks.isAirportInDestination(
+          rd.id_airport,
+          rd.id_destination,
+        );
+
+      if (!isAirportInDestination) {
+        throw new BadRequestException(
+          'id_airport does not belong to id_destination.',
+        );
+      }
+    }
+  }
+
   private async logRequestAction(
     manager: EntityManager,
     id_request: string,
@@ -93,6 +154,8 @@ export class RequestsService {
       if (!(await this.destinationChecks.isValid(rd.id_destination)))
         throw new BadRequestException('Invalid id_destination.');
     }
+
+    await this.validateAirportSelection(data);
 
     // Assign approver
     const id_department = req.userInfo.id_department;
@@ -177,11 +240,13 @@ export class RequestsService {
     relations: [
       'requests_destinations',
       'requests_destinations.destination',
+      'requests_destinations.airport',
       'revisions',
       'user',
       'admin',
       'SOI',
       'destination',
+      'origin_airport',
       'travelAgency',           
       'travelAgency.users',     
     ],
@@ -196,11 +261,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
         'vouchers',
         'requests_destinations.reservations',
       ],
@@ -228,11 +295,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -271,11 +340,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -294,11 +365,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -318,11 +391,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -406,9 +481,12 @@ export class RequestsService {
           throw new BadRequestException('Invalid id_destination.');
       }
 
+      await this.validateAirportSelection(data as CreateRequestDto);
+
       // Update general request fields
       entity.advance_money = data.advance_money;
       entity.id_origin_city = data.id_origin_city;
+      entity.id_origin_airport = data.id_origin_airport;
       entity.motive = data.motive;
       entity.requirements = data.requirements;
       entity.priority = data.priority;

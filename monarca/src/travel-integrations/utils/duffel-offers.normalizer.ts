@@ -10,6 +10,8 @@ type CarrierSummary = {
   id: string | null;
   iata_code: string | null;
   name: string | null;
+  logo_symbol_url: string | null;
+  logo_lockup_url: string | null;
 };
 
 type SegmentSummary = {
@@ -195,6 +197,8 @@ function mapCarrier(value: unknown): CarrierSummary {
     id: asString(carrier.id),
     iata_code: asString(carrier.iata_code),
     name: asString(carrier.name),
+    logo_symbol_url: asString(carrier.logo_symbol_url),
+    logo_lockup_url: asString(carrier.logo_lockup_url),
   };
 }
 
