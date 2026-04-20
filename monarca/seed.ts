@@ -4,19 +4,24 @@
  */
 
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './src/app.module';
 import { SeedService } from './seed.service';
 
 async function runSeed() {
-  const app = await NestFactory.createApplicationContext(AppModule);
-  const seeder = app.get(SeedService);
-  
   const action = process.argv[2];
 
   if (!action) {
     console.error('❌ No action provided. Use: seed | truncate | drop');
     process.exit(1);
   }
+
+  if (action === '--drop' || action === '--truncate') {
+    // Prevent schema sync from running before destructive maintenance actions.
+    process.env.TYPEORM_SYNCHRONIZE = 'false';
+  }
+
+  const { AppModule } = await import('./src/app.module');
+  const app = await NestFactory.createApplicationContext(AppModule);
+  const seeder = app.get(SeedService);
 
    switch (action.toLowerCase()) {
     case '--seed':

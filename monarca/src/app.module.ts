@@ -121,7 +121,10 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         DocumentClass,
         PolicyExport,
       ],
-      synchronize: true,
+      synchronize:
+        process.env.TYPEORM_SYNCHRONIZE === undefined
+          ? true
+          : process.env.TYPEORM_SYNCHRONIZE.toLowerCase() === 'true',
     }),
 
     TypeOrmModule.forFeature([
