@@ -188,6 +188,11 @@ export class PolicyEngineService {
       operator === 'TOTAL_VOUCHERS_LIMIT' ||
       operator === 'TOTAL_VOUCHERS_LTE_ADVANCE'
     ) {
+      const warningBase = {
+        ...base,
+        severity: PolicySeverity.WARNING,
+      };
+
       const totalVouchers = vouchers.reduce((sum, voucher) => {
         const amount = Number(voucher.amount);
         return sum + (Number.isFinite(amount) ? amount : 0);
@@ -195,11 +200,11 @@ export class PolicyEngineService {
       const passed = totalVouchers <= requestContext.advance_money;
 
       return {
-        ...base,
+        ...warningBase,
         passed,
         message: passed
           ? `Total vouchers (${totalVouchers}) is within advance (${requestContext.advance_money}).`
-          : `Total vouchers (${totalVouchers}) exceeds advance (${requestContext.advance_money}).`,
+          : `Total vouchers (${totalVouchers}) exceeds advance (${requestContext.advance_money}); this is reported as a warning for reimbursement processing.`,
         evaluated_value: {
           total_vouchers: totalVouchers,
           advance_money: requestContext.advance_money,
