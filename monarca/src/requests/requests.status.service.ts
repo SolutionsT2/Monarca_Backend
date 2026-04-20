@@ -325,7 +325,7 @@ export class RequestsStatusService {
     const tripStartDate = destinations.length
       ? new Date(
           Math.min(
-            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
+            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
           ),
         )
       : null;
@@ -333,7 +333,7 @@ export class RequestsStatusService {
     const tripEndDate = destinations.length
       ? new Date(
           Math.max(
-            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
+            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
           ),
         )
       : null;
@@ -410,12 +410,8 @@ export class RequestsStatusService {
     );
 
     if (!summary.can_submit) {
-      if (
-        process.env.RESET_VOUCHERS_ON_POLICY_FAILURE_FOR_TESTS?.toLowerCase() ===
-        'true'
-      ) {
-        await this.vouchersRepo.delete({ id_request });
-      }
+      // Always reset uploaded vouchers after a failed submit to avoid amount carry-over on retries.
+      await this.vouchersRepo.delete({ id_request });
 
       throw new UnprocessableEntityException({
         statusCode: 422,
