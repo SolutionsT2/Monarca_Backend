@@ -14,8 +14,6 @@ import { CreateRequestDto } from './create-request.dto';
  */
 export class UpdateRequestDto extends CreateRequestDto {}
 
-
-
 /**
  * DTO for updating a request.
  * All properties are optional.

@@ -23,8 +23,6 @@ export class ApproveRequestDTO {
   id_travel_agency: string;
 }
 
-
-
 /*
 Modification History:
 

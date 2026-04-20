@@ -58,6 +58,22 @@ export class RequestsDestination {
   @Column({ name: 'details', nullable: true })
   details: string;
 
+  @Column({
+    name: 'duffel_offer_request_id',
+    type: 'varchar',
+    nullable: true,
+    default: null,
+  })
+  duffel_offer_request_id: string | null;
+
+  @Column({
+    name: 'duffel_search_params',
+    type: 'jsonb',
+    nullable: true,
+    default: null,
+  })
+  duffel_search_params: Record<string, unknown> | null;
+
   // Defines relationships with Request, Destination, and related entities.
 
   @ManyToOne(() => Request, (request) => request.requests_destinations, {
@@ -76,8 +92,6 @@ export class RequestsDestination {
   @JoinColumn({ name: 'id_destination' })
   destination: Destination;
 }
-
-
 
 /*
 Modification History:

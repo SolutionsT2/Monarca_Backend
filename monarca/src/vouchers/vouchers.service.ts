@@ -4,6 +4,7 @@
  */
 
 import { Injectable, NotFoundException,ForbiddenException } from '@nestjs/common';
+import { UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -11,6 +12,7 @@ import { UpdateVoucherDto } from './dto/update-voucher-dto';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { privateDecrypt } from 'crypto';
+import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 @Injectable()
 export class VouchersService {
   constructor(
@@ -18,9 +20,10 @@ export class VouchersService {
     private readonly voucherRepo: Repository<Voucher>,
     @InjectRepository(Request)
     private readonly rRepo: Repository<Request>,
+    private readonly policyEngineService: PolicyEngineService,
   ) {}
 
-  async create(id_user:string, data: CreateVoucherDto): Promise<Voucher> {
+  async create(id_user: string, data: CreateVoucherDto): Promise<Voucher> {
     const request = await this.rRepo.findOne({
       where: { id: data.id_request },
     });
@@ -30,7 +33,7 @@ export class VouchersService {
       );
     }
     const approverId = request.id_admin;
-    const id_creator= request.id_user;
+    const id_creator = request.id_user;
     if (id_user !== id_creator) {
       throw new ForbiddenException(
         `User ${id_user} is not authorized to create a voucher for this request`,
@@ -48,7 +51,34 @@ export class VouchersService {
       status: data.status,
       id_approver: approverId, // Mapping the correct file URL
     });
-    return await this.voucherRepo.save(voucher);
+    const savedVoucher = await this.voucherRepo.save(voucher);
+
+    const violations = await this.policyEngineService.evaluate(savedVoucher);
+    if (violations.length > 0) {
+      await this.voucherRepo.delete(savedVoucher.id);
+      throw new UnprocessableEntityException({
+        statusCode: 422,
+        message: 'Voucher violates reimbursement policies.',
+        policy_summary: {
+          total_rules: violations.length,
+          passed: 0,
+          failed: violations.length,
+          blocking_violations: violations.length,
+          can_submit: false,
+          violations: violations.map((violation) => ({
+            policy_id: violation.id_policy_rule,
+            policy_code: violation.id_policy_rule,
+            passed: false,
+            message: violation.detail,
+            severity: 'BLOCKING',
+            consequence: 'POLICY_VIOLATION',
+            can_override: false,
+          })),
+        },
+      });
+    }
+
+    return savedVoucher;
   }
 
   async findAll(): Promise<Voucher[]> {
@@ -68,7 +98,7 @@ export class VouchersService {
 
     const updatedVoucherData = {
       // Update only provided fields
-      id_request:data.id_request ?? existingVoucher.id_request, // Use existing if not provided
+      id_request: data.id_request ?? existingVoucher.id_request, // Use existing if not provided
       class: data.class ?? existingVoucher.class, // Use existing if not provided
       amount: data.amount ?? existingVoucher.amount, // Use existing if not provided
       tax_type: data.tax_type ?? existingVoucher.tax_type, // Use existing if not provided
@@ -95,7 +125,7 @@ export class VouchersService {
   async approve(id: string): Promise<{ status: boolean; message: string }> {
     // 1) run the update
     const result: UpdateResult = await this.voucherRepo.update(id, {
-      status: 'Voucher Approved',         // ← your “determined value” here
+      status: 'Voucher Approved', // ← your “determined value” here
     });
 
     // 2) if nothing was affected, the id didn’t exist
@@ -113,7 +143,7 @@ export class VouchersService {
   async deny(id: string): Promise<{ status: boolean; message: string }> {
     // 1) run the update
     const result: UpdateResult = await this.voucherRepo.update(id, {
-      status: 'Voucher Denied',         // ← your “determined value” here
+      status: 'Voucher Denied', // ← your “determined value” here
     });
 
     // 2) if nothing was affected, the id didn’t exist
@@ -130,11 +160,11 @@ export class VouchersService {
 
   async findByRequest(requestId: string): Promise<Voucher[]> {
     const vouchers = await this.voucherRepo.find({
-      where: { id_request: requestId},
+      where: { id_request: requestId },
     });
     if (vouchers.length === 0) {
       throw new NotFoundException(
-        `No vouchers found for Request ID ${requestId}`
+        `No vouchers found for Request ID ${requestId}`,
       );
     }
     return vouchers;

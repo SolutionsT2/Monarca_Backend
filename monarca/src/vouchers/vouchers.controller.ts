@@ -15,6 +15,7 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher-dto';
@@ -22,14 +23,17 @@ import { UpdateVoucherDto } from './dto/update-voucher-dto';
 import { Voucher } from './entities/vouchers.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { UploadPdfInterceptor } from 'src/utils/interceptor.middleware';
-import { UseInterceptors, UploadedFiles, InternalServerErrorException } from '@nestjs/common';
+import {
+  UseInterceptors,
+  UploadedFiles,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { promises as fs } from 'fs';
 import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.validator';
 
-@UseGuards(AuthGuard, PermissionsGuard)
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
 export class VouchersController {
@@ -42,6 +46,7 @@ export class VouchersController {
   }
 
   // Create a new voucher
+  @UseGuards(AuthGuard, PermissionsGuard)
   @UseInterceptors(UploadPdfInterceptor())
   @Post('upload')
   async uploadVoucher(
@@ -53,14 +58,17 @@ export class VouchersController {
     },
     @Body() dto: CreateVoucherDto,
   ) {
-
     const baseDownloadLink = process.env.DOWNLOAD_LINK;
-    const pathToVocuherDownload= "/files/vouchers/";
+    const pathToVocuherDownload = '/files/vouchers/';
     if (!baseDownloadLink) {
       throw new InternalServerErrorException('DOWNLOAD_LINK not configured');
     }
 
-    const id_user = req.sessionInfo.id; 
+    if (!req.sessionInfo?.id) {
+      throw new UnauthorizedException('User session not found');
+    }
+
+    const id_user = req.sessionInfo.id;
     const fileMap: Record<string, string> = {};
 
     // flatten both arrays into one list
@@ -102,10 +110,7 @@ export class VouchersController {
       }
     }
 
-    return this.vouchersService.create(
-      id_user,
-      {...dto, ...fileMap}
-    );
+    return this.vouchersService.create(id_user, { ...dto, ...fileMap });
   }
 
   // Get all vouchers
@@ -117,11 +122,10 @@ export class VouchersController {
   // Get a single voucher by its ID
   @Get(':requestId')
   async findByRequest(
-    @Param('requestId') requestId: string
+    @Param('requestId') requestId: string,
   ): Promise<Voucher[]> {
     return this.vouchersService.findByRequest(requestId);
   }
-  
 
   // Update an existing voucher
   @Patch(':id')
@@ -131,7 +135,6 @@ export class VouchersController {
   ): Promise<Voucher> {
     return this.vouchersService.update(id, updateVoucherDto);
   }
-
 
   @Patch(':id/approve')
   async approve(
@@ -146,7 +149,6 @@ export class VouchersController {
   ): Promise<{ status: boolean; message: string }> {
     return this.vouchersService.deny(id);
   }
-
 }
 
 /**

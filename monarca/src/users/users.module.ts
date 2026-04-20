@@ -10,6 +10,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { DepartmentsModule } from 'src/departments/departments.module';
 import { RolesModule } from 'src/roles/roles.module';
+import { Roles } from 'src/roles/entity/roles.entity';
 import { CostCentersModule } from 'src/cost-centers/cost-centers.module';
 import { GuardsModule } from 'src/guards/guards.module';
 
@@ -18,9 +19,13 @@ import { GuardsModule } from 'src/guards/guards.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    
+    TypeOrmModule.forFeature([User, Roles]),
+   
     DepartmentsModule,
+   
     RolesModule,
+  ,
     CostCentersModule,
     GuardsModule,
   ],

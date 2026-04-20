@@ -1,17 +1,26 @@
 [
   {
+    "id": "7b5e12f8-6cb5-4a2b-b56d-6c7e1c9e55aa",
+    "name": "Admin Department",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
+    "is_protected": true
+  },
+  {
     "id": "883d9e05-612c-4d08-9efb-5099952fc850",
     "name": "Technology",
-    "cost_center_id": "a1f4e0e1-1b89-4ccf-9e57-43f4b3d1a001"
+    "cost_center_id": 102,
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   },
   {
     "id": "28ba8a09-f4ba-450e-8259-6196d50f1bff",
     "name": "Human Resources",
-    "cost_center_id": "b2d1c6c2-2f9e-43d3-8b1f-87fa7d2e8002"
+    "cost_center_id": 101,
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   },
   {
     "id": "118424c8-a563-4452-921f-795e25c58b3a",
     "name": "Sales",
-    "cost_center_id": "c3e8f9e3-3aad-4f0c-9d87-12bd7e3fa003"
+    "cost_center_id": 103,
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   }
 ]

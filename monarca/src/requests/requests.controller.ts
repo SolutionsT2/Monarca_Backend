@@ -74,6 +74,14 @@ export class RequestsController {
     return this.requestsService.findAll();
   }
 
+  @Get(':id/policy-violations')
+  async findPolicyViolationsByRequest(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.requestsService.findPolicyViolationsByRequest(req, id);
+  }
+
   @Get(':id')
   async findOne(
     @Request() req: RequestInterface,
@@ -92,10 +100,9 @@ export class RequestsController {
   }
 }
 
-
-
 /*
 Modification History:
 
-- 2026-02-26 | Diego Vergara | Added controller documentation and standardized comment language.
+ * - 2026-02-26 | Diego Vergara | Added controller documentation and standardized comment language.
+ * - 2026-04-15 - Santiago Arista Viramontes: Removed Guards for dependency issues
 */

@@ -12,10 +12,14 @@ import { RequestsModule } from 'src/requests/requests.module';
 import { GuardsModule } from 'src/guards/guards.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Reservation]), RequestsModule,
-GuardsModule],
+  imports: [
+    TypeOrmModule.forFeature([Reservation]),
+    RequestsModule,
+    GuardsModule,
+  ],
   providers: [ReservationsService],
   controllers: [ReservationsController],
+  exports: [ReservationsService],
 })
 export class ReservationsModule {}
 

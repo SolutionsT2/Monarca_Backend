@@ -78,8 +78,8 @@ export class User {
   lastchangeDate: Date;
 
   @ApiProperty({ example: 1 })
-  @Column({ name: 'id_department' })
-  idDepartment: string;
+  @Column({ name: 'id_department', type: 'uuid', nullable: true })
+  idDepartment?: string;
 
   @ApiProperty({ example: 2 })
   @Column({ name: 'id_role' })
@@ -93,9 +93,20 @@ export class User {
   })
   idTravelAgency?: string;
 
-  @ManyToOne(() => Department, (department) => department.users)
+  // ---- Ditta Consulting integration fields ----
+
+  @ApiProperty({ example: 'Emp001' })
+  @Column({ name: 'employee_number', type: 'varchar', length: 20, nullable: true, unique: true })
+  employeeNumber?: string;
+
+  // ---- Relationships ----
+
+  @ManyToOne(() => Department, (department) => department.users, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'id_department' })
-  department: Department;
+  department?: Department;
 
   @ManyToOne(() => Roles)
   @JoinColumn({ name: 'id_role' })
@@ -129,8 +140,7 @@ export class User {
 /*
 Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
- - 2026-03-24:
- *   - Definition of rules for status
- - 2026-04-10:
- *   - Added employeeStatus, username, manager_id, supplier_number, signupDate, and lastchangeDate.
+- 2026-03-24 | Definition of rules for status.
+- 2026-04-10 | Added employeeStatus, username, manager_id, supplier_number, signupDate, and lastchangeDate.
+- 2026-04-13 | Diego Vergara | Added Ditta Consulting fields and mappings for employee metadata.
 */

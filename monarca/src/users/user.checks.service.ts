@@ -91,10 +91,13 @@ export class UserChecks {
    * @param idUser The UUID of the user to exclude (to prevent assigning oneself).
    * @returns A random approver's UUID or null if none exist.
    */
-  async getRandomApproverIdFromSameDepartment(idDepartment: string, idUser: string): Promise<string | null> {
+  async getRandomApproverIdFromSameDepartment(
+    idDepartment: string,
+    idUser: string,
+  ): Promise<string | null> {
     const approvers = await this.userRepository.find({
       where: {
-        id: Not(idUser), 
+        id: Not(idUser),
         idDepartment: idDepartment, // Updated to camelCase
         role: {
           name: 'Aprobador',

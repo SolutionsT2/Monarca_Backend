@@ -11,6 +11,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Request } from 'src/requests/entities/request.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
+import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
 
 @Entity({ name: 'vouchers' })
 export class Voucher {
@@ -35,7 +37,7 @@ export class Voucher {
   @Column({ name: 'date', type: 'timestamptz' })
   date: Date;
 
-  @Column({ name: 'file_url_pdf', type: 'varchar',nullable: true })
+  @Column({ name: 'file_url_pdf', type: 'varchar', nullable: true })
   file_url_pdf: string | null;
 
   @Column({ name: 'file_url_xml', type: 'varchar', nullable: true })
@@ -44,19 +46,37 @@ export class Voucher {
   @Column({ name: 'status', type: 'varchar' })
   status: string;
 
+  @Column({ name: 'policy_status', type: 'varchar', default: 'PENDING', nullable: true })
+  policy_status: string; // new column to track policy evaluation status
+
   @Column({ name: 'id_approver', type: 'uuid' })
   id_approver: string;
 
-  @ManyToOne(
-    () => Request,
-    (requests) => requests.id,
-    { onDelete: 'CASCADE' },
-  )
+  // ---- Ditta Consulting integration fields ----
+
+  @Column({ name: 'id_document_class', type: 'uuid', nullable: true })
+  id_document_class?: string;
+
+  @Column({ name: 'id_accounting_account', type: 'uuid', nullable: true })
+  id_accounting_account?: string;
+
+  // ---- Relationships ----
+
+  @ManyToOne(() => Request, (requests) => requests.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_request' })
   requests: Request;
+
+  @ManyToOne(() => DocumentClass, (dc) => dc.vouchers, { nullable: true })
+  @JoinColumn({ name: 'id_document_class' })
+  document_class?: DocumentClass;
+
+  @ManyToOne(() => AccountingAccount, (acc) => acc.vouchers, { nullable: true })
+  @JoinColumn({ name: 'id_accounting_account' })
+  accounting_account?: AccountingAccount;
 }
 
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-04-13 | Diego Vergara | Added Ditta Consulting fields: id_document_class, id_accounting_account with relationships to DocumentClass and AccountingAccount.
  */

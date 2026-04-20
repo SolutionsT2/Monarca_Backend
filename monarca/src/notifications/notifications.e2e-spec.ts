@@ -34,15 +34,12 @@ describe('NotificationsController (e2e)', () => {
 
     expect(response.status).toBe(201);
     expect(response.body.message).toBe('Correo enviado correctamente.');
-
   });
 
   afterAll(async () => {
     await app.close();
   });
 });
-
-
 
 /*
 Modification History:

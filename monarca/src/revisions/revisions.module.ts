@@ -14,7 +14,13 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
 import { UsersModule } from 'src/users/users.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Revision]), NotificationsModule, UsersModule, RequestsModule, GuardsModule],
+  imports: [
+    TypeOrmModule.forFeature([Revision]),
+    NotificationsModule,
+    UsersModule,
+    RequestsModule,
+    GuardsModule,
+  ],
   controllers: [RevisionsController],
   providers: [RevisionsService],
 })

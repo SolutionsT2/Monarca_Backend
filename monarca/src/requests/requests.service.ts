@@ -23,12 +23,15 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 
 @Injectable()
 export class RequestsService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepo: Repository<RequestEntity>,
+    @InjectRepository(PolicyViolation)
+    private readonly policyViolationRepo: Repository<PolicyViolation>,
     private readonly userChecks: UserChecks,
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
@@ -73,7 +76,7 @@ export class RequestsService {
 
   async create(req: RequestInterface, data: CreateRequestDto) {
     const userId = req.sessionInfo.id;
-    //VALIDAR VALIDEZ DE CIUDADES
+    // Validate origin city
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');
     }
@@ -83,8 +86,13 @@ export class RequestsService {
         throw new BadRequestException('Invalid id_destination.');
     }
 
-    //ASIGNAR APROVADOR
+    // Assign approver
     const id_department = req.userInfo.id_department;
+    if (!id_department) {
+      throw new BadRequestException(
+        'User must belong to a company department  to create requests.',
+      );
+    }
     const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
       id_department,
       userId,
@@ -96,7 +104,7 @@ export class RequestsService {
       );
     }
 
-    //ASIGNAR SOI
+    // Assign SOI
     const SOIId = await this.userChecks.getRandomSoiId();
     if (!SOIId) {
       throw new HttpException(
@@ -117,7 +125,7 @@ export class RequestsService {
 
     const saved = await this.requestsRepo.save(request);
 
-    // Log creación de un request
+    // Log request creation
     const originCityName = await this.getCityName(saved.id_origin_city);
     await this.logRequestAction(
       this.dataSource.createEntityManager(),
@@ -137,37 +145,40 @@ export class RequestsService {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
-    // Mandar mail de notificación al admin asignado
-    await this.notificationsService.notify(
-      admin.email,
-      `Nueva solicitud asignada`,
-      `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
-      `<p>Hola ${admin.name},</p>
+    // Notify assigned admin
+    try {
+      await this.notificationsService.notify(
+        admin.email,
+        `Nueva solicitud asignada`,
+        `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
+        `<p>Hola ${admin.name},</p>
 <p>Se te ha asignado una nueva solicitud de viaje con ID: <strong>${saved.id}</strong>.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
-<p>Equipo de Monarca</p>`
-    );
-
+<p>Equipo de Monarca</p>`,
+      );
+    } catch (emailError) {
+      console.error('Failed to send notification email:', emailError);
+    }
 
     return saved;
   }
 
   async findAll(): Promise<RequestEntity[]> {
-    return this.requestsRepo.find({
-      relations: [
-        'requests_destinations',
-        'requests_destinations.destination',
-        'revisions',
-        'user',
-        'admin',
-        'SOI',
-        'destination',
-        'travel_agency',
-        'travel_agency.users',
-      ],
-    });
-  }
+  return this.requestsRepo.find({
+    relations: [
+      'requests_destinations',
+      'requests_destinations.destination',
+      'revisions',
+      'user',
+      'admin',
+      'SOI',
+      'destination',
+      'travelAgency',           
+      'travelAgency.users',     
+    ],
+  });
+}
 
   async findOne(req: RequestInterface, id: string): Promise<RequestEntity> {
     const userId = req.sessionInfo.id;
@@ -188,14 +199,14 @@ export class RequestsService {
     });
     if (!request) throw new NotFoundException(`Request ${id} not found`);
 
-    // VALIDAR QUE PUEDE ACCEDER REQUEST
+    // Validate access to request
     const id_travel_agency = req.userInfo.id_travel_agency;
 
     if (
       userId !== request.id_user &&
       userId !== request.id_admin &&
       userId !== request.id_SOI &&
-      !(id_travel_agency && id_travel_agency === request.id_travel_agency) //Testear mas
+      !(id_travel_agency && id_travel_agency === request.id_travel_agency) // Needs further testing
     )
       throw new UnauthorizedException('Cannot access this request.');
 
@@ -219,32 +230,31 @@ export class RequestsService {
     return list;
   }
 
-async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
-  const userId = req.sessionInfo.id;
+  async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
+    const userId = req.sessionInfo.id;
 
-  return this.requestsRepo
-    .createQueryBuilder('r')
-    .leftJoinAndSelect('r.requests_destinations', 'rd')
-    .leftJoinAndSelect('rd.destination', 'd')
-    .leftJoinAndSelect('r.revisions', 'rev')
-    .leftJoinAndSelect('r.user', 'u')
-    .leftJoinAndSelect('u.department', 'dept')
-    .leftJoinAndSelect('r.admin', 'adm')
-    .leftJoinAndSelect('r.SOI', 'soi')
-    .leftJoinAndSelect('r.destination', 'dest')
-    .where('r.id_admin = :userId', { userId })
-    .andWhere('r.status = :status', { status: 'Pending Review' })
-    .orderBy(
-      `CASE r.priority
+    return this.requestsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.requests_destinations', 'rd')
+      .leftJoinAndSelect('rd.destination', 'd')
+      .leftJoinAndSelect('r.revisions', 'rev')
+      .leftJoinAndSelect('r.user', 'u')
+      .leftJoinAndSelect('u.department', 'dept')
+      .leftJoinAndSelect('r.admin', 'adm')
+      .leftJoinAndSelect('r.SOI', 'soi')
+      .leftJoinAndSelect('r.destination', 'dest')
+      .where('r.id_admin = :userId', { userId })
+      .andWhere('r.status = :status', { status: 'Pending Review' })
+      .orderBy(
+        `CASE r.priority
          WHEN 'alta' THEN 1
          WHEN 'media' THEN 2
          WHEN 'baja' THEN 3
        END`,
-      'ASC'
-    )
-    .getMany();
-}
-
+        'ASC',
+      )
+      .getMany();
+  }
 
   async findBySOI(req: RequestInterface): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
@@ -263,13 +273,15 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
     return list;
   }
 
-  // Para jalar todos los requests en estatus de Pending Refund Approval asignados a un SOI
-  async findPendingRefundApproval(req: RequestInterface): Promise<RequestEntity[]> {
+  // Fetch all requests with Pending Refund Approval status assigned to a SOI
+  async findPendingRefundApproval(
+    req: RequestInterface,
+  ): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
     const list = await this.requestsRepo.find({
-      where: { 
+      where: {
         status: 'Pending Refund Approval',
-        id_SOI: userId
+        id_SOI: userId,
       },
       relations: [
         'requests_destinations',
@@ -309,12 +321,53 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
     return list;
   }
 
+  async findPolicyViolationsByRequest(req: RequestInterface, id: string) {
+    await this.findOne(req, id);
+
+    const violations = await this.policyViolationRepo.find({
+      where: {
+        voucher: {
+          id_request: id,
+        },
+      },
+      relations: ['voucher', 'policy_rule'],
+      order: {
+        created_at: 'DESC',
+      },
+    });
+
+    return {
+      request_id: id,
+      total: violations.length,
+      violations: violations.map((violation) => ({
+        id: violation.id,
+        id_voucher: violation.id_voucher,
+        id_policy_rule: violation.id_policy_rule,
+        detail: violation.detail,
+        created_at: violation.created_at,
+        voucher: {
+          class: violation.voucher?.class,
+          amount: violation.voucher?.amount,
+          currency: violation.voucher?.currency,
+          date: violation.voucher?.date,
+        },
+        rule: {
+          expense_class: violation.policy_rule?.expense_class,
+          operator: violation.policy_rule?.operator,
+          threshold_value: violation.policy_rule?.threshold_value,
+          threshold_unit: violation.policy_rule?.threshold_unit,
+          consequence: violation.policy_rule?.consequence,
+        },
+      })),
+    };
+  }
+
   async updateRequest(
     req: RequestInterface,
     id: string,
     data: UpdateRequestDto,
   ) {
-    //Crea un transaction, entonces en caso de un error hay rollback automatico
+    // Uses a transaction to ensure automatic rollback on error
     return await this.dataSource.transaction(async (manager) => {
       const repo = manager.withRepository(this.requestsRepo);
 
@@ -327,7 +380,7 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
       if (req.sessionInfo.id !== entity.id_user)
         throw new UnauthorizedException('Unable to edit this request.');
 
-      //Un request solo puede ser editado si esta en estos estados
+      // A request can only be edited if it is in these states
       if (
         entity.status !== 'Pending Review' &&
         entity.status !== 'Changes Needed'
@@ -336,7 +389,7 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
           'Unable to edit this request beacuse of its current status.',
         );
 
-      //VALIDAR VALIDEZ DE CIUDADES
+      // Validate destination cities
       if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
         throw new BadRequestException('Invalid id_origin_city.');
       }
@@ -346,25 +399,25 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
           throw new BadRequestException('Invalid id_destination.');
       }
 
-      //Update informacion general
+      // Update general request fields
       entity.advance_money = data.advance_money;
       entity.id_origin_city = data.id_origin_city;
       entity.motive = data.motive;
       entity.requirements = data.requirements;
       entity.priority = data.priority;
 
-      //Overhaul de requests_destinations
+      // Replace all request destinations
       const destRepo = manager.getRepository(RequestsDestination);
       entity.requests_destinations = data.requests_destinations.map((d) =>
         destRepo.create({ ...d }),
       );
 
-      //Update status
+      // Reset status to Pending Review
       entity.status = 'Pending Review';
 
       const updated = await repo.save(entity);
 
-      // Log de actualización
+      // Log request update
       await this.logRequestAction(
         manager,
         updated.id,
@@ -373,21 +426,29 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
         updated.status,
       );
 
-      // Notificar al admin asignado
+      // Notify assigned admin
       const admin = await this.userChecks.getUserById(updated.id_admin);
       if (!admin) {
-        throw new NotFoundException(`Admin with ID ${updated.id_admin} not found.`);
+        throw new NotFoundException(
+          `Admin with ID ${updated.id_admin} not found.`,
+        );
       }
-      await this.notificationsService.notify(
-        admin.email,
-        `Solicitud actualizada`,
-        `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
-        `<p>Hola ${admin.name},</p>
+
+      // Email failure should not abort request update
+      try {
+        await this.notificationsService.notify(
+          admin.email,
+          `Solicitud actualizada`,
+          `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
+          `<p>Hola ${admin.name},</p>
 <p>La solicitud de viaje con ID: <strong>${updated.id}</strong> ha sido actualizada.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
-<p>Equipo de Monarca</p>`
-      );
+<p>Equipo de Monarca</p>`,
+        );
+      } catch (emailError) {
+        console.error('Failed to send update notification email:', emailError);
+      }
 
       return updated;
     });
@@ -414,7 +475,7 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
 
     const updated = await this.requestsRepo.save(request);
 
-    // Log de cambio de estado
+    // Log status change
     await this.logRequestAction(
       this.dataSource.createEntityManager(),
       updated.id,
@@ -431,4 +492,5 @@ async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
+ * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch in create() and updateRequest() to prevent email failures from aborting request operations.
  */

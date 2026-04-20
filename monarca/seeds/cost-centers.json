@@ -1,15 +1,30 @@
 [
-    {
-      "id": "a1f4e0e1-1b89-4ccf-9e57-43f4b3d1a001", 
-      "name": "CeCo001"
-    },
-    {
-      "id": "b2d1c6c2-2f9e-43d3-8b1f-87fa7d2e8002", 
-      "name": "CeCo002"
-    },
-    {
-      "id": "c3e8f9e3-3aad-4f0c-9d87-12bd7e3fa003", 
-      "name": "CeCo003"
-    }
-  ]
-  
+  {
+    "id": "a1f4e0e1-1b89-4ccf-9e57-43f4b3d1a001",
+    "numericId": 100,
+    "key": "100",
+    "name": "Planta",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
+  },
+  {
+    "id": "b2d1c6c2-2f9e-43d3-8b1f-87fa7d2e8002",
+    "numericId": 101,
+    "key": "101",
+    "name": "Mercadeo",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
+  },
+  {
+    "id": "c3e8f9e3-3aad-4f0c-9d87-12bd7e3fa003",
+    "numericId": 102,
+    "key": "102",
+    "name": "Sistemas",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
+  },
+  {
+    "id": "d4f0a1b4-44be-4af0-9ff1-42cb7f2aa004",
+    "numericId": 103,
+    "key": "103",
+    "name": "Contabilidad",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
+  }
+]

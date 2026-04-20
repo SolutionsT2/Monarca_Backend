@@ -1,0 +1,144 @@
+{
+  "info": {
+    "name": "Monarca - Duffel Search Only",
+    "description": "Collection to validate Duffel search-only flow in Monarca (no orders/payments).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login status is 201', function () { pm.response.to.have.status(201); });",
+              "const body = pm.response.json();",
+              "pm.test('Login response contains message', function () { pm.expect(body.message).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Duffel - Create Offer Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestDestinationId\": \"{{requestDestinationId}}\",\n  \"data\": {\n    \"slices\": [\n      {\n        \"origin\": \"{{origin}}\",\n        \"destination\": \"{{destination}}\",\n        \"departure_date\": \"{{departureDate}}\"\n      }\n    ],\n    \"passengers\": [\n      {\n        \"age\": 30\n      }\n    ],\n    \"cabin_class\": \"economy\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/travel-integrations/duffel/offer-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["travel-integrations", "duffel", "offer-requests"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create offer request status is 201', function () { pm.response.to.have.status(201); });",
+              "const body = pm.response.json();",
+              "pm.test('Response has offer_request_id', function () { pm.expect(body.offer_request_id).to.be.a('string'); });",
+              "pm.collectionVariables.set('offerRequestId', body.offer_request_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Duffel - List Offers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/travel-integrations/duffel/offers?offerRequestId={{offerRequestId}}&limit=20&sort=total_amount&maxConnections=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["travel-integrations", "duffel", "offers"],
+          "query": [
+            { "key": "offerRequestId", "value": "{{offerRequestId}}" },
+            { "key": "limit", "value": "20" },
+            { "key": "sort", "value": "total_amount" },
+            { "key": "maxConnections", "value": "1" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('List offers status is 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Response contains offers array', function () { pm.expect(Array.isArray(body.offers)).to.eql(true); });",
+              "if (body.offers.length > 0) { pm.collectionVariables.set('offerId', body.offers[0].offer_id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Duffel - Get Offer Detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/travel-integrations/duffel/offers/{{offerId}}?returnAvailableServices=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["travel-integrations", "duffel", "offers", "{{offerId}}"],
+          "query": [
+            { "key": "returnAvailableServices", "value": "false" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get offer detail status is 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Response has normalized offer object', function () { pm.expect(body.offer).to.be.an('object'); });",
+              "pm.test('Response has offer_id', function () { pm.expect(body.offer.offer_id).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "email", "value": "admin-uuid@example.com" },
+    { "key": "password", "value": "password" },
+    { "key": "requestDestinationId", "value": "REPLACE_WITH_VALID_REQUEST_DESTINATION_ID" },
+    { "key": "origin", "value": "MEX" },
+    { "key": "destination", "value": "JFK" },
+    { "key": "departureDate", "value": "2026-05-20" },
+    { "key": "offerRequestId", "value": "" },
+    { "key": "offerId", "value": "" }
+  ]
+}

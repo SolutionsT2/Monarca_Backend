@@ -80,7 +80,12 @@ export class PermissionsGuard implements CanActivate {
   async findById(id: string): Promise<User> {
     const user = await this.userRepository123.findOne({
       where: { id },
-      relations: ['role', 'role.rolePermissions', 'role.rolePermissions.permission'],
+      relations: [
+        'department',
+        'role',
+        'role.rolePermissions',
+        'role.rolePermissions.permission',
+      ],
     });
 
     if (!user) {

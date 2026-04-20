@@ -6,7 +6,7 @@
  * including optional HTML rendering and safe content handling.
  */
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as Handlebars from 'handlebars';
@@ -22,14 +22,21 @@ export class NotificationsService {
 
   // Initializes SMTP transporter using environment variables.
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-      }
-    });
+    const transportOptions: any = {
+      host: process.env.EMAIL_HOST || 'localhost',
+      port: parseInt(process.env.EMAIL_PORT || '1025', 10),
+      secure: (process.env.EMAIL_SECURE || 'false') === 'true',
+    };
+
+    // Only set auth when credentials are provided (MailHog doesn't need auth).
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+      transportOptions.auth = {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      };
+    }
+
+    this.transporter = nodemailer.createTransport(transportOptions);
   }
 
   /**
@@ -42,7 +49,9 @@ export class NotificationsService {
    * @returns Promise containing the Nodemailer response.
    */
   async sendMail(to: string, subject: string, text: string, html?: string) {
-    const fromAddress = `"Sistema Monarca" <${process.env.EMAIL_USER}>`;
+    const fromAddress = process.env.EMAIL_USER 
+  ? `"Sistema Monarca" <${process.env.EMAIL_USER}>`
+  : '"Sistema Monarca" <noreply@monarca.dev>';
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromAddress,
       to,
@@ -66,14 +75,9 @@ export class NotificationsService {
     to: string,
     subject: string,
     text: string,
-    html?: string
+    html?: string,
   ) {
-    return this.sendMail(
-      to, 
-      subject, 
-      text, 
-      html
-  );
+    return this.sendMail(to, subject, text, html);
   }
 
   /**
@@ -86,14 +90,8 @@ export class NotificationsService {
    * @param message Plain text message content.
    * @param html Optional raw HTML body.
    */
-  async notify(
-  to: string,
-  subject: string,
-  message: string,
-  html?: string
-) {
-  
-  // Escapes plain text to prevent HTML injection.
+  async notify(to: string, subject: string, message: string, html?: string) {
+    // Escapes plain text to prevent HTML injection.
     const escapeHtml = (str: string) =>
       str
         .replace(/&/g, '&amp;')
@@ -121,7 +119,16 @@ export class NotificationsService {
       </html>
     `;
 
-    return this.sendMail(to, subject, message, htmlComplete);
+    try {
+      return await this.sendMail(to, subject, message, htmlComplete);
+    } catch (err) {
+      const logger = new Logger('NotificationsService');
+      logger.warn(
+        `Failed to send notification to ${to} (subject: ${subject}): ${err?.message || err}`,
+      );
+      // Do not rethrow: failures to send emails should not make the whole request fail
+      return null;
+    }
 }
 
 }
