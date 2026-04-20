@@ -110,5 +110,12 @@
     "description": "Allows submitting reservations",
     "module": "reservation",
     "action": "submit"
+  },
+  {
+    "id": "e1f2a3b4-c5d6-4e7f-8901-a2b3c4d5e6f7",
+    "name": "import_employees",
+    "description": "Allows importing employees from Excel files",
+    "module": "user",
+    "action": "import"
   }
 ]

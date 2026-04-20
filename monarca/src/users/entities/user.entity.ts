@@ -53,6 +53,10 @@ export class User {
   @Column({ name: 'employee_status', type: 'varchar', length: 20, default: 'active' })
   employeeStatus: string;
 
+  @ApiProperty({ example: 'Emp001' })
+  @Column({ name: 'employee_number', type: 'varchar', length: 20, unique: true, nullable: true })
+  employeeNumber?: string;
+
   @ApiProperty({ example: 'mperez' })
   @Column({ unique: true, nullable: true })
   username: string;
