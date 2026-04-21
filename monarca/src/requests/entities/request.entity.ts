@@ -25,6 +25,7 @@ import { TravelAgency } from 'src/travel-agencies/entities/travel-agency.entity'
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Company } from 'src/companies/entity/company.entity';
 import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
+import { Airport } from 'src/destinations/entities/airport.entity';
 
 /**
  * Entity representing a travel request.
@@ -41,6 +42,9 @@ export class Request {
 
   @Column()
   id_origin_city: string;
+
+  @Column({ name: 'id_origin_airport', type: 'uuid', nullable: true })
+  id_origin_airport?: string;
 
   @Column()
   id_admin: string;
@@ -98,6 +102,13 @@ export class Request {
   })
   @JoinColumn({ name: 'id_origin_city' })
   destination: Destination;
+
+  @ManyToOne(() => Airport, (airport) => airport.requests_as_origin, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'id_origin_airport' })
+  origin_airport?: Airport;
 
   @ManyToOne(() => User, (usr) => usr.requests, {
     onDelete: 'CASCADE',

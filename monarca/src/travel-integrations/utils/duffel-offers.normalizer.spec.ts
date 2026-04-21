@@ -96,6 +96,8 @@ describe('duffel-offers.normalizer', () => {
         id: 'op_1',
         iata_code: 'OP',
         name: 'Operating Air',
+        logo_symbol_url: null,
+        logo_lockup_url: null,
       },
     ]);
   });

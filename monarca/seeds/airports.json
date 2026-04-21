@@ -1,0 +1,50 @@
+[
+  {
+    "id": "0bb26339-5ce7-4d2d-bf4c-4e81d8dc9d01",
+    "id_destination": "d7ee631a-c1b8-42f0-8ae6-cd4d6b23470f",
+    "iata_code": "MEX",
+    "name": "Aeropuerto Internacional Benito Juarez",
+    "is_primary": true,
+    "is_active": true
+  },
+  {
+    "id": "ecf4bc23-73af-47db-b8b6-71128ec4e602",
+    "id_destination": "d7ee631a-c1b8-42f0-8ae6-cd4d6b23470f",
+    "iata_code": "NLU",
+    "name": "Aeropuerto Internacional Felipe Angeles",
+    "is_primary": false,
+    "is_active": true
+  },
+  {
+    "id": "6a9d95f7-3376-40db-a6f6-3499d56f2203",
+    "id_destination": "04963809-842e-457a-97aa-ac885bd6e1bf",
+    "iata_code": "JFK",
+    "name": "John F. Kennedy International Airport",
+    "is_primary": true,
+    "is_active": true
+  },
+  {
+    "id": "8a4a4f22-4a58-47fc-b93d-8555e8c4aa04",
+    "id_destination": "04963809-842e-457a-97aa-ac885bd6e1bf",
+    "iata_code": "LGA",
+    "name": "LaGuardia Airport",
+    "is_primary": false,
+    "is_active": true
+  },
+  {
+    "id": "36c1ca80-5199-4594-b848-94837d673205",
+    "id_destination": "19283055-1ce3-48ea-a05a-04ae53978dfe",
+    "iata_code": "CDG",
+    "name": "Charles de Gaulle Airport",
+    "is_primary": true,
+    "is_active": true
+  },
+  {
+    "id": "4f7f3f66-7050-4ccb-b734-4d8efab9bc06",
+    "id_destination": "19283055-1ce3-48ea-a05a-04ae53978dfe",
+    "iata_code": "ORY",
+    "name": "Paris Orly Airport",
+    "is_primary": false,
+    "is_active": true
+  }
+]

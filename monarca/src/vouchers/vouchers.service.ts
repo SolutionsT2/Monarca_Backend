@@ -11,7 +11,6 @@ import { CreateVoucherDto } from './dto/create-voucher-dto';
 import { UpdateVoucherDto } from './dto/update-voucher-dto';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
-import { privateDecrypt } from 'crypto';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 @Injectable()
 export class VouchersService {

@@ -36,6 +36,7 @@ import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.va
 
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
+@UseGuards(AuthGuard, PermissionsGuard)
 export class VouchersController {
   constructor(private readonly vouchersService: VouchersService) {}
 
@@ -46,7 +47,6 @@ export class VouchersController {
   }
 
   // Create a new voucher
-  @UseGuards(AuthGuard, PermissionsGuard)
   @UseInterceptors(UploadPdfInterceptor())
   @Post('upload')
   async uploadVoucher(
@@ -64,11 +64,10 @@ export class VouchersController {
       throw new InternalServerErrorException('DOWNLOAD_LINK not configured');
     }
 
-    if (!req.sessionInfo?.id) {
-      throw new UnauthorizedException('User session not found');
+    const id_user = req?.sessionInfo?.id;
+    if (!id_user) {
+      throw new UnauthorizedException('Missing authenticated session context.');
     }
-
-    const id_user = req.sessionInfo.id;
     const fileMap: Record<string, string> = {};
 
     // flatten both arrays into one list

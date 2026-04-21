@@ -12,7 +12,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsService } from './requests.service';
@@ -21,6 +21,7 @@ import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
+import { Department } from 'src/departments/entity/department.entity';
 
 // STATUSES (order after creation):
 // Pending Review → (approver) → Pending Accounting Approval (SOI) → Pending Reservations (travel agent) → In Progress → …
@@ -33,6 +34,8 @@ export class RequestsStatusService {
     private readonly requestsRepo: Repository<RequestEntity>,
     @InjectRepository(Voucher)
     private readonly vouchersRepo: Repository<Voucher>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
@@ -269,6 +272,9 @@ export class RequestsStatusService {
       console.error('Failed to send SOI approval notification:', emailError);
     }
 
+    // Start each voucher-upload cycle from a clean slate for this request.
+    await this.vouchersRepo.delete({ id_request });
+
     const agents = await this.travelAgenciesChecks.getTravelAgencyUsers(
       request.id_travel_agency,
     );
@@ -302,7 +308,7 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin', 'requests_destinations'],
+      relations: ['admin', 'requests_destinations', 'user', 'user.department'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -337,7 +343,7 @@ export class RequestsStatusService {
     const tripStartDate = destinations.length
       ? new Date(
           Math.min(
-            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
+            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
           ),
         )
       : null;
@@ -345,7 +351,7 @@ export class RequestsStatusService {
     const tripEndDate = destinations.length
       ? new Date(
           Math.max(
-            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
+            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
           ),
         )
       : null;
@@ -377,10 +383,33 @@ export class RequestsStatusService {
       });
     }
 
+    if (!request.id_company) {
+      const fallbackCompanyId =
+        request.user?.department?.id_company ||
+        (request.user?.idDepartment
+          ? (
+              await this.departmentRepo.findOne({
+                where: { id: request.user.idDepartment },
+                select: ['id', 'id_company'],
+              })
+            )?.id_company
+          : undefined);
+
+      if (!fallbackCompanyId) {
+        throw new ConflictException(
+          'Unable to evaluate reimbursement policies because request company context is missing.',
+        );
+      }
+
+      request.id_company = fallbackCompanyId;
+      await this.requestsRepo.update(request.id, { id_company: fallbackCompanyId });
+    }
+
     // Evaluate reimbursement policies before moving the request to approval.
     const summary = await this.policyEngineService.evaluateRequestSubmission(
       {
         id: request.id,
+        id_company: request.id_company,
         advance_money: request.advance_money,
         createdAt: request.createdAt,
         trip_start_date: tripStartDate,
@@ -399,6 +428,9 @@ export class RequestsStatusService {
     );
 
     if (!summary.can_submit) {
+      // Always reset uploaded vouchers after a failed submit to avoid amount carry-over on retries.
+      await this.vouchersRepo.delete({ id_request });
+
       throw new UnprocessableEntityException({
         statusCode: 422,
         message: 'Policy validation failed. Resolve violations before submit.',

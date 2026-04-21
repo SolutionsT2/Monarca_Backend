@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PolicyRule } from './entities/policy-rule.entity';
 import { PolicyViolation } from './entities/policy-violation.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { Request } from 'src/requests/entities/request.entity';
 import {
   PolicyConsequence,
   PolicyEvaluationResult,
@@ -39,15 +40,32 @@ export class PolicyEngineService {
     private readonly policyViolationRepo: Repository<PolicyViolation>,
     @InjectRepository(Voucher)
     private readonly voucherRepo: Repository<Voucher>,
+    @InjectRepository(Request)
+    private readonly requestRepo: Repository<Request>,
   ) {}
 
   async evaluate(voucher: Voucher): Promise<PolicyViolation[]> {
-    const rules = await this.policyRuleRepo.find({
-      where: [
-        { expense_class: voucher.class, is_active: true },
-        { expense_class: 'Todas', is_active: true },
-      ],
+    const request = await this.requestRepo.findOne({
+      where: { id: voucher.id_request },
+      select: ['id', 'id_company'],
     });
+
+    const companyId = request?.id_company;
+    if (!companyId) {
+      await this.voucherRepo.update(voucher.id, { policy_status: 'PENDING' });
+      return [];
+    }
+
+    const rules = await this.policyRuleRepo
+      .createQueryBuilder('rule')
+      .innerJoinAndSelect('rule.policy', 'policy')
+      .where('rule.is_active = :ruleActive', { ruleActive: true })
+      .andWhere('policy.is_active = :policyActive', { policyActive: true })
+      .andWhere('policy.id_company = :companyId', { companyId })
+      .andWhere('UPPER(rule.expense_class) IN (:...expenseClasses)', {
+        expenseClasses: [voucher.class.toUpperCase(), 'TODAS', 'ALL'],
+      })
+      .getMany();
 
     const violations: PolicyViolation[] = [];
 
@@ -94,12 +112,15 @@ export class PolicyEngineService {
       new Map(vouchers.map((voucher) => [voucher.id, voucher])).values(),
     );
 
-    const rules = await this.policyRuleRepo.find({
-      where: { is_active: true },
-      relations: ['policy'],
-    });
-
-    const activeRules = rules.filter((rule) => rule.policy?.is_active !== false);
+    const activeRules = await this.policyRuleRepo
+      .createQueryBuilder('rule')
+      .innerJoinAndSelect('rule.policy', 'policy')
+      .where('rule.is_active = :ruleActive', { ruleActive: true })
+      .andWhere('policy.is_active = :policyActive', { policyActive: true })
+      .andWhere('policy.id_company = :companyId', {
+        companyId: requestContext.id_company,
+      })
+      .getMany();
     const evaluations: EvaluatedRuleResult[] = [];
 
     for (const rule of activeRules) {
@@ -144,6 +165,14 @@ export class PolicyEngineService {
     return operator.trim().toUpperCase();
   }
 
+  private allowPreTripVoucherDatesForTesting(): boolean {
+    return process.env.ALLOW_PRETRIP_VOUCHER_DATES_FOR_TESTS?.toLowerCase() === 'true';
+  }
+
+  private allowVoucherAmountThresholdBypassForTesting(): boolean {
+    return process.env.ALLOW_VOUCHER_AMOUNT_RULE_BYPASS_FOR_TESTS?.toLowerCase() === 'true';
+  }
+
   private resolveSeverity(rule: PolicyRule): PolicySeverity {
     const consequence = rule.consequence?.trim().toUpperCase();
     return consequence === 'WARNING'
@@ -180,6 +209,11 @@ export class PolicyEngineService {
       operator === 'TOTAL_VOUCHERS_LIMIT' ||
       operator === 'TOTAL_VOUCHERS_LTE_ADVANCE'
     ) {
+      const warningBase = {
+        ...base,
+        severity: PolicySeverity.WARNING,
+      };
+
       const totalVouchers = vouchers.reduce((sum, voucher) => {
         const amount = Number(voucher.amount);
         return sum + (Number.isFinite(amount) ? amount : 0);
@@ -187,11 +221,11 @@ export class PolicyEngineService {
       const passed = totalVouchers <= requestContext.advance_money;
 
       return {
-        ...base,
+        ...warningBase,
         passed,
         message: passed
           ? `Total vouchers (${totalVouchers}) is within advance (${requestContext.advance_money}).`
-          : `Total vouchers (${totalVouchers}) exceeds advance (${requestContext.advance_money}).`,
+          : `Total vouchers (${totalVouchers}) exceeds advance (${requestContext.advance_money}); this is reported as a warning for reimbursement processing.`,
         evaluated_value: {
           total_vouchers: totalVouchers,
           advance_money: requestContext.advance_money,
@@ -219,6 +253,21 @@ export class PolicyEngineService {
     }
 
     if (operator === 'VOUCHER_DATE_WITHIN_TRIP_WINDOW') {
+      const allowPreTripDates = this.allowPreTripVoucherDatesForTesting();
+
+      // In test mode, bypass trip-window validation entirely.
+      if (allowPreTripDates) {
+        return {
+          ...base,
+          passed: true,
+          message: 'Voucher-date trip-window rule bypassed in testing mode.',
+          evaluated_value: {
+            allow_pretrip_voucher_dates_for_tests: true,
+            bypass_trip_window_rule_for_tests: true,
+          },
+        };
+      }
+
       const tripStart = requestContext.trip_start_date
         ? new Date(requestContext.trip_start_date)
         : null;
@@ -243,6 +292,7 @@ export class PolicyEngineService {
         if (Number.isNaN(voucherDate.getTime())) {
           return true;
         }
+
         return voucherDate < tripStart || voucherDate > tripEnd;
       });
 
@@ -257,6 +307,7 @@ export class PolicyEngineService {
         evaluated_value: {
           trip_start_date: tripStart.toISOString(),
           trip_end_date: tripEnd.toISOString(),
+          allow_pretrip_voucher_dates_for_tests: false,
           out_of_window_voucher_ids: outOfWindowVouchers.map((voucher) => voucher.id),
         },
       };
@@ -315,6 +366,25 @@ export class PolicyEngineService {
         voucher_id: voucher.id,
         passed: true,
         message: 'Rule threshold is not configured.',
+      };
+    }
+
+    if (
+      this.allowVoucherAmountThresholdBypassForTesting() &&
+      ['LT', 'LTE', 'GT', 'GTE'].includes(operator)
+    ) {
+      return {
+        ...base,
+        voucher_id: voucher.id,
+        passed: true,
+        message: `Amount rule ${operator} bypassed in testing mode.`,
+        evaluated_value: {
+          amount: voucher.amount,
+          operator,
+          threshold,
+          currency: voucher.currency,
+          bypass_amount_rule_for_tests: true,
+        },
       };
     }
 
@@ -417,6 +487,9 @@ export class PolicyEngineService {
     const threshold = rule.threshold_value;
     switch (rule.operator) {
       case 'LT':
+        if (this.allowVoucherAmountThresholdBypassForTesting()) {
+          return false;
+        }
         return typeof threshold === 'number' ? voucher.amount < threshold : false;
       case 'MISSING_XML':
         return !voucher.file_url_xml;

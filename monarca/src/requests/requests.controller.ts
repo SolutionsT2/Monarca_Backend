@@ -30,8 +30,8 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
  * Controller handling request-related endpoints.
  * Requires authentication and appropriate permissions.
  */
-@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('requests')
+@UseGuards(AuthGuard, PermissionsGuard)
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 

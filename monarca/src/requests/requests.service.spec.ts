@@ -8,6 +8,7 @@ import { RequestsService } from './requests.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Request } from './entities/request.entity';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { Department } from 'src/departments/entity/department.entity';
 import { UserChecks } from 'src/users/user.checks.service';
 import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
@@ -22,6 +23,7 @@ describe('RequestsService', () => {
           RequestsService,
           { provide: getRepositoryToken(Request), useValue: {} },
           { provide: getRepositoryToken(PolicyViolation), useValue: {} },
+          { provide: getRepositoryToken(Department), useValue: {} },
           { provide: UserChecks, useValue: {} },
           { provide: DestinationsChecks, useValue: {} },
           { provide: NotificationsService, useValue: {} },
