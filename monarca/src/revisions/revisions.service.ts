@@ -7,7 +7,6 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { CreateRevisionDto } from './dto/create-revision.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -31,13 +30,29 @@ export class RevisionsService {
   ) {}
 
   async create(req: RequestInterface, data: CreateRevisionDto) {
+    if (!req.sessionInfo?.id) {
+      throw new UnauthorizedException('Unable to identify user session.');
+    }
+
     const userId = req.sessionInfo.id;
+    const user = await this.userChecks.getUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const roleName = user.role?.name?.trim().toLowerCase();
+    const isApproverRole = roleName === 'aprobador';
 
     if (!(await this.requestChecks.requestExists(data.id_request))) {
       throw new NotFoundException('Invalid request id.');
     }
 
-    if (!(await this.requestChecks.isRequestsAdmin(data.id_request, userId))) {
+    const isAssignedApprover = await this.requestChecks.isRequestsAdmin(
+      data.id_request,
+      userId,
+    );
+
+    if (!isAssignedApprover && !isApproverRole) {
       throw new UnauthorizedException('Unable to write to that request.');
     }
 
@@ -57,11 +72,6 @@ export class RevisionsService {
       ...data,
       id_user: userId,
     });
-
-    const user = await this.userChecks.getUserById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found.');
-    }
 
     const request = await this.requestService.getRequestById(data.id_request);
     if (!request) {

@@ -6,9 +6,6 @@
 import {
   Body,
   Controller,
-  Get,
-  Param,
-  ParseUUIDPipe,
   Post,
   Request,
   UseGuards,
@@ -23,6 +20,7 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 export class RevisionsController {
   constructor(private readonly revisionsService: RevisionsService) {}
 
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Post()
   postRevision(
     @Request() req: RequestInterface,
