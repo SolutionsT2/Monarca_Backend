@@ -85,13 +85,13 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     PolicyEngineModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.POSTGRES_HOST,
+      host: process.env.POSTGRES_HOST || 'localhost',
       port: process.env.POSTGRES_PORT
         ? parseInt(process.env.POSTGRES_PORT, 10)
-        : 5433,
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DATABASE,
+        : 25000,
+      username: process.env.POSTGRES_USER || 'postgres',
+      password: process.env.POSTGRES_PASSWORD || 'test123',
+      database: process.env.POSTGRES_DATABASE || 'Monarca',
       entities: [
         User,
         Department,
