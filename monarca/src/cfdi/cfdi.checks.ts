@@ -6,7 +6,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { parseStringPromise } from 'xml2js';
 
-/** Maps CFDI IVA TasaOCuota to voucher form tax codes (see Refunds/local/dummyData taxIndicatorOptions). */
 export function mapTasaToTaxIndicator(tasaOCuota: string | undefined): string | null {
   if (tasaOCuota === undefined || tasaOCuota === null || tasaOCuota === '') {
     return null;

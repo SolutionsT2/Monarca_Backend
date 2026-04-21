@@ -5,6 +5,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { VouchersService } from './vouchers.service';
+import { CfdiService } from 'src/cfdi/cfdi.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 
@@ -42,6 +43,7 @@ describe('VouchersController', () => {
       controllers: [VouchersController],
       providers: [
         { provide: VouchersService, useValue: {} },
+        { provide: CfdiService, useValue: {} },
       ],
     })
       .overrideGuard(AuthGuard)
