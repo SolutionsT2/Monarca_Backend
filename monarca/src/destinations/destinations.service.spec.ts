@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DestinationsService } from './destinations.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Destination } from './entities/destination.entity';
+import { Airport } from './entities/airport.entity';
 
 describe('DestinationsService', () => {
   let service: DestinationsService;
@@ -16,6 +17,7 @@ describe('DestinationsService', () => {
       providers: [
         DestinationsService,
         { provide: getRepositoryToken(Destination), useValue: {} },
+        { provide: getRepositoryToken(Airport), useValue: {} },
       ],
     }).compile();
 
