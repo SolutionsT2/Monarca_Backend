@@ -7,11 +7,12 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Equal } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository, Equal } from 'typeorm';
 import { XMLParser } from 'fast-xml-parser';
 import { Roles } from './entity/roles.entity';
 import { Permission } from './entity/permissions.entity';
@@ -52,6 +53,8 @@ export interface SubstituteResponse {
 
 @Injectable()
 export class RolesAdminService implements OnModuleInit {
+  private readonly logger = new Logger(RolesAdminService.name);
+
   constructor(
     @InjectRepository(Roles)
     private readonly rolesRepo: Repository<Roles>,
@@ -65,12 +68,25 @@ export class RolesAdminService implements OnModuleInit {
     private readonly substituteRepo: Repository<AuthorizationSubstitute>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
+
+  private async ensureAuthModulesTable(): Promise<void> {
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS auth_modules (
+        id VARCHAR(64) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL
+      )
+    `);
+  }
 
   /**
    * Ensures catalog modules exist for UI and imports.
    */
   async onModuleInit(): Promise<void> {
+    await this.ensureAuthModulesTable();
+
     for (const row of DEFAULT_AUTH_MODULES) {
       const existing = await this.authModuleRepo.findOne({
         where: { id: row.id },
@@ -81,6 +97,8 @@ export class RolesAdminService implements OnModuleInit {
         );
       }
     }
+
+    this.logger.log('Auth modules catalog verified.');
   }
 
   /**
