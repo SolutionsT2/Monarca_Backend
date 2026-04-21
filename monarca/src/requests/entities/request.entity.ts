@@ -79,10 +79,10 @@ export class Request {
   // ---- Ditta Consulting integration fields ----
 
   @Column({ name: 'id_company', type: 'uuid', nullable: true })
-  id_company?: string;
+  id_company?: string | null;
 
   @Column({ name: 'id_document_class', type: 'uuid', nullable: true })
-  id_document_class?: string;
+  id_document_class?: string | null;
 
   // Defines entity relationships and database associations.
 
