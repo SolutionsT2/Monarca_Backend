@@ -9,11 +9,13 @@ import { CfdiController } from './cfdi.controller';
 import { CfdiService } from './cfdi.service';
 import { CfdiChecks } from './cfdi.checks';
 import { Cfdi } from './cfdi.entity';
+import { GuardsModule } from 'src/guards/guards.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cfdi])],
+  imports: [TypeOrmModule.forFeature([Cfdi]), GuardsModule],
   controllers: [CfdiController],
   providers: [CfdiService, CfdiChecks],
+  exports: [CfdiService],
 })
 export class CfdiModule {}
 

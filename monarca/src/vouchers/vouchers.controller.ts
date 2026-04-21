@@ -33,12 +33,16 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { promises as fs } from 'fs';
 import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.validator';
+import { CfdiService } from 'src/cfdi/cfdi.service';
 
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class VouchersController {
-  constructor(private readonly vouchersService: VouchersService) {}
+  constructor(
+    private readonly vouchersService: VouchersService,
+    private readonly cfdiService: CfdiService,
+  ) {}
 
   private async cleanupUploadedFiles(uploadedFiles: Express.Multer.File[]) {
     await Promise.allSettled(
@@ -97,6 +101,13 @@ export class VouchersController {
           errorCode: 'INVALID_XML_REQUIRED_FIELDS',
           missingFields: validation.missingFields,
         });
+      }
+
+      try {
+        await this.cfdiService.processXML(xmlContent);
+      } catch (err) {
+        await this.cleanupUploadedFiles(uploaded);
+        throw err;
       }
     }
 
