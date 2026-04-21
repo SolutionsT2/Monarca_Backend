@@ -8,8 +8,6 @@ import { Response } from 'express';
 import { LogInDTO } from '../dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UserChecks } from 'src/users/user.checks.service';
-import { User } from 'src/users/entities/user.entity';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class LoginService {
@@ -22,13 +20,6 @@ export class LoginService {
     const user = await this.userChecks.logIn(data);
 
     if (!user) {
-      return { status: false, message: 'Email or password incorrect' };
-    }
-
-    // Verify the password
-    const isPasswordValid = await bcrypt.compare(data.password, user.password);
-
-    if (!isPasswordValid) {
       return { status: false, message: 'Email or password incorrect' };
     }
 
