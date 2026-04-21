@@ -1,0 +1,10 @@
+[
+    {
+        "key": "av",
+        "description": "Poliza para aquellos viajes que tuvieron anticipo por parte del empleador."
+    },
+    {
+        "key": "gv",
+        "description": "Poliza para cualquier tipo de gasto de viaje. Sin importar si hubo anticipo o no."
+    }
+]

@@ -5,6 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { Destination } from 'src/destinations/entities/destination.entity';
@@ -42,6 +43,7 @@ export class SeedService {
 
     constructor(
         @InjectRepository(Department) private readonly departmentRepo: Repository<Department>,
+        @InjectRepository(DocumentClass) private readonly documentClassRepo: Repository<DocumentClass>,
         @InjectRepository(CostCenter) private readonly costCenterRepo: Repository<CostCenter>,
         @InjectRepository(Destination) private readonly destinationRepo: Repository<Destination>,
         @InjectRepository(User) private readonly userRepo: Repository<User>,
@@ -65,6 +67,7 @@ export class SeedService {
 
     async run() {
         const seedData: SeedData[] = [
+            { repo: this.documentClassRepo, file: 'document-class.json', entityName: 'DocumentClass' },
             { repo: this.companyRepo, file: 'companies.json', entityName: 'Company' },
             { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
             { repo: this.departmentRepo, file: 'departments.json', entityName: 'Department' },
