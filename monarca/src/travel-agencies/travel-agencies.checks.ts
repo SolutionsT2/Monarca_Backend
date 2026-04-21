@@ -3,7 +3,7 @@
  * Description: Helper service to check travel agency existence and to fetch agency users.
  */
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   CreateTravelAgencyDto,
   TravelAgencyDto,
@@ -15,6 +15,8 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class TravelAgenciesChecks {
+  private readonly logger = new Logger(TravelAgenciesChecks.name);
+
   constructor(
     @InjectRepository(TravelAgency)
     private readonly repo: Repository<TravelAgency>,
@@ -37,7 +39,10 @@ export class TravelAgenciesChecks {
       throw new NotFoundException('Travel agency not found');
     }
     if (travel_agency.users.length === 0) {
-      throw new NotFoundException('No users found for this travel agency');
+      this.logger.warn(
+        `Travel agency ${id_travel_agency} has no linked users; skipping agent notifications.`,
+      );
+      return [];
     }
     return travel_agency.users;
   }

@@ -88,5 +88,18 @@
     "idTravelAgency": "24169971-6d7f-4bf7-982c-dad1aebac579",
     "employeeStatus": "active",
     "username": "travelagent1"
+  },
+  {
+    "id": "c2d3e4f5-0607-4890-a1b2-c3d4e5f60708",
+    "idDepartment": "118424c8-a563-4452-921f-795e25c58b3a",
+    "idRole": "55967de0-dc95-4343-9ad6-7b1756203400",
+    "name": "TravelAgent",
+    "lastName": "Two",
+    "password": "password",
+    "email": "travelagent2@monarca.com",
+    "availabilityStatus": "active",
+    "idTravelAgency": "b71ae191-cf50-4fac-8e66-c638212eaba7",
+    "employeeStatus": "active",
+    "username": "travelagent2"
   }
 ]

@@ -12,8 +12,9 @@ services:
       POSTGRES_USER: postgres
       #POSTGRES_HOST_AUTH_METHOD: trust
     container_name: monarca_database
+
     volumes:
-      - ./DB/postgres:/var/lib/postgresql
+      - monarca_pgdata:/var/lib/postgresql
 
   mailhog:
     image: mailhog/mailhog:latest
@@ -21,3 +22,6 @@ services:
       - "1025:1025"   # SMTP
       - "8025:8025"   # Web UI
     container_name: monarca_mailhog
+
+volumes:
+  monarca_pgdata:
