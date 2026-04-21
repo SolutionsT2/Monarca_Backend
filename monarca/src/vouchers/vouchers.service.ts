@@ -12,6 +12,7 @@ import { UpdateVoucherDto } from './dto/update-voucher-dto';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 @Injectable()
 export class VouchersService {
   constructor(
@@ -19,8 +20,22 @@ export class VouchersService {
     private readonly voucherRepo: Repository<Voucher>,
     @InjectRepository(Request)
     private readonly rRepo: Repository<Request>,
+    @InjectRepository(DocumentClass)
+    private readonly documentClassRepo: Repository<DocumentClass>,
     private readonly policyEngineService: PolicyEngineService,
   ) {}
+
+  private async getVoucherDocumentClassId(): Promise<string> {
+    const documentClass = await this.documentClassRepo.findOne({
+      where: { key: 'gv' },
+    });
+
+    if (!documentClass) {
+      throw new NotFoundException('Document class with key gv not found.');
+    }
+
+    return documentClass.id;
+  }
 
   async create(id_user: string, data: CreateVoucherDto): Promise<Voucher> {
     const request = await this.rRepo.findOne({
@@ -40,6 +55,7 @@ export class VouchersService {
     }
     const voucher = this.voucherRepo.create({
       id_request: data.id_request, // Using the correct DTO property
+      id_document_class: await this.getVoucherDocumentClassId(),
       class: data.class,
       amount: data.amount,
       currency: data.currency,
@@ -98,6 +114,7 @@ export class VouchersService {
     const updatedVoucherData = {
       // Update only provided fields
       id_request: data.id_request ?? existingVoucher.id_request, // Use existing if not provided
+      id_document_class: await this.getVoucherDocumentClassId(),
       class: data.class ?? existingVoucher.class, // Use existing if not provided
       amount: data.amount ?? existingVoucher.amount, // Use existing if not provided
       tax_type: data.tax_type ?? existingVoucher.tax_type, // Use existing if not provided

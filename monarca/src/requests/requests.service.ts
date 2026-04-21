@@ -17,6 +17,7 @@ import { Repository, DataSource, EntityManager } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { UserChecks } from 'src/users/user.checks.service';
 import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
@@ -31,6 +32,8 @@ export class RequestsService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepo: Repository<RequestEntity>,
+    @InjectRepository(DocumentClass)
+    private readonly documentClassRepo: Repository<DocumentClass>,
     @InjectRepository(PolicyViolation)
     private readonly policyViolationRepo: Repository<PolicyViolation>,
     @InjectRepository(Department)
@@ -104,6 +107,26 @@ export class RequestsService {
         );
       }
     }
+  }
+  
+  private async getDocumentClassIdForAdvance(
+    advanceMoney: number,
+  ): Promise<string | null> {
+    if (Number(advanceMoney || 0) <= 0) {
+      return null;
+    }
+
+    const documentClass = await this.documentClassRepo.findOne({
+      where: { key: 'av' },
+    });
+
+    if (!documentClass) {
+      throw new NotFoundException(
+        'Document class with key av not found.',
+      );
+    }
+
+    return documentClass.id;
   }
 
   private async logRequestAction(
@@ -203,6 +226,9 @@ export class RequestsService {
       id_admin: adminId,
       id_SOI: SOIId,
       id_company: department.id_company,
+      id_document_class: await this.getDocumentClassIdForAdvance(
+        data.advance_money,
+      ),
       ...data,
       requests_destinations: data.requests_destinations.map((destDto) => ({
         ...destDto,
@@ -500,6 +526,9 @@ export class RequestsService {
 
       // Update general request fields
       entity.advance_money = data.advance_money;
+      entity.id_document_class = await this.getDocumentClassIdForAdvance(
+        data.advance_money,
+      );
       entity.id_origin_city = data.id_origin_city;
       entity.id_origin_airport = data.id_origin_airport;
       entity.motive = data.motive;

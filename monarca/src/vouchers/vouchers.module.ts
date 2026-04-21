@@ -10,8 +10,9 @@ import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
 import { GuardsModule } from 'src/guards/guards.module';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([Voucher,Request ]),
+  imports: [TypeOrmModule.forFeature([Voucher, Request, DocumentClass]),
   GuardsModule,
   PolicyEngineModule
 

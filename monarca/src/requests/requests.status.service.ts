@@ -22,6 +22,7 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 import { Department } from 'src/departments/entity/department.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 
 // STATUSES (order after creation):
 // Pending Review → (approver) → Pending Accounting Approval (SOI) → Pending Reservations (travel agent) → In Progress → …
@@ -36,11 +37,25 @@ export class RequestsStatusService {
     private readonly vouchersRepo: Repository<Voucher>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(DocumentClass)
+    private readonly documentClassRepo: Repository<DocumentClass>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
     private readonly policyEngineService: PolicyEngineService,
   ) {}
+
+  private async getVoucherDocumentClassId(): Promise<string> {
+    const documentClass = await this.documentClassRepo.findOne({
+      where: { key: 'gv' },
+    });
+
+    if (!documentClass) {
+      throw new NotFoundException('Document class with key gv not found.');
+    }
+
+    return documentClass.id;
+  }
 
   async approve(
     req: RequestInterface,
