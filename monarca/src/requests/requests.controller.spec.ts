@@ -16,8 +16,9 @@ import { UserChecks } from 'src/users/user.checks.service';
 import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { DataSource } from 'typeorm';
-// Do not import AuthGuard and PermissionsGuard as classes for test DI
 import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from 'src/guards/auth.guard';
+import { PermissionsGuard } from 'src/guards/permissions.guard';
 
 describe('RequestsController', () => {
   let controller: RequestsController;
@@ -34,10 +35,13 @@ describe('RequestsController', () => {
         { provide: NotificationsService, useValue: {} },
         { provide: DataSource, useValue: {} },
         { provide: JwtService, useValue: {} },
-        { provide: 'AuthGuard', useValue: { canActivate: jest.fn().mockReturnValue(true) } },
-        { provide: 'PermissionsGuard', useValue: { canActivate: jest.fn().mockReturnValue(true) } },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .compile();
 
     controller = module.get<RequestsController>(RequestsController);
   });
