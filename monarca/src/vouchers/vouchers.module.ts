@@ -8,13 +8,14 @@ import { VouchersService } from './vouchers.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { GuardsModule } from 'src/guards/guards.module';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { CfdiModule } from 'src/cfdi/cfdi.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Voucher, Request]),
+    TypeOrmModule.forFeature([Voucher, Request, DocumentClass]),
     GuardsModule,
     PolicyEngineModule,
     CfdiModule,
