@@ -8,6 +8,7 @@ import { VouchersService } from './vouchers.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Voucher } from './entities/vouchers.entity';
 import { Request } from 'src/requests/entities/request.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 
 describe('VouchersService', () => {
@@ -19,6 +20,7 @@ describe('VouchersService', () => {
         VouchersService,
         { provide: getRepositoryToken(Voucher), useValue: {} },
         { provide: getRepositoryToken(Request), useValue: {} },
+        { provide: getRepositoryToken(DocumentClass), useValue: {} },
         { provide: PolicyEngineService, useValue: {} },
       ],
     }).compile();

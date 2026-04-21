@@ -21,9 +21,10 @@ import { RequestLogsModule } from 'src/request-logs/request-logs.module';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
+import { Department } from 'src/departments/entity/department.entity';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
-import { Department } from 'src/departments/entity/department.entity';
 
 /**
  * Module encapsulating request domain logic
@@ -35,8 +36,9 @@ import { Department } from 'src/departments/entity/department.entity';
       Request,
       RequestsDestination,
       Voucher,
-      PolicyViolation,
+      DocumentClass,
       Department,
+      PolicyViolation,
     ]),
     GuardsModule,
     UsersModule,

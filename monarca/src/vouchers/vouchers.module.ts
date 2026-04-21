@@ -12,6 +12,11 @@ import { DocumentClass } from 'src/document-classes/entity/document-class.entity
 import { GuardsModule } from 'src/guards/guards.module';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { CfdiModule } from 'src/cfdi/cfdi.module';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
+@Module({
+  imports: [TypeOrmModule.forFeature([Voucher, Request, DocumentClass]),
+  GuardsModule,
+  PolicyEngineModule
 
 @Module({
   imports: [
