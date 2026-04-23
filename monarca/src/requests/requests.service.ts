@@ -24,6 +24,7 @@ import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 @Injectable()
 export class RequestsService {
@@ -36,6 +37,7 @@ export class RequestsService {
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
+    private readonly approverSubstituteService: ApproverSubstituteService,
   ) {}
 
   private async getCityName(id: string): Promise<string> {
@@ -104,6 +106,9 @@ export class RequestsService {
       );
     }
 
+    const resolvedAdminId =
+      await this.approverSubstituteService.resolveApprover(adminId);
+
     // Assign SOI
     const SOIId = await this.userChecks.getRandomSoiId();
     if (!SOIId) {
@@ -115,7 +120,7 @@ export class RequestsService {
 
     const request = this.requestsRepo.create({
       id_user: userId,
-      id_admin: adminId,
+      id_admin: resolvedAdminId,
       id_SOI: SOIId,
       ...data,
       requests_destinations: data.requests_destinations.map((destDto) => ({
@@ -145,20 +150,24 @@ export class RequestsService {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
-    // Notify assigned admin
-    try {
-      await this.notificationsService.notify(
-        admin.email,
-        `Nueva solicitud asignada`,
-        `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
-        `<p>Hola ${admin.name},</p>
+    // Notify assigned admin only when email exists.
+    if (admin.email) {
+      try {
+        await this.notificationsService.notify(
+          admin.email,
+          `Nueva solicitud asignada`,
+          `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
+          `<p>Hola ${admin.name},</p>
 <p>Se te ha asignado una nueva solicitud de viaje con ID: <strong>${saved.id}</strong>.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send notification email:', emailError);
+        );
+      } catch (emailError) {
+        console.error('Failed to send notification email:', emailError);
+      }
+    } else {
+      console.warn(`Skipping admin notification: user ${admin.id} has no email`);
     }
 
     return saved;
@@ -435,19 +444,25 @@ export class RequestsService {
       }
 
       // Email failure should not abort request update
-      try {
-        await this.notificationsService.notify(
-          admin.email,
-          `Solicitud actualizada`,
-          `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
-          `<p>Hola ${admin.name},</p>
+      if (admin.email) {
+        try {
+          await this.notificationsService.notify(
+            admin.email,
+            `Solicitud actualizada`,
+            `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
+            `<p>Hola ${admin.name},</p>
 <p>La solicitud de viaje con ID: <strong>${updated.id}</strong> ha sido actualizada.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
+          );
+        } catch (emailError) {
+          console.error('Failed to send update notification email:', emailError);
+        }
+      } else {
+        console.warn(
+          `Skipping update notification: admin ${admin.id} has no email`,
         );
-      } catch (emailError) {
-        console.error('Failed to send update notification email:', emailError);
       }
 
       return updated;

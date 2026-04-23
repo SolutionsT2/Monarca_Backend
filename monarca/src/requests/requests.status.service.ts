@@ -21,6 +21,7 @@ import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 // STATUSES:
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
@@ -36,6 +37,7 @@ export class RequestsStatusService {
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
     private readonly policyEngineService: PolicyEngineService,
+    private readonly approverSubstituteService: ApproverSubstituteService,
   ) {}
 
   async approve(
@@ -43,6 +45,8 @@ export class RequestsStatusService {
     id_request: string,
     data: ApproveRequestDTO,
   ) {
+    await this.approverSubstituteService.reassignRequestIfNeeded(id_request);
+
     const id_user = req.sessionInfo.id;
     const id_travel_agency = data.id_travel_agency;
     const request = await this.requestsRepo.findOne({
@@ -120,6 +124,8 @@ export class RequestsStatusService {
   }
 
   async deny(req: RequestInterface, id_request: string) {
+    await this.approverSubstituteService.reassignRequestIfNeeded(id_request);
+
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
@@ -412,6 +418,8 @@ export class RequestsStatusService {
 
   // Status changes from Pending Vouchers Approval to Pending Refund Approval
   async finishedApprovingVouchers(req: RequestInterface, id_request: string) {
+    await this.approverSubstituteService.reassignRequestIfNeeded(id_request);
+
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },

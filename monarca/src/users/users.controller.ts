@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Request,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -23,6 +24,7 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { Permissions } from 'src/guards/decorators/permission.decorator';
 import { ExcelUploadInterceptor } from 'src/utils/excel-upload.interceptor';
 import { ConfirmImportDto } from './dto/import-confirm.dto';
+import { RequestInterface } from 'src/guards/interfaces/request.interface';
 
 @Controller('users')
 export class UsersController {
@@ -83,10 +85,14 @@ export class UsersController {
   @UseGuards(AuthGuard, PermissionsGuard)
   @Permissions('import_employees')
   @UseInterceptors(ExcelUploadInterceptor())
-  async previewImport(@UploadedFile() file: Express.Multer.File) {
+  async previewImport(
+    @Request() req: RequestInterface,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
+    await this.usersService.assertCompanyAdmin(req.sessionInfo.id);
     return this.usersService.previewExcel(file.buffer);
   }
 
@@ -97,7 +103,11 @@ export class UsersController {
   @Post('import/confirm')
   @UseGuards(AuthGuard, PermissionsGuard)
   @Permissions('import_employees')
-  async confirmImport(@Body() data: ConfirmImportDto) {
+  async confirmImport(
+    @Request() req: RequestInterface,
+    @Body() data: ConfirmImportDto,
+  ) {
+    await this.usersService.assertCompanyAdmin(req.sessionInfo.id);
     return this.usersService.confirmImport(data);
   }
 }

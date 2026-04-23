@@ -29,9 +29,9 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ApiProperty({ example: 'juan@gmail.com' })
-  @Column()
-  email: string;
+  @ApiProperty({ example: 'juan@gmail.com', nullable: true })
+  @Column({ type: 'varchar', nullable: true })
+  email: string | null;
 
   @ApiProperty({ example: 'Juan' })
   @Column()
@@ -58,12 +58,12 @@ export class User {
   employeeNumber?: string;
 
   @ApiProperty({ example: 'mperez' })
-  @Column({ unique: true, nullable: true })
-  username: string;
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  username: string | null;
 
   @ApiProperty({ example: '883d9e05-612c-4d08-9efb-5099952fc850' })
   @Column({ name: 'id_manager', type: 'uuid', nullable: true })
-  idManager?: string;
+  idManager?: string | null;
 
   @ApiProperty({ example: '12345678' })
   @Column({ name: 'supplier_number', type: 'varchar', length: 8, nullable: true })
@@ -92,12 +92,6 @@ export class User {
     name: 'id_travel_agency',
   })
   idTravelAgency?: string;
-
-  // ---- Ditta Consulting integration fields ----
-
-  @ApiProperty({ example: 'Emp001' })
-  @Column({ name: 'employee_number', type: 'varchar', length: 20, nullable: true, unique: true })
-  employeeNumber?: string;
 
   // ---- Relationships ----
 

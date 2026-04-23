@@ -20,22 +20,23 @@ interface DuffelClient {
 
 @Injectable()
 export class DuffelService {
-  private readonly duffel: DuffelClient;
+  private readonly duffel?: DuffelClient;
   private readonly timeoutMs: number;
+  private readonly isConfigured: boolean;
 
   constructor() {
     const token = process.env.DUFFEL_API_KEY;
-    if (!token) {
-      throw new InternalServerErrorException('DUFFEL_API_KEY not configured');
-    }
-
     this.timeoutMs = Number(process.env.DUFFEL_TIMEOUT_MS || 130000);
-    this.duffel = new Duffel({ token }) as unknown as DuffelClient;
+    this.isConfigured = !!token;
+    if (token) {
+      this.duffel = new Duffel({ token }) as unknown as DuffelClient;
+    }
   }
 
   async createOfferRequest(payload: JsonMap): Promise<unknown> {
+    this.ensureConfigured();
     return this.executeDuffelCall(() =>
-      this.duffel.offerRequests.create(payload),
+      this.duffel!.offerRequests.create(payload),
     );
   }
 
@@ -47,6 +48,7 @@ export class DuffelService {
     sort?: string,
     maxConnections?: number,
   ) {
+    this.ensureConfigured();
     const params: JsonMap = { offer_request_id: offerRequestId };
 
     if (after) params.after = after;
@@ -56,19 +58,26 @@ export class DuffelService {
       params.max_connections = maxConnections;
     }
 
-    return this.executeDuffelCall(() => this.duffel.offers.list(params));
+    return this.executeDuffelCall(() => this.duffel!.offers.list(params));
   }
 
   async getOfferById(
     offerId: string,
     returnAvailableServices?: boolean,
   ): Promise<unknown> {
+    this.ensureConfigured();
     const params: JsonMap | undefined =
       typeof returnAvailableServices === 'boolean'
         ? { return_available_services: returnAvailableServices }
         : undefined;
 
-    return this.executeDuffelCall(() => this.duffel.offers.get(offerId, params));
+    return this.executeDuffelCall(() => this.duffel!.offers.get(offerId, params));
+  }
+
+  private ensureConfigured(): void {
+    if (!this.isConfigured || !this.duffel) {
+      throw new InternalServerErrorException('DUFFEL_API_KEY not configured');
+    }
   }
 
   private async executeDuffelCall<T>(action: () => Promise<T>): Promise<T> {

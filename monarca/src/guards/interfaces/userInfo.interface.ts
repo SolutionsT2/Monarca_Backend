@@ -5,7 +5,7 @@
 
 export interface UserInfoInterface {
   id: string;
-  email: string;
+  email: string | null;
   name: string;
   last_name: string;
   availabilityStatus: string;

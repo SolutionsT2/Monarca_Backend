@@ -48,7 +48,20 @@ export class NotificationsService {
    * @param html Optional HTML content.
    * @returns Promise containing the Nodemailer response.
    */
-  async sendMail(to: string, subject: string, text: string, html?: string) {
+  async sendMail(
+    to: string | null | undefined,
+    subject: string,
+    text: string,
+    html?: string,
+  ) {
+    if (!to || !String(to).trim()) {
+      const logger = new Logger('NotificationsService');
+      logger.warn(
+        `Skipping email with empty recipient (subject: ${subject}).`,
+      );
+      return null;
+    }
+
     const fromAddress = process.env.EMAIL_USER 
   ? `"Sistema Monarca" <${process.env.EMAIL_USER}>`
   : '"Sistema Monarca" <noreply@monarca.dev>';
@@ -72,7 +85,7 @@ export class NotificationsService {
    * @param html Optional HTML content.
    */
   async sendNotification(
-    to: string,
+    to: string | null | undefined,
     subject: string,
     text: string,
     html?: string,
@@ -90,7 +103,20 @@ export class NotificationsService {
    * @param message Plain text message content.
    * @param html Optional raw HTML body.
    */
-  async notify(to: string, subject: string, message: string, html?: string) {
+  async notify(
+    to: string | null | undefined,
+    subject: string,
+    message: string,
+    html?: string,
+  ) {
+    if (!to || !String(to).trim()) {
+      const logger = new Logger('NotificationsService');
+      logger.warn(
+        `Skipping notification with empty recipient (subject: ${subject}).`,
+      );
+      return null;
+    }
+
     // Escapes plain text to prevent HTML injection.
     const escapeHtml = (str: string) =>
       str
