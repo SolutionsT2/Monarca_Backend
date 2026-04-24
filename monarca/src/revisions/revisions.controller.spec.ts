@@ -6,6 +6,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RevisionsController } from './revisions.controller';
 import { RevisionsService } from './revisions.service';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user.entity';
 
 describe('RevisionsController', () => {
   let controller: RevisionsController;
@@ -15,6 +19,9 @@ describe('RevisionsController', () => {
       controllers: [RevisionsController],
       providers: [
         { provide: RevisionsService, useValue: {} },
+        { provide: JwtService, useValue: {} },
+        { provide: Reflector, useValue: { get: jest.fn().mockReturnValue([]) } },
+        { provide: getRepositoryToken(User), useValue: {} },
       ],
     }).compile();
 
