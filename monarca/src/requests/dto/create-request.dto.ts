@@ -155,6 +155,15 @@ export class CreateRequestDto {
   priority: string;
 
   @ApiProperty({
+    description: 'Whether the trip is a round trip',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_round_trip?: boolean;
+
+  @ApiProperty({
     description: 'List of destinations for the trip request',
     type: [RequestDestinationtDto],
   })
@@ -168,4 +177,5 @@ export class CreateRequestDto {
 Modification History:
 
 - 2026-02-26 | Diego Vergara | Fixed DTO naming typo and added full documentation compliance.
+- 2026-04-22 | Juan de Dios Gastélum Flores | Added is_round_trip optional field to CreateRequestDto.
 */
