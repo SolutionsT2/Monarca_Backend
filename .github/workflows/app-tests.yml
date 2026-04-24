@@ -22,6 +22,12 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
+      mailhog:
+        image: mailhog/mailhog:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 25000
@@ -29,6 +35,13 @@ jobs:
       POSTGRES_PASSWORD: test123
       POSTGRES_DATABASE: Monarca
       TYPEORM_SYNCHRONIZE: true
+      EMAIL_HOST: localhost
+      EMAIL_PORT: 1025
+      EMAIL_USER: ""
+      EMAIL_PASSWORD: ""
+      JWT_SECRET: test-secret-key
+      FRONTEND_URL: http://localhost:3000
+      DOWNLOAD_LINK: http://localhost:3000
 
     steps:
       - uses: actions/checkout@v4
@@ -44,9 +57,21 @@ jobs:
         working-directory: ./monarca
         run: npx tsc --noEmit
 
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 25000 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+        shell: bash
+
       - name: Run all backend unit tests
         working-directory: ./monarca
         run: npm test -- --passWithNoTests
+
+      - name: Seed database with test data
+        working-directory: ./monarca
+        run: npm run db:seed
 
       - name: Run backend e2e tests
         working-directory: ./monarca
