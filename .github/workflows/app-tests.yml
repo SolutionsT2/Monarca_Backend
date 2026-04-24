@@ -7,6 +7,29 @@ jobs:
     name: Run tests (Jest)
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:18
+        ports:
+          - 25000:5432
+        env:
+          POSTGRES_DB: Monarca
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test123
+        options: >-
+          --health-cmd="pg_isready -U postgres -d Monarca"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 25000
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test123
+      POSTGRES_DATABASE: Monarca
+      TYPEORM_SYNCHRONIZE: true
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,3 +47,7 @@ jobs:
       - name: Run all backend unit tests
         working-directory: ./monarca
         run: npm test -- --passWithNoTests
+
+      - name: Run backend e2e tests
+        working-directory: ./monarca
+        run: npm run test:e2e -- --runInBand
