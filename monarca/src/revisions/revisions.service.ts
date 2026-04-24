@@ -41,7 +41,6 @@ export class RevisionsService {
     }
 
     const roleName = user.role?.name?.trim().toLowerCase();
-    const isApproverRole = roleName === 'aprobador';
 
     if (!(await this.requestChecks.requestExists(data.id_request))) {
       throw new NotFoundException('Invalid request id.');
@@ -52,7 +51,7 @@ export class RevisionsService {
       userId,
     );
 
-    if (!isAssignedApprover && !isApproverRole) {
+    if (!isAssignedApprover) {
       throw new UnauthorizedException('Unable to write to that request.');
     }
 
