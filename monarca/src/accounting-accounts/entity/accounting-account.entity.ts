@@ -8,11 +8,13 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
-  CreateDateColumn,
+  ManyToOne,
   UpdateDateColumn,
+  JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
+import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 
 @Entity({ name: 'accounting_accounts' })
 export class AccountingAccount {
@@ -28,14 +30,18 @@ export class AccountingAccount {
   @Column({ name: 'requires_cost_center', type: 'boolean', default: false })
   requiresCostCenter: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @Column({ name: 'id_cost_center', type: 'uuid' })
+  id_cost_center: string;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @OneToMany(() => Voucher, (voucher) => voucher.accounting_account)
   vouchers: Voucher[];
+
+  @ManyToOne(() => CostCenter, (costCenter) => costCenter.accountingAccounts)
+  @JoinColumn({ name: 'id_cost_center' })
+  costCenter: CostCenter;
 }
 
 /*

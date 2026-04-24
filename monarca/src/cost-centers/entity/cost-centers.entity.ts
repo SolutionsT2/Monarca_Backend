@@ -6,6 +6,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { Department } from 'src/departments/entity/department.entity';
 import { Company } from 'src/companies/entity/company.entity';
+import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
 
 @Entity({ name: 'cost_centers' })
 export class CostCenter {
@@ -34,6 +35,10 @@ export class CostCenter {
   // One cost center can have many departments
   @OneToMany(() => Department, (department) => department.cost_center)
   departments: Department[];
+
+  // A cost center can be referenced by many accounting accounts
+  @OneToMany(() => AccountingAccount, (accountingAccount) => accountingAccount.costCenter)
+  accountingAccounts: AccountingAccount[];
 }
 
 /**
