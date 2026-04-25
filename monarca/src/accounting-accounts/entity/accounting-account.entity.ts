@@ -21,7 +21,7 @@ export class AccountingAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'key', type: 'varchar', length: 10, unique: true })
+  @Column({ name: 'key', type: 'varchar', length: 10 })
   key: string;
 
   @Column({ name: 'description', type: 'varchar' })
