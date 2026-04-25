@@ -22,7 +22,6 @@ interface DuffelClient {
 export class DuffelService {
   private readonly duffel: DuffelClient | null;
   private readonly timeoutMs: number;
-  private readonly isConfigured: boolean;
 
   constructor() {
     const token = process.env.DUFFEL_API_KEY?.trim();
@@ -52,7 +51,6 @@ export class DuffelService {
     sort?: string,
     maxConnections?: number,
   ) {
-    this.ensureConfigured();
     const params: JsonMap = { offer_request_id: offerRequestId };
 
     if (after) params.after = after;
@@ -70,7 +68,6 @@ export class DuffelService {
     offerId: string,
     returnAvailableServices?: boolean,
   ): Promise<unknown> {
-    this.ensureConfigured();
     const params: JsonMap | undefined =
       typeof returnAvailableServices === 'boolean'
         ? { return_available_services: returnAvailableServices }
