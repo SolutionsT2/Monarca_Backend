@@ -33,8 +33,16 @@ export class TravelAgenciesService {
     return this.findOne(id);
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} travelAgency`;
+  async remove(id: string): Promise<{ status: boolean; message: string }> {
+    const result = await this.repo.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException(`Travel agency ${id} not found`);
+    }
+
+    return {
+      status: true,
+      message: `Travel agency ${id} removed`,
+    };
   }
 
   findAll(): Promise<TravelAgencyDto[]> {

@@ -16,6 +16,15 @@ dotenv.config();
 describe('Travel Agencies e2e', () => {
   let app: INestApplication;
 
+  const createTravelAgency = async (name: string) => {
+    const response = await request(app.getHttpServer())
+      .post('/travel-agencies')
+      .send({ name })
+      .expect(201);
+
+    return response.body as TravelAgencyDto;
+  };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -36,24 +45,6 @@ describe('Travel Agencies e2e', () => {
     await app.close();
   });
 
-  it('/travel-agencies (POST) should create a travel agency', async () => {
-    const dto = { name: 'Agencia E2E' };
-    const res = await request(app.getHttpServer())
-      .post('/travel-agencies')
-      .send(dto)
-      .expect(201);
-
-    expect(res.body).toHaveProperty('id');
-
-    const data = res.body as TravelAgencyDto;
-
-    expect(data.name).toBe(dto.name);
-
-    await request(app.getHttpServer())
-      .delete(`/travel-agencies/${data.id}`)
-      .expect(200);
-  });
-
   it('/travel-agencies (GET) should return all travel agencies', async () => {
     const res = await request(app.getHttpServer())
       .get('/travel-agencies')
@@ -62,26 +53,79 @@ describe('Travel Agencies e2e', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('/travel-agencies/:id (GET) should return one by ID', async () => {
-    // 1) Creamos primero para obtener su ID dinámico
-    const createRes = await request(app.getHttpServer())
-      .post('/travel-agencies')
-      .send({ name: 'Para GET' })
-      .expect(201);
+  it('/travel-agencies (POST) should create a travel agency', async () => {
+    const created = await createTravelAgency('Agencia E2E');
 
-    const data = createRes.body as TravelAgencyDto;
+    expect(created).toHaveProperty('id');
+    expect(created.name).toBe('Agencia E2E');
 
-    // 2) Ahora lo buscamos por ese mismo ID
+    await request(app.getHttpServer())
+      .delete(`/travel-agencies/${created.id}`)
+      .expect(200);
+  });
+
+  it('/travel-agencies (POST) should validate the name field', async () => {
     const res = await request(app.getHttpServer())
-      .get(`/travel-agencies/${data.id}`)
+      .post('/travel-agencies')
+      .send({ name: '', unexpected: true })
+      .expect(400);
+
+    expect(res.body.message).toBeDefined();
+  });
+
+  it('/travel-agencies/:id (GET) should return one by ID', async () => {
+    const created = await createTravelAgency('Para GET');
+
+    const res = await request(app.getHttpServer())
+      .get(`/travel-agencies/${created.id}`)
       .expect(200);
 
     const retrieved_data = res.body as TravelAgencyDto;
-    expect(retrieved_data.id).toBe(data.id);
+    expect(retrieved_data.id).toBe(created.id);
+    expect(retrieved_data.name).toBe(created.name);
 
     await request(app.getHttpServer())
-      .delete(`/travel-agencies/${data.id}`)
+      .delete(`/travel-agencies/${created.id}`)
       .expect(200);
+  });
+
+  it('/travel-agencies/:id (PATCH) should update a travel agency', async () => {
+    const created = await createTravelAgency('Para PATCH');
+
+    await request(app.getHttpServer())
+      .patch(`/travel-agencies/${created.id}`)
+      .send({ name: 'Agencia Actualizada' })
+      .expect(200);
+
+    const res = await request(app.getHttpServer())
+      .get(`/travel-agencies/${created.id}`)
+      .expect(200);
+
+    expect(res.body.name).toBe('Agencia Actualizada');
+
+    await request(app.getHttpServer())
+      .delete(`/travel-agencies/${created.id}`)
+      .expect(200);
+  });
+
+  it('/travel-agencies/:id (DELETE) should delete a travel agency', async () => {
+    const created = await createTravelAgency('Para DELETE');
+
+    await request(app.getHttpServer())
+      .delete(`/travel-agencies/${created.id}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/travel-agencies/${created.id}`)
+      .expect(404);
+  });
+
+  it('/travel-agencies/:id should reject invalid UUIDs', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/travel-agencies/not-a-uuid')
+      .expect(400);
+
+    expect(res.body.message).toBeDefined();
   });
 });
 
