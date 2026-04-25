@@ -8,6 +8,7 @@ import { DestinationsController } from './destinations.controller';
 import { DestinationsService } from './destinations.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Destination } from './entities/destination.entity';
+import { Airport } from './entities/airport.entity';
 
 describe('DestinationsController', () => {
   let controller: DestinationsController;
@@ -18,6 +19,7 @@ describe('DestinationsController', () => {
       providers: [
         DestinationsService,
         { provide: getRepositoryToken(Destination), useValue: {} },
+        { provide: getRepositoryToken(Airport), useValue: {} },
       ],
     }).compile();
 

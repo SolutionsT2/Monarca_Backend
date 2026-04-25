@@ -16,6 +16,8 @@ import {
 import { DestinationsService } from './destinations.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
+import { CreateAirportDto } from './dto/create-airport.dto';
+import { UpdateAirportDto } from './dto/update-airport.dto';
 
 @Controller('destinations')
 export class DestinationsController {
@@ -47,6 +49,36 @@ export class DestinationsController {
   @Delete(':id')
   remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.destService.remove(id);
+  }
+
+  @Get(':id/airports')
+  findAirports(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.destService.findAirports(id);
+  }
+
+  @Post(':id/airports')
+  createAirport(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() data: CreateAirportDto,
+  ) {
+    return this.destService.createAirport(id, data);
+  }
+
+  @Patch(':id/airports/:airportId')
+  updateAirport(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('airportId', new ParseUUIDPipe()) airportId: string,
+    @Body() data: UpdateAirportDto,
+  ) {
+    return this.destService.updateAirport(id, airportId, data);
+  }
+
+  @Delete(':id/airports/:airportId')
+  removeAirport(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('airportId', new ParseUUIDPipe()) airportId: string,
+  ) {
+    return this.destService.removeAirport(id, airportId);
   }
 }
 

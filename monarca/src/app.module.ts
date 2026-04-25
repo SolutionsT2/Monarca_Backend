@@ -20,6 +20,7 @@ import { User } from './users/entities/user.entity';
 import { UserLogs } from './user-logs/entity/user-logs.entity';
 import { Department } from './departments/entity/department.entity';
 import { Destination } from './destinations/entities/destination.entity';
+import { Airport } from './destinations/entities/airport.entity';
 import { Request } from './requests/entities/request.entity';
 import { Reservation } from './reservations/entity/reservations.entity';
 import { RequestsDestination } from './requests/entities/requests-destination.entity';
@@ -85,18 +86,19 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     PolicyEngineModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.POSTGRES_HOST,
+      host: process.env.POSTGRES_HOST || 'localhost',
       port: process.env.POSTGRES_PORT
         ? parseInt(process.env.POSTGRES_PORT, 10)
-        : 5433,
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DATABASE,
+        : 25000,
+      username: process.env.POSTGRES_USER || 'postgres',
+      password: process.env.POSTGRES_PASSWORD || 'test123',
+      database: process.env.POSTGRES_DATABASE || 'Monarca',
       entities: [
         User,
         Department,
         CostCenter,
         Destination,
+        Airport,
         Request,
         RequestsDestination,
         Roles,
@@ -121,7 +123,10 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         DocumentClass,
         PolicyExport,
       ],
-      synchronize: true,
+      synchronize:
+        process.env.TYPEORM_SYNCHRONIZE === undefined
+          ? true
+          : process.env.TYPEORM_SYNCHRONIZE.toLowerCase() === 'true',
     }),
 
     TypeOrmModule.forFeature([
@@ -129,6 +134,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       Department,
       CostCenter,
       Destination,
+      Airport,
       Request,
       RequestsDestination,
       Roles,

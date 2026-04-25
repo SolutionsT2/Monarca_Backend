@@ -18,6 +18,7 @@ import { Request } from 'src/requests/entities/request.entity';
 import { Reservation } from 'src/reservations/entity/reservations.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Destination } from 'src/destinations/entities/destination.entity';
+import { Airport } from 'src/destinations/entities/airport.entity';
 
 /**
  * Entity representing a destination within a request.
@@ -30,6 +31,9 @@ export class RequestsDestination {
 
   @Column({ name: 'id_destination' })
   id_destination: string;
+
+  @Column({ name: 'id_airport', type: 'uuid', nullable: true, default: null })
+  id_airport: string | null;
 
   @Column({ name: 'id_request' })
   id_request: string;
@@ -91,6 +95,13 @@ export class RequestsDestination {
   })
   @JoinColumn({ name: 'id_destination' })
   destination: Destination;
+
+  @ManyToOne(() => Airport, (airport) => airport.requests_destinations, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'id_airport' })
+  airport: Airport | null;
 }
 
 /*

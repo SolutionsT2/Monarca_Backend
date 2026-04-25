@@ -12,12 +12,15 @@ import { RequestsService } from './requests.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Request } from './entities/request.entity';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
+import { Department } from 'src/departments/entity/department.entity';
 import { UserChecks } from 'src/users/user.checks.service';
 import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { DataSource } from 'typeorm';
-// Do not import AuthGuard and PermissionsGuard as classes for test DI
 import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from 'src/guards/auth.guard';
+import { PermissionsGuard } from 'src/guards/permissions.guard';
 
 describe('RequestsController', () => {
   let controller: RequestsController;
@@ -29,15 +32,20 @@ describe('RequestsController', () => {
         RequestsService,
         { provide: getRepositoryToken(Request), useValue: {} },
         { provide: getRepositoryToken(PolicyViolation), useValue: {} },
+        { provide: getRepositoryToken(DocumentClass), useValue: {} },
+        { provide: getRepositoryToken(Department), useValue: {} },
         { provide: UserChecks, useValue: {} },
         { provide: DestinationsChecks, useValue: {} },
         { provide: NotificationsService, useValue: {} },
         { provide: DataSource, useValue: {} },
         { provide: JwtService, useValue: {} },
-        { provide: 'AuthGuard', useValue: { canActivate: jest.fn().mockReturnValue(true) } },
-        { provide: 'PermissionsGuard', useValue: { canActivate: jest.fn().mockReturnValue(true) } },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .compile();
 
     controller = module.get<RequestsController>(RequestsController);
   });

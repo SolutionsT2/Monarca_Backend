@@ -26,12 +26,6 @@ export class DocumentClass {
   @Column({ name: 'description', type: 'varchar' })
   description: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-
   @OneToMany(() => Request, (request) => request.document_class)
   requests: Request[];
 

@@ -20,6 +20,11 @@ export class CfdiService {
     @InjectRepository(Cfdi)
     private readonly cfdiRepository: Repository<Cfdi>,
   ) {}
+  
+  async previewForVoucher(xml: string) {
+    return this.cfdiChecks.extractVoucherAutofillFields(xml);
+  }
+
 
   async processXML(xml: string) {
     const data = await this.cfdiChecks.extractData(xml);
@@ -33,6 +38,19 @@ export class CfdiService {
     }
 
     const filePath = await this.saveInvoiceXml(xml, data.uuid);
+
+    const existing = await this.cfdiRepository.findOne({
+      where: { uuid: data.uuid },
+    });
+
+    if (existing) {
+      existing.issuerRfc = data.issuerRfc;
+      existing.receiverRfc = data.receiverRfc;
+      existing.total = data.total;
+      existing.status = 'APROBADO';
+      existing.filePath = filePath;
+      return this.cfdiRepository.save(existing);
+    }
 
     const cfdi = this.cfdiRepository.create({
       uuid: data.uuid,

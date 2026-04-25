@@ -12,7 +12,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsService } from './requests.service';
@@ -21,10 +21,13 @@ import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
+import { Department } from 'src/departments/entity/department.entity';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 
-// STATUSES:
-// ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Reservations',  'Pending Accounting Approval', 'In Progress',  'Pending Vouchers Approval', 'Completed]
+// STATUSES (order after creation):
+// Pending Review → (approver) → Pending Accounting Approval (SOI) → Pending Reservations (travel agent) → In Progress → …
+// ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Accounting Approval', 'Pending Reservations', 'In Progress', 'Pending Vouchers Approval', 'Pending Refund Approval', 'Completed']
 
 @Injectable()
 export class RequestsStatusService {
@@ -33,12 +36,28 @@ export class RequestsStatusService {
     private readonly requestsRepo: Repository<RequestEntity>,
     @InjectRepository(Voucher)
     private readonly vouchersRepo: Repository<Voucher>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(DocumentClass)
+    private readonly documentClassRepo: Repository<DocumentClass>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
     private readonly policyEngineService: PolicyEngineService,
     private readonly approverSubstituteService: ApproverSubstituteService,
   ) {}
+
+  private async getVoucherDocumentClassId(): Promise<string> {
+    const documentClass = await this.documentClassRepo.findOne({
+      where: { key: 'gv' },
+    });
+
+    if (!documentClass) {
+      throw new NotFoundException('Document class with key gv not found.');
+    }
+
+    return documentClass.id;
+  }
 
   async approve(
     req: RequestInterface,
@@ -51,7 +70,7 @@ export class RequestsStatusService {
     const id_travel_agency = data.id_travel_agency;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['user'],
+      relations: ['user', 'SOI'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -77,11 +96,10 @@ export class RequestsStatusService {
     try {
       await this.notificationsService.notify(
         request.user.email,
-        'Solicitud de viaje aprobada',
-        `Tu solicitud de viaje con el título "${request.title}" ha sido aprobada y está pendiente de reservaciones.`,
+        'Solicitud aprobada — pendiente de contabilidad',
+        `Tu solicitud "${request.title}" fue aprobada por tu aprobador y está pendiente de revisión de contabilidad (SOI) antes de las reservaciones.`,
         `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de reservaciones.</p>
-<p>Por favor, espera a que se realicen las reservaciones necesarias.</p>
+<p>Tu solicitud "<strong>${request.title}</strong>" fue aprobada y está pendiente de revisión contable antes de que la agencia de viajes realice las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       );
@@ -92,34 +110,26 @@ export class RequestsStatusService {
       );
     }
 
-    // Notify to the travel agents
-    const agents =
-      await this.travelAgenciesChecks.getTravelAgencyUsers(id_travel_agency);
-
-    for (const agent of agents) {
-      // Email failure should not abort status transition
-      try {
-        await this.notificationsService.notify(
-          agent.email,
-          'Nueva solicitud de viaje aprobada',
-          `La solicitud de viaje con el título "${request.title}" ha sido aprobada y está pendiente de reservaciones.`,
-          `<p>Hola ${agent.name},</p>
-<p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de reservaciones.</p>
-<p>Por favor, revisa los detalles de la solicitud y procede con las reservaciones necesarias.</p>
+    try {
+      await this.notificationsService.notify(
+        request.SOI.email,
+        'Solicitud pendiente de tu aprobación',
+        `La solicitud "${request.title}" fue aprobada por el aprobador y requiere tu revisión antes de las reservaciones.`,
+        `<p>Hola ${request.SOI.name},</p>
+<p>La solicitud "<strong>${request.title}</strong>" está pendiente de tu aprobación contable. Después podrá continuar la agencia de viajes con las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-        );
-      } catch (emailError) {
-        console.error(
-          `Failed to send approval notification to agent ${agent.email}:`,
-          emailError,
-        );
-      }
+      );
+    } catch (emailError) {
+      console.error(
+        'Failed to send approval notification to SOI:',
+        emailError,
+      );
     }
 
     return await this.requestsService.updateStatus(
       id_request,
-      'Pending Reservations',
+      'Pending Accounting Approval',
     );
   }
 
@@ -205,7 +215,7 @@ export class RequestsStatusService {
 
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['SOI'],
+      relations: ['user'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -227,12 +237,11 @@ export class RequestsStatusService {
     // Email failure should not abort status transition
     try {
       await this.notificationsService.notify(
-        request.SOI.email,
-        'Solicitud de viaje pendiente de aprobación contable',
-        `La solicitud de viaje con el título "${request.title}" ha finalizado las reservaciones y está pendiente de tu aprobación contable.`,
-        `<p>Hola ${request.SOI.name},</p>
-<p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado las reservaciones y está pendiente de tu aprobación contable.</p>
-<p>Por favor, revisa los detalles de la solicitud y espera la aprobación contable.</p>
+        request.user.email,
+        'Reservaciones registradas',
+        `La solicitud "${request.title}" tiene las reservaciones listas. Puedes continuar con el siguiente paso en el sistema.`,
+        `<p>Hola ${request.user.name},</p>
+<p>La solicitud "<strong>${request.title}</strong>" tiene las reservaciones registradas por la agencia de viajes.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       );
@@ -243,10 +252,7 @@ export class RequestsStatusService {
       );
     }
 
-    return await this.requestsService.updateStatus(
-      id_request,
-      'Pending Accounting Approval',
-    );
+    return await this.requestsService.updateStatus(id_request, 'In Progress');
   }
 
   async SOIApproval(req: RequestInterface, id_request: string) {
@@ -266,16 +272,20 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
+    if (!request.id_travel_agency) {
+      throw new BadRequestException(
+        'Request has no travel agency assigned; cannot continue to reservations.',
+      );
+    }
+
     // Email failure should not abort status transition
     try {
       await this.notificationsService.notify(
         request.user.email,
-        'Solicitud de viaje aprobada contablemente',
-        `Tu solicitud de viaje con el título "${request.title}" ha sido aprobada contablemente.`,
+        'Contabilidad aprobada — reservas pendientes',
+        `Tu solicitud "${request.title}" fue aprobada contablemente. La agencia de viajes realizará las reservaciones.`,
         `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada contablemente.</p>
-<p>Ya puedes descargar tus reservaciones y llevar a cabo tu viaje.</p>
-<p>Una vez concluyas el viaje, puedes iniciar la comprobación de gastos.</p>
+<p>Tu solicitud "<strong>${request.title}</strong>" fue aprobada en contabilidad. La agencia asignada procederá con las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       );
@@ -283,14 +293,43 @@ export class RequestsStatusService {
       console.error('Failed to send SOI approval notification:', emailError);
     }
 
-    return await this.requestsService.updateStatus(id_request, 'In Progress');
+    // Start each voucher-upload cycle from a clean slate for this request.
+    await this.vouchersRepo.delete({ id_request });
+
+    const agents = await this.travelAgenciesChecks.getTravelAgencyUsers(
+      request.id_travel_agency,
+    );
+
+    for (const agent of agents) {
+      try {
+        await this.notificationsService.notify(
+          agent.email,
+          'Puedes iniciar las reservaciones',
+          `La solicitud "${request.title}" está lista para que registres hotel/vuelo según corresponda.`,
+          `<p>Hola ${agent.name},</p>
+<p>La solicitud "<strong>${request.title}</strong>" ya cuenta con aprobación contable. Puedes proceder con las reservaciones.</p>
+<p>Saludos,</p>
+<p>Equipo de Monarca</p>`,
+        );
+      } catch (emailError) {
+        console.error(
+          `Failed to send post-SOI notification to agent ${agent.email}:`,
+          emailError,
+        );
+      }
+    }
+
+    return await this.requestsService.updateStatus(
+      id_request,
+      'Pending Reservations',
+    );
   }
 
   async finishedUploadingVouchers(req: RequestInterface, id_request: string) {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin', 'requests_destinations'],
+      relations: ['admin', 'requests_destinations', 'user', 'user.department'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -325,7 +364,7 @@ export class RequestsStatusService {
     const tripStartDate = destinations.length
       ? new Date(
           Math.min(
-            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
+            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
           ),
         )
       : null;
@@ -333,7 +372,7 @@ export class RequestsStatusService {
     const tripEndDate = destinations.length
       ? new Date(
           Math.max(
-            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
+            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
           ),
         )
       : null;
@@ -365,10 +404,33 @@ export class RequestsStatusService {
       });
     }
 
+    if (!request.id_company) {
+      const fallbackCompanyId =
+        request.user?.department?.id_company ||
+        (request.user?.idDepartment
+          ? (
+              await this.departmentRepo.findOne({
+                where: { id: request.user.idDepartment },
+                select: ['id', 'id_company'],
+              })
+            )?.id_company
+          : undefined);
+
+      if (!fallbackCompanyId) {
+        throw new ConflictException(
+          'Unable to evaluate reimbursement policies because request company context is missing.',
+        );
+      }
+
+      request.id_company = fallbackCompanyId;
+      await this.requestsRepo.update(request.id, { id_company: fallbackCompanyId });
+    }
+
     // Evaluate reimbursement policies before moving the request to approval.
     const summary = await this.policyEngineService.evaluateRequestSubmission(
       {
         id: request.id,
+        id_company: request.id_company,
         advance_money: request.advance_money,
         createdAt: request.createdAt,
         trip_start_date: tripStartDate,
@@ -387,6 +449,9 @@ export class RequestsStatusService {
     );
 
     if (!summary.can_submit) {
+      // Always reset uploaded vouchers after a failed submit to avoid amount carry-over on retries.
+      await this.vouchersRepo.delete({ id_request });
+
       throw new UnprocessableEntityException({
         statusCode: 422,
         message: 'Policy validation failed. Resolve violations before submit.',

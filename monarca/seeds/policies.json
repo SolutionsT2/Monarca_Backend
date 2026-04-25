@@ -1,18 +1,21 @@
 [
   {
     "id": "5a4d4af1-49c9-44d8-90f9-c91ebd76b901",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
     "name": "Politica de Comprobantes",
     "description": "Reglas sobre archivos y montos por clase de gasto",
     "is_active": true
   },
   {
     "id": "0f2ed8b1-1e7e-4c7b-8d65-4dd204d6d6a8",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
     "name": "Politica de Tiempo",
     "description": "Reglas de ventana de tiempo para subir comprobaciones",
     "is_active": true
   },
   {
     "id": "7f6fa3ee-2f08-4e91-b1d2-1d8b17b8d8aa",
+    "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
     "name": "Politica de Anticipo",
     "description": "El total comprobado no debe exceder el anticipo recibido o autorizado",
     "is_active": true

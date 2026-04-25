@@ -5,9 +5,11 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { Destination } from 'src/destinations/entities/destination.entity';
+import { Airport } from 'src/destinations/entities/airport.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UserLogs } from 'src/user-logs/entity/user-logs.entity';
 import { TravelAgency } from 'src/travel-agencies/entities/travel-agency.entity';
@@ -42,8 +44,10 @@ export class SeedService {
 
     constructor(
         @InjectRepository(Department) private readonly departmentRepo: Repository<Department>,
+        @InjectRepository(DocumentClass) private readonly documentClassRepo: Repository<DocumentClass>,
         @InjectRepository(CostCenter) private readonly costCenterRepo: Repository<CostCenter>,
         @InjectRepository(Destination) private readonly destinationRepo: Repository<Destination>,
+        @InjectRepository(Airport) private readonly airportRepo: Repository<Airport>,
         @InjectRepository(User) private readonly userRepo: Repository<User>,
         @InjectRepository(UserLogs) private readonly userLogsRepo: Repository<UserLogs>,
         @InjectRepository(TravelAgency) private readonly travelAgencyRepo: Repository<TravelAgency>,
@@ -65,11 +69,13 @@ export class SeedService {
 
     async run() {
         const seedData: SeedData[] = [
+            { repo: this.documentClassRepo, file: 'document-class.json', entityName: 'DocumentClass' },
             { repo: this.companyRepo, file: 'companies.json', entityName: 'Company' },
             { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
             { repo: this.departmentRepo, file: 'departments.json', entityName: 'Department' },
             { repo: this.permissionRepo, file: 'permissions.json', entityName: 'Permission' },
             { repo: this.destinationRepo, file: 'destinations.json', entityName: 'Destination' },
+            { repo: this.airportRepo, file: 'airports.json', entityName: 'Airport' },
             { repo: this.travelAgencyRepo, file: 'travel-agencies.json', entityName: 'TravelAgency' },
             { repo: this.rolesRepo, file: 'roles.json', entityName: 'Roles' },
             { repo: this.userRepo, file: 'users.json', entityName: 'User' },
@@ -208,6 +214,7 @@ export class SeedService {
                 'users',
                 'roles',
                 'travel_agencies',
+                'airports',
                 'destinations',
                 'permissions',
                 'departments',

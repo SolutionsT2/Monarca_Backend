@@ -9,9 +9,10 @@ import { Destination } from './entities/destination.entity';
 import { DestinationsService } from './destinations.service';
 import { DestinationsController } from './destinations.controller';
 import { DestinationsChecks } from './destinations.checks';
+import { Airport } from './entities/airport.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Destination])],
+  imports: [TypeOrmModule.forFeature([Destination, Airport])],
   providers: [DestinationsService, DestinationsChecks],
   controllers: [DestinationsController],
   exports: [DestinationsChecks],

@@ -2,7 +2,7 @@ import {
   BadGatewayException,
   GatewayTimeoutException,
   Injectable,
-  InternalServerErrorException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Duffel } from '@duffel/api';
 
@@ -20,24 +20,28 @@ interface DuffelClient {
 
 @Injectable()
 export class DuffelService {
-  private readonly duffel?: DuffelClient;
+  private readonly duffel: DuffelClient | null;
   private readonly timeoutMs: number;
   private readonly isConfigured: boolean;
 
   constructor() {
-    const token = process.env.DUFFEL_API_KEY;
+    const token = process.env.DUFFEL_API_KEY?.trim();
     this.timeoutMs = Number(process.env.DUFFEL_TIMEOUT_MS || 130000);
-    this.isConfigured = !!token;
-    if (token) {
-      this.duffel = new Duffel({ token }) as unknown as DuffelClient;
+    this.duffel = token
+      ? (new Duffel({ token }) as unknown as DuffelClient)
+      : null;
+  }
+
+  private getClient(): DuffelClient {
+    if (!this.duffel) {
+      throw new ServiceUnavailableException('DUFFEL_API_KEY not configured');
     }
+    return this.duffel;
   }
 
   async createOfferRequest(payload: JsonMap): Promise<unknown> {
-    this.ensureConfigured();
-    return this.executeDuffelCall(() =>
-      this.duffel!.offerRequests.create(payload),
-    );
+    const duffel = this.getClient();
+    return this.executeDuffelCall(() => duffel.offerRequests.create(payload));
   }
 
   // Duffel supports cursor pagination through after/limit query params.
@@ -58,7 +62,8 @@ export class DuffelService {
       params.max_connections = maxConnections;
     }
 
-    return this.executeDuffelCall(() => this.duffel!.offers.list(params));
+    const duffel = this.getClient();
+    return this.executeDuffelCall(() => duffel.offers.list(params));
   }
 
   async getOfferById(
@@ -71,13 +76,8 @@ export class DuffelService {
         ? { return_available_services: returnAvailableServices }
         : undefined;
 
-    return this.executeDuffelCall(() => this.duffel!.offers.get(offerId, params));
-  }
-
-  private ensureConfigured(): void {
-    if (!this.isConfigured || !this.duffel) {
-      throw new InternalServerErrorException('DUFFEL_API_KEY not configured');
-    }
+    const duffel = this.getClient();
+    return this.executeDuffelCall(() => duffel.offers.get(offerId, params));
   }
 
   private async executeDuffelCall<T>(action: () => Promise<T>): Promise<T> {

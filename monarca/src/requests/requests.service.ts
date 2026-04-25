@@ -17,6 +17,7 @@ import { Repository, DataSource, EntityManager } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
 import { UserChecks } from 'src/users/user.checks.service';
 import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
@@ -24,6 +25,7 @@ import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { Department } from 'src/departments/entity/department.entity';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 @Injectable()
@@ -31,8 +33,12 @@ export class RequestsService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepo: Repository<RequestEntity>,
+    @InjectRepository(DocumentClass)
+    private readonly documentClassRepo: Repository<DocumentClass>,
     @InjectRepository(PolicyViolation)
     private readonly policyViolationRepo: Repository<PolicyViolation>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
     private readonly userChecks: UserChecks,
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
@@ -42,6 +48,87 @@ export class RequestsService {
 
   private async getCityName(id: string): Promise<string> {
     return await this.destinationChecks.getCityNameById(id);
+  }
+
+  private async validateAirportSelection(data: CreateRequestDto): Promise<void> {
+    if (data.id_origin_airport) {
+      const isOriginAirportValid = await this.destinationChecks.isAirportValid(
+        data.id_origin_airport,
+      );
+      if (!isOriginAirportValid) {
+        throw new BadRequestException('Invalid id_origin_airport.');
+      }
+
+      const isOriginAirportInCity =
+        await this.destinationChecks.isAirportInDestination(
+          data.id_origin_airport,
+          data.id_origin_city,
+        );
+
+      if (!isOriginAirportInCity) {
+        throw new BadRequestException(
+          'id_origin_airport does not belong to id_origin_city.',
+        );
+      }
+    }
+
+    for (const rd of data.requests_destinations) {
+      if (rd.is_plane_required && !rd.id_airport) {
+        throw new BadRequestException(
+          'id_airport is required when is_plane_required is true.',
+        );
+      }
+
+      if (!rd.is_plane_required && rd.id_airport) {
+        throw new BadRequestException(
+          'id_airport must be omitted when is_plane_required is false.',
+        );
+      }
+
+      if (!rd.id_airport) {
+        continue;
+      }
+
+      const isAirportValid = await this.destinationChecks.isAirportValid(
+        rd.id_airport,
+      );
+
+      if (!isAirportValid) {
+        throw new BadRequestException('Invalid id_airport.');
+      }
+
+      const isAirportInDestination =
+        await this.destinationChecks.isAirportInDestination(
+          rd.id_airport,
+          rd.id_destination,
+        );
+
+      if (!isAirportInDestination) {
+        throw new BadRequestException(
+          'id_airport does not belong to id_destination.',
+        );
+      }
+    }
+  }
+  
+  private async getDocumentClassIdForAdvance(
+    advanceMoney: number,
+  ): Promise<string | null> {
+    if (Number(advanceMoney || 0) <= 0) {
+      return null;
+    }
+
+    const documentClass = await this.documentClassRepo.findOne({
+      where: { key: 'av' },
+    });
+
+    if (!documentClass) {
+      throw new NotFoundException(
+        'Document class with key av not found.',
+      );
+    }
+
+    return documentClass.id;
   }
 
   private async logRequestAction(
@@ -77,7 +164,15 @@ export class RequestsService {
   }
 
   async create(req: RequestInterface, data: CreateRequestDto) {
-    const userId = req.sessionInfo.id;
+    const userId = req?.sessionInfo?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Missing authenticated session context.');
+    }
+
+    if (!req?.userInfo) {
+      throw new UnauthorizedException('Missing user context for request creation.');
+    }
+
     // Validate origin city
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');
@@ -88,11 +183,24 @@ export class RequestsService {
         throw new BadRequestException('Invalid id_destination.');
     }
 
+    await this.validateAirportSelection(data);
+
     // Assign approver
     const id_department = req.userInfo.id_department;
     if (!id_department) {
       throw new BadRequestException(
         'User must belong to a company department  to create requests.',
+      );
+    }
+
+    const department = await this.departmentRepo.findOne({
+      where: { id: id_department },
+      select: ['id', 'id_company'],
+    });
+
+    if (!department?.id_company) {
+      throw new BadRequestException(
+        'User department is missing company context for request creation.',
       );
     }
     const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
@@ -122,6 +230,10 @@ export class RequestsService {
       id_user: userId,
       id_admin: resolvedAdminId,
       id_SOI: SOIId,
+      id_company: department.id_company,
+      id_document_class: await this.getDocumentClassIdForAdvance(
+        data.advance_money,
+      ),
       ...data,
       requests_destinations: data.requests_destinations.map((destDto) => ({
         ...destDto,
@@ -178,11 +290,13 @@ export class RequestsService {
     relations: [
       'requests_destinations',
       'requests_destinations.destination',
+      'requests_destinations.airport',
       'revisions',
       'user',
       'admin',
       'SOI',
       'destination',
+      'origin_airport',
       'travelAgency',           
       'travelAgency.users',     
     ],
@@ -197,11 +311,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
         'vouchers',
         'requests_destinations.reservations',
       ],
@@ -229,11 +345,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -272,11 +390,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -295,19 +415,20 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
   }
 
   async findByTA(req: RequestInterface): Promise<RequestEntity[]> {
-    const userId = req.sessionInfo.id;
-    const travelAgencyId = req.userInfo.id_travel_agency;
+    const travelAgencyId = req?.userInfo?.id_travel_agency;
 
     if (!travelAgencyId)
       throw new UnauthorizedException('Cannot access this endpoint.');
@@ -320,11 +441,13 @@ export class RequestsService {
       relations: [
         'requests_destinations',
         'requests_destinations.destination',
+        'requests_destinations.airport',
         'revisions',
         'user',
         'admin',
         'SOI',
         'destination',
+        'origin_airport',
       ],
     });
     return list;
@@ -408,12 +531,29 @@ export class RequestsService {
           throw new BadRequestException('Invalid id_destination.');
       }
 
+      await this.validateAirportSelection(data as CreateRequestDto);
+
       // Update general request fields
       entity.advance_money = data.advance_money;
+      entity.id_document_class = await this.getDocumentClassIdForAdvance(
+        data.advance_money,
+      );
       entity.id_origin_city = data.id_origin_city;
+      entity.id_origin_airport = data.id_origin_airport;
       entity.motive = data.motive;
       entity.requirements = data.requirements;
       entity.priority = data.priority;
+
+      if (!entity.id_company && req.userInfo.id_department) {
+        const department = await this.departmentRepo.findOne({
+          where: { id: req.userInfo.id_department },
+          select: ['id', 'id_company'],
+        });
+
+        if (department?.id_company) {
+          entity.id_company = department.id_company;
+        }
+      }
 
       // Replace all request destinations
       const destRepo = manager.getRepository(RequestsDestination);

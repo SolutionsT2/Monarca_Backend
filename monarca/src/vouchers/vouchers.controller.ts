@@ -33,11 +33,16 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { promises as fs } from 'fs';
 import { validateVoucherXmlRequiredFields } from './utils/xml-required-fields.validator';
+import { CfdiService } from 'src/cfdi/cfdi.service';
 
 @ApiTags('Vouchers') // Swagger documentation tag for the controller
 @Controller('vouchers')
+@UseGuards(AuthGuard, PermissionsGuard)
 export class VouchersController {
-  constructor(private readonly vouchersService: VouchersService) {}
+  constructor(
+    private readonly vouchersService: VouchersService,
+    private readonly cfdiService: CfdiService,
+  ) {}
 
   private async cleanupUploadedFiles(uploadedFiles: Express.Multer.File[]) {
     await Promise.allSettled(
@@ -46,7 +51,6 @@ export class VouchersController {
   }
 
   // Create a new voucher
-  @UseGuards(AuthGuard, PermissionsGuard)
   @UseInterceptors(UploadPdfInterceptor())
   @Post('upload')
   async uploadVoucher(
@@ -64,11 +68,10 @@ export class VouchersController {
       throw new InternalServerErrorException('DOWNLOAD_LINK not configured');
     }
 
-    if (!req.sessionInfo?.id) {
-      throw new UnauthorizedException('User session not found');
+    const id_user = req?.sessionInfo?.id;
+    if (!id_user) {
+      throw new UnauthorizedException('Missing authenticated session context.');
     }
-
-    const id_user = req.sessionInfo.id;
     const fileMap: Record<string, string> = {};
 
     // flatten both arrays into one list
@@ -98,6 +101,13 @@ export class VouchersController {
           errorCode: 'INVALID_XML_REQUIRED_FIELDS',
           missingFields: validation.missingFields,
         });
+      }
+
+      try {
+        await this.cfdiService.processXML(xmlContent);
+      } catch (err) {
+        await this.cleanupUploadedFiles(uploaded);
+        throw err;
       }
     }
 
