@@ -8,13 +8,13 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   UpdateDateColumn,
-  JoinColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Company } from 'src/companies/entity/company.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
-import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 
 @Entity({ name: 'accounting_accounts' })
 export class AccountingAccount {
@@ -30,8 +30,8 @@ export class AccountingAccount {
   @Column({ name: 'requires_cost_center', type: 'boolean', default: false })
   requiresCostCenter: boolean;
 
-  @Column({ name: 'id_cost_center', type: 'uuid' })
-  id_cost_center: string;
+  @Column({ name: 'id_company', type: 'uuid' })
+  id_company: string;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
@@ -39,9 +39,9 @@ export class AccountingAccount {
   @OneToMany(() => Voucher, (voucher) => voucher.accounting_account)
   vouchers: Voucher[];
 
-  @ManyToOne(() => CostCenter, (costCenter) => costCenter.accountingAccounts)
-  @JoinColumn({ name: 'id_cost_center' })
-  costCenter: CostCenter;
+  @ManyToOne(() => Company, (company) => company.accountingAccounts)
+  @JoinColumn({ name: 'id_company' })
+  company: Company;
 }
 
 /*
