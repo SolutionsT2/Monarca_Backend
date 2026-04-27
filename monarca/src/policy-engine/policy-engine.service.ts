@@ -69,20 +69,23 @@ export class PolicyEngineService {
 
     const violations: PolicyViolation[] = [];
 
+    let hasBlockingViolation = false;
+
     for (const rule of rules) {
       const violated = this.evaluateRule(rule, voucher);
       if (violated) {
-        // eslint-disable-next-line no-console
+        const severity = this.resolveSeverity(rule); // Guardamos la severidad real
+
+        if (severity === PolicySeverity.BLOCKING) {
+          hasBlockingViolation = true;
+        }
         console.warn(
           `[${this.contextLabel}][VOUCHER_EVALUATION] Policy violated`,
           JSON.stringify(
             {
               voucher_id: voucher.id,
-              expense_class: voucher.class,
               policy_rule_id: rule.id,
-              operator: rule.operator,
-              threshold_value: rule.threshold_value,
-              threshold_unit: rule.threshold_unit,
+              severity: severity
             },
             null,
             2,
@@ -94,11 +97,17 @@ export class PolicyEngineService {
           id_policy_rule: rule.id,
           detail: `Violación de política: La regla '${rule.operator}' fue incumplida con valor umbral de ${rule.threshold_value}`,
         });
-        violations.push(await this.policyViolationRepo.save(violation));
+        const savedViolation = await this.policyViolationRepo.save(violation);
+
+        // 2. IMPORTANTE: Solo agregamos al array de retorno si es un BLOQUEO
+        // Esto evitará que el servicio que llama a esta función dispare el error 422
+        if (severity === PolicySeverity.BLOCKING) {
+          violations.push(savedViolation);
+        }
       }
     }
 
-    const policy_status = violations.length > 0 ? 'POLICY_VIOLATION' : 'APPROVED';
+    const policy_status = hasBlockingViolation ? 'POLICY_VIOLATION' : 'APPROVED';
     await this.voucherRepo.update(voucher.id, { policy_status });
 
     return violations;
@@ -107,10 +116,12 @@ export class PolicyEngineService {
   async evaluateRequestSubmission(
     requestContext: RequestPolicyContext,
     vouchers: VoucherPolicyContext[],
+    options?: { persist?: boolean },
   ): Promise<PolicyValidationSummary> {
     const uniqueVouchers = Array.from(
       new Map(vouchers.map((voucher) => [voucher.id, voucher])).values(),
     );
+    const shouldPersist = options?.persist ?? true;
 
     const activeRules = await this.policyRuleRepo
       .createQueryBuilder('rule')
@@ -155,8 +166,10 @@ export class PolicyEngineService {
       blockingViolations: summary.blocking_violations,
       violations: summary.violations,
     });
-    await this.persistViolations(evaluations);
-    await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
+    if (shouldPersist) {
+      await this.persistBlockingViolations(evaluations);
+      await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
+    }
 
     return summary;
   }
@@ -339,7 +352,6 @@ export class PolicyEngineService {
   ): EvaluatedRuleResult {
     const base = this.createEvaluationBase(rule);
     const threshold = typeof rule.threshold_value === 'number' ? rule.threshold_value : null;
-
     if (operator === 'MISSING_XML') {
       const passed = !!voucher.file_url_xml;
       return {
