@@ -40,6 +40,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
+import { AccountingAccountsModule } from './accounting-accounts/accounting-accounts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CfdiModule } from './cfdi/cfdi.module';
 import { Cfdi } from './cfdi/cfdi.entity';
@@ -72,6 +73,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     RolesModule,
     DepartmentsModule,
     CostCentersModule,
+    AccountingAccountsModule,
     CompaniesModule,
     RequestsModule,
     RequestLogsModule,
