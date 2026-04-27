@@ -92,7 +92,7 @@ export class PolicyEngineService {
         const violation = this.policyViolationRepo.create({
           id_voucher: voucher.id,
           id_policy_rule: rule.id,
-          detail: `Regla violada: ${rule.operator} con valor ${rule.threshold_value}`,
+          detail: `Violación de política: La regla '${rule.operator}' fue incumplida con valor umbral de ${rule.threshold_value}`,
         });
         violations.push(await this.policyViolationRepo.save(violation));
       }
@@ -165,6 +165,21 @@ export class PolicyEngineService {
     return operator.trim().toUpperCase();
   }
 
+  private getOperatorDescription(operator: string): string {
+    switch (operator) {
+      case 'LT':
+        return 'Monto menor que el umbral';
+      case 'LTE':
+        return 'Monto menor o igual al umbral';
+      case 'GT':
+        return 'Monto mayor que el umbral';
+      case 'GTE':
+        return 'Monto mayor o igual al umbral';
+      default:
+        return operator;
+    }
+  }
+
   private allowPreTripVoucherDatesForTesting(): boolean {
     return process.env.ALLOW_PRETRIP_VOUCHER_DATES_FOR_TESTS?.toLowerCase() === 'true';
   }
@@ -224,8 +239,8 @@ export class PolicyEngineService {
         ...warningBase,
         passed,
         message: passed
-          ? `Total vouchers (${totalVouchers}) is within advance (${requestContext.advance_money}).`
-          : `Total vouchers (${totalVouchers}) exceeds advance (${requestContext.advance_money}); this is reported as a warning for reimbursement processing.`,
+          ? `El monto total de los comprobantes (${totalVouchers}) está dentro del anticipo permitido (${requestContext.advance_money}).`
+          : `ADVERTENCIA: El monto total de los comprobantes (${totalVouchers}) excede el anticipo asignado (${requestContext.advance_money}). Esto será revisado durante el procesamiento del reembolso.`,
         evaluated_value: {
           total_vouchers: totalVouchers,
           advance_money: requestContext.advance_money,
@@ -243,8 +258,8 @@ export class PolicyEngineService {
         ...base,
         passed,
         message: passed
-          ? `Submission is within ${limit} day(s).`
-          : `Submission exceeded ${limit} day(s) limit.`,
+          ? `La solicitud se envió dentro del plazo permitido de ${limit} día(s).`
+          : `ERROR: La solicitud ha excedido el plazo máximo de ${limit} día(s) permitidos.`,
         evaluated_value: {
           elapsed_days: elapsedDays,
           max_days: limit,
@@ -260,7 +275,7 @@ export class PolicyEngineService {
         return {
           ...base,
           passed: true,
-          message: 'Voucher-date trip-window rule bypassed in testing mode.',
+          message: 'La validación de fechas de comprobantes dentro de la ventana del viaje ha sido omitida en modo de prueba.',
           evaluated_value: {
             allow_pretrip_voucher_dates_for_tests: true,
             bypass_trip_window_rule_for_tests: true,
@@ -279,7 +294,7 @@ export class PolicyEngineService {
         return {
           ...base,
           passed: true,
-          message: 'Trip window is not available; voucher-date rule skipped.',
+          message: 'No hay fechas definidas para la ventana del viaje. La validación de fechas de comprobantes ha sido omitida.',
           evaluated_value: {
             trip_start_date: requestContext.trip_start_date ?? null,
             trip_end_date: requestContext.trip_end_date ?? null,
@@ -302,8 +317,8 @@ export class PolicyEngineService {
         ...base,
         passed,
         message: passed
-          ? 'All voucher dates are within the trip window.'
-          : 'One or more voucher dates are outside the trip window.',
+          ? 'Todas las fechas de los comprobantes están dentro de la ventana del viaje.'
+          : 'ERROR: Una o más fechas de comprobantes se encuentran fuera de la ventana del viaje permitida.',
         evaluated_value: {
           trip_start_date: tripStart.toISOString(),
           trip_end_date: tripEnd.toISOString(),
@@ -316,7 +331,7 @@ export class PolicyEngineService {
     return {
       ...base,
       passed: true,
-      message: 'Rule operator not implemented yet.',
+      message: 'El operador de esta regla aún no ha sido implementado en el sistema.',
     };
   }
 
@@ -334,7 +349,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed,
-        message: passed ? 'Voucher has XML file.' : 'Voucher is missing XML file.',
+        message: passed ? 'El comprobante contiene el archivo XML requerido.' : 'ERROR: El comprobante no tiene el archivo XML. Este es obligatorio.',
       };
     }
 
@@ -344,7 +359,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed,
-        message: passed ? 'Voucher has PDF file.' : 'Voucher is missing PDF file.',
+        message: passed ? 'El comprobante contiene el archivo PDF requerido.' : 'ERROR: El comprobante no tiene el archivo PDF. Este es obligatorio.',
       };
     }
 
@@ -355,8 +370,8 @@ export class PolicyEngineService {
         voucher_id: voucher.id,
         passed,
         message: passed
-          ? 'Voucher has at least one required file.'
-          : 'Voucher is missing both PDF and XML files.',
+          ? 'El comprobante contiene al menos uno de los archivos requeridos (PDF o XML).'
+          : 'ERROR: El comprobante no tiene ni PDF ni XML. Se requiere al menos uno de estos archivos.',
       };
     }
 
@@ -365,7 +380,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed: true,
-        message: 'Rule threshold is not configured.',
+        message: 'El umbral de esta regla no está configurado en el sistema.',
       };
     }
 
@@ -377,7 +392,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed: true,
-        message: `Amount rule ${operator} bypassed in testing mode.`,
+        message: `La validación de montos ha sido omitida en modo de prueba (${this.getOperatorDescription(operator)}).`,
         evaluated_value: {
           amount: voucher.amount,
           operator,
@@ -389,18 +404,28 @@ export class PolicyEngineService {
     }
 
     let passed = true;
-    if (operator === 'LT') passed = voucher.amount >= threshold;
-    else if (operator === 'LTE') passed = voucher.amount > threshold;
-    else if (operator === 'GT') passed = voucher.amount <= threshold;
-    else if (operator === 'GTE') passed = voucher.amount < threshold;
+    let comparisonDescription = '';
+    if (operator === 'LT') {
+      passed = voucher.amount >= threshold;
+      comparisonDescription = `debe ser menor que ${threshold}`;
+    } else if (operator === 'LTE') {
+      passed = voucher.amount > threshold;
+      comparisonDescription = `debe ser menor o igual que ${threshold}`;
+    } else if (operator === 'GT') {
+      passed = voucher.amount <= threshold;
+      comparisonDescription = `debe ser mayor que ${threshold}`;
+    } else if (operator === 'GTE') {
+      passed = voucher.amount < threshold;
+      comparisonDescription = `debe ser mayor o igual que ${threshold}`;
+    }
 
     return {
       ...base,
       voucher_id: voucher.id,
       passed,
       message: passed
-        ? `Voucher amount (${voucher.amount}) passed ${operator} rule (${threshold}).`
-        : `Voucher amount (${voucher.amount}) violated ${operator} rule (${threshold}).`,
+        ? `El monto del comprobante (${voucher.amount} ${voucher.currency}) cumple con la política: ${comparisonDescription}.`
+        : `ERROR: El monto del comprobante (${voucher.amount} ${voucher.currency}) incumple la política: ${comparisonDescription}.`,
       evaluated_value: {
         amount: voucher.amount,
         operator,
