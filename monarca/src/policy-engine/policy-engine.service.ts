@@ -155,7 +155,7 @@ export class PolicyEngineService {
       blockingViolations: summary.blocking_violations,
       violations: summary.violations,
     });
-    await this.persistBlockingViolations(evaluations);
+    await this.persistViolations(evaluations);
     await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
 
     return summary;
@@ -188,11 +188,8 @@ export class PolicyEngineService {
     return process.env.ALLOW_VOUCHER_AMOUNT_RULE_BYPASS_FOR_TESTS?.toLowerCase() === 'true';
   }
 
-  private resolveSeverity(rule: PolicyRule): PolicySeverity {
-    const consequence = rule.consequence?.trim().toUpperCase();
-    return consequence === 'WARNING'
-      ? PolicySeverity.WARNING
-      : PolicySeverity.BLOCKING;
+  private resolveSeverity(_rule: PolicyRule): PolicySeverity {
+    return PolicySeverity.WARNING;
   }
 
   private resolveConsequence(rule: PolicyRule): PolicyConsequence {
@@ -457,14 +454,11 @@ export class PolicyEngineService {
     };
   }
 
-  private async persistBlockingViolations(
+  private async persistViolations(
     evaluations: EvaluatedRuleResult[],
   ): Promise<void> {
     const violationsToPersist = evaluations.filter(
-      (evaluation) =>
-        !evaluation.passed &&
-        evaluation.severity === PolicySeverity.BLOCKING &&
-        evaluation.voucher_id,
+      (evaluation) => !evaluation.passed,
     );
 
     if (!violationsToPersist.length) {
@@ -472,13 +466,38 @@ export class PolicyEngineService {
     }
 
     for (const evaluation of violationsToPersist) {
-      const violation = this.policyViolationRepo.create({
-        id_voucher: evaluation.voucher_id!,
-        id_policy_rule: evaluation.policy_id,
-        detail: evaluation.message,
-      });
-      await this.policyViolationRepo.save(violation);
+      const voucherIds = evaluation.voucher_id
+        ? [evaluation.voucher_id]
+        : this.extractOutOfWindowVoucherIds(evaluation);
+
+      if (!voucherIds.length) {
+        continue;
+      }
+
+      for (const voucherId of voucherIds) {
+        const violation = this.policyViolationRepo.create({
+          id_voucher: voucherId,
+          id_policy_rule: evaluation.policy_id,
+          detail: evaluation.message,
+        });
+        await this.policyViolationRepo.save(violation);
+      }
     }
+  }
+
+  private extractOutOfWindowVoucherIds(evaluation: EvaluatedRuleResult): string[] {
+    const evaluatedValue = evaluation.evaluated_value as
+      | { out_of_window_voucher_ids?: unknown }
+      | undefined;
+    if (!evaluatedValue?.out_of_window_voucher_ids) {
+      return [];
+    }
+
+    return Array.isArray(evaluatedValue.out_of_window_voucher_ids)
+      ? evaluatedValue.out_of_window_voucher_ids.filter(
+          (voucherId): voucherId is string => typeof voucherId === 'string',
+        )
+      : [];
   }
 
   private async updateVoucherPolicyStatus(
