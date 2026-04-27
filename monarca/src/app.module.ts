@@ -51,6 +51,7 @@ import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
 import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 import { TravelIntegrationsModule } from './travel-integrations/travel-integrations.module';
+import { PolicyExportsModule } from './policy-exports/policy-exports.module';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
@@ -86,6 +87,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     CfdiModule,
     DelegationsModule,
     PolicyEngineModule,
+    PolicyExportsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'localhost',
@@ -173,4 +175,5 @@ export class AppModule {}
  * - 2026-03-24: Added seed data for delegations.
  * - 2026-03-27 | Efren | Register RolesModule; add auth_modules and authorization_substitutes entities.
  * - 2026-04-13 | Diego Vergara | Registered Ditta Consulting entities (Company, AccountingAccount, DocumentClass, PolicyExport) in TypeOrmModule for schema sync and dependency injection.
+ * - 2026-04-23 | Katia Alvarez | Registered PolicyExportsModule for policy export functionality.
  */
