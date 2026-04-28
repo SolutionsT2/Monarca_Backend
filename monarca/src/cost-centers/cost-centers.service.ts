@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CostCenter } from './entity/cost-centers.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
@@ -34,6 +34,7 @@ export class CostCentersService {
         where: {
           numericId: data.numericId,
           id_company: companyId,
+          deletedAt: IsNull(),
         },
       });
 
@@ -50,6 +51,7 @@ export class CostCentersService {
         where: {
           key,
           id_company: companyId,
+          deletedAt: IsNull(),
         },
       });
 
@@ -77,9 +79,85 @@ export class CostCentersService {
     const companyId = await this.resolveCompanyIdForCompanyAdmin(idRole, idDepartment);
 
     return this.costCenterRepo.find({
-      where: { id_company: companyId },
+      where: { id_company: companyId, deletedAt: IsNull() },
       order: { name: 'ASC' },
     });
+  }
+
+  async deleteForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCostCenter: string,
+  ): Promise<void> {
+    const companyId = await this.resolveCompanyIdForCompanyAdmin(idRole, idDepartment);
+
+    const costCenter = await this.costCenterRepo.findOne({
+      where: {
+        id: idCostCenter,
+        id_company: companyId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!costCenter) {
+      throw new NotFoundException(`Cost center ${idCostCenter} not found`);
+    }
+
+    const departmentsUsingCostCenter = await this.departmentRepo.count({
+      where: {
+        id_company: companyId,
+        cost_center: { id: idCostCenter },
+      },
+    });
+
+    if (departmentsUsingCostCenter > 0) {
+      throw new BadRequestException(
+        'Centro de costo asignado a uno o más departamentos. Reasigne los departamentos antes de eliminarlo.',
+      );
+    }
+
+    await this.costCenterRepo.update(
+      { id: idCostCenter },
+      { deletedAt: new Date() },
+    );
+  }
+
+  async updateDepartmentCostCenterForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    idTargetDepartment: string,
+    costCenterId: number,
+  ): Promise<Department> {
+    await this.resolveCompanyIdForCompanyAdmin(idRole, idDepartment);
+
+    const targetDepartment = await this.departmentRepo.findOne({
+      where: {
+        id: idTargetDepartment,
+        id_company: idCompany,
+      },
+      relations: ['cost_center'],
+    });
+
+    if (!targetDepartment) {
+      throw new NotFoundException(`Department ${idTargetDepartment} not found`);
+    }
+
+    const costCenter = await this.costCenterRepo.findOne({
+      where: {
+        numericId: costCenterId,
+        id_company: idCompany,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!costCenter) {
+      throw new NotFoundException(`Cost center ${costCenterId} not found`);
+    }
+
+    targetDepartment.cost_center = costCenter;
+
+    return this.departmentRepo.save(targetDepartment);
   }
 
   private async resolveCompanyIdForCompanyAdmin(

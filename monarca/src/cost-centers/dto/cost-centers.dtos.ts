@@ -21,3 +21,10 @@ export class CreateCostCenterDto {
 }
 
 export class UpdateCostCenterDto extends PartialType(CreateCostCenterDto) {}
+
+export class UpdateDepartmentCostCenterDto {
+  @ApiProperty({ example: 100 })
+  @IsInt()
+  @Min(1)
+  cost_center_id!: number;
+}

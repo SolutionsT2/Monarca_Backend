@@ -24,6 +24,9 @@ export class CostCenter {
   @Column({ name: 'id_company', type: 'uuid', nullable: true })
   id_company?: string;
 
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
   @ManyToOne(() => Company, (company) => company.costCenters, {
     nullable: true,
     onDelete: 'SET NULL',

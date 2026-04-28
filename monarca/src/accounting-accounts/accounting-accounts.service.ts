@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AccountingAccount } from './entity/accounting-account.entity';
 import { Company } from 'src/companies/entity/company.entity';
 import { Department } from 'src/departments/entity/department.entity';
@@ -49,7 +49,7 @@ export class AccountingAccountsService {
     await this.assertCompanyAdminAccess(idRole, idDepartment, idCompany);
 
     return this.accountingAccountRepo.find({
-      where: { id_company: idCompany },
+      where: { id_company: idCompany, deletedAt: IsNull() },
       order: { key: 'ASC' },
     });
   }
@@ -66,6 +66,7 @@ export class AccountingAccountsService {
       where: {
         id: idAccountingAccount,
         id_company: idCompany,
+        deletedAt: IsNull(),
       },
     });
 
@@ -73,7 +74,10 @@ export class AccountingAccountsService {
       throw new NotFoundException(`Accounting account ${idAccountingAccount} not found`);
     }
 
-    await this.accountingAccountRepo.remove(accountingAccount);
+    await this.accountingAccountRepo.update(
+      { id: idAccountingAccount },
+      { deletedAt: new Date() },
+    );
   }
 
   private async assertCompanyAdminAccess(
