@@ -72,6 +72,14 @@ export class PolicyEngineService {
     let hasBlockingViolation = false;
 
     for (const rule of rules) {
+      const operator = this.normalizeOperator(rule.operator);
+      if (
+        this.isGlobalExpenseClass(rule.expense_class) &&
+        this.hasSpecificRuleForOperator(rules, operator, voucher.class)
+      ) {
+        continue;
+      }
+
       const violated = this.evaluateRule(rule, voucher);
       if (violated) {
         const severity = this.resolveSeverity(rule); // Guardamos la severidad real
@@ -95,7 +103,7 @@ export class PolicyEngineService {
         const violation = this.policyViolationRepo.create({
           id_voucher: voucher.id,
           id_policy_rule: rule.id,
-          detail: `Violación de política: La regla '${rule.operator}' fue incumplida con valor umbral de ${rule.threshold_value}`,
+          detail: `ERROR: El comprobante incumple la política de montos. Se requiere ${this.getOperatorDescription(operator)} (${rule.threshold_value}).`,
         });
         const savedViolation = await this.policyViolationRepo.save(violation);
 
@@ -122,6 +130,9 @@ export class PolicyEngineService {
       new Map(vouchers.map((voucher) => [voucher.id, voucher])).values(),
     );
     const shouldPersist = options?.persist ?? true;
+    const voucherRowById = new Map(
+      uniqueVouchers.map((voucher, index) => [voucher.id, index + 1]),
+    );
 
     const activeRules = await this.policyRuleRepo
       .createQueryBuilder('rule')
@@ -138,18 +149,32 @@ export class PolicyEngineService {
       const operator = this.normalizeOperator(rule.operator);
 
       if (REQUEST_LEVEL_OPERATORS.has(operator)) {
-        evaluations.push(
-          this.evaluateRequestLevelRule(
-            rule,
-            operator,
-            requestContext,
-            uniqueVouchers,
-          ),
+        const evaluation = this.evaluateRequestLevelRule(
+          rule,
+          operator,
+          requestContext,
+          uniqueVouchers,
         );
+
+        if (operator === 'VOUCHER_DATE_WITHIN_TRIP_WINDOW') {
+          evaluations.push(
+            ...this.expandTripWindowEvaluations(evaluation, voucherRowById),
+          );
+          continue;
+        }
+
+        evaluations.push(evaluation);
         continue;
       }
 
       for (const voucher of uniqueVouchers) {
+        if (
+          this.isGlobalExpenseClass(rule.expense_class) &&
+          this.hasSpecificRuleForOperator(activeRules, operator, voucher.class)
+        ) {
+          continue;
+        }
+
         if (!this.ruleAppliesToVoucher(rule, voucher.class)) {
           continue;
         }
@@ -167,7 +192,7 @@ export class PolicyEngineService {
       violations: summary.violations,
     });
     if (shouldPersist) {
-      await this.persistBlockingViolations(evaluations);
+      await this.persistViolations(evaluations);
       await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
     }
 
@@ -176,6 +201,28 @@ export class PolicyEngineService {
 
   private normalizeOperator(operator: string): string {
     return operator.trim().toUpperCase();
+  }
+
+  private isGlobalExpenseClass(expenseClass: string): boolean {
+    const normalizedClass = normalizeVoucherSpendClass(expenseClass);
+    return GLOBAL_EXPENSE_CLASSES.has(normalizedClass);
+  }
+
+  private hasSpecificRuleForOperator(
+    rules: PolicyRule[],
+    operator: string,
+    voucherClass: string,
+  ): boolean {
+    const normalizedVoucherClass = normalizeVoucherSpendClass(voucherClass);
+    return rules.some((rule) => {
+      const ruleOperator = this.normalizeOperator(rule.operator);
+      if (ruleOperator !== operator) {
+        return false;
+      }
+
+      const ruleClass = normalizeVoucherSpendClass(rule.expense_class);
+      return !GLOBAL_EXPENSE_CLASSES.has(ruleClass) && ruleClass === normalizedVoucherClass;
+    });
   }
 
   private getOperatorDescription(operator: string): string {
@@ -191,6 +238,30 @@ export class PolicyEngineService {
       default:
         return operator;
     }
+  }
+
+  private expandTripWindowEvaluations(
+    evaluation: EvaluatedRuleResult,
+    voucherRowById: Map<string, number>,
+  ): EvaluatedRuleResult[] {
+    if (evaluation.passed) {
+      return [evaluation];
+    }
+
+    const outOfWindowIds = this.extractOutOfWindowVoucherIds(evaluation);
+    if (!outOfWindowIds.length) {
+      return [evaluation];
+    }
+
+    return outOfWindowIds.map((voucherId) => {
+      const row = voucherRowById.get(voucherId);
+      const rowLabel = row ? `fila ${row}` : 'fila desconocida';
+      return {
+        ...evaluation,
+        voucher_id: voucherId,
+        message: `ERROR: La fecha del comprobante en ${rowLabel} está fuera de la ventana del viaje permitida.`,
+      };
+    });
   }
 
   private allowPreTripVoucherDatesForTesting(): boolean {
@@ -416,16 +487,16 @@ export class PolicyEngineService {
     let comparisonDescription = '';
     if (operator === 'LT') {
       passed = voucher.amount >= threshold;
-      comparisonDescription = `debe ser menor que ${threshold}`;
+      comparisonDescription = `debe ser mayor que ${threshold}`;
     } else if (operator === 'LTE') {
       passed = voucher.amount > threshold;
-      comparisonDescription = `debe ser menor o igual que ${threshold}`;
+      comparisonDescription = `debe ser mayor o igual que ${threshold}`;
     } else if (operator === 'GT') {
       passed = voucher.amount <= threshold;
-      comparisonDescription = `debe ser mayor que ${threshold}`;
+      comparisonDescription = `debe ser menor que ${threshold}`;
     } else if (operator === 'GTE') {
       passed = voucher.amount < threshold;
-      comparisonDescription = `debe ser mayor o igual que ${threshold}`;
+      comparisonDescription = `debe ser menor o igual que ${threshold}`;
     }
 
     return {
@@ -477,6 +548,8 @@ export class PolicyEngineService {
       return;
     }
 
+    const persistedKeys = new Set<string>();
+
     for (const evaluation of violationsToPersist) {
       const voucherIds = evaluation.voucher_id
         ? [evaluation.voucher_id]
@@ -487,12 +560,29 @@ export class PolicyEngineService {
       }
 
       for (const voucherId of voucherIds) {
+        const violationKey = `${voucherId}:${evaluation.policy_id}`;
+        if (persistedKeys.has(violationKey)) {
+          continue;
+        }
+
+        const existingViolation = await this.policyViolationRepo.findOne({
+          where: {
+            id_voucher: voucherId,
+            id_policy_rule: evaluation.policy_id,
+          },
+        });
+        if (existingViolation) {
+          persistedKeys.add(violationKey);
+          continue;
+        }
+
         const violation = this.policyViolationRepo.create({
           id_voucher: voucherId,
           id_policy_rule: evaluation.policy_id,
           detail: evaluation.message,
         });
         await this.policyViolationRepo.save(violation);
+        persistedKeys.add(violationKey);
       }
     }
   }

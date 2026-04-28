@@ -474,13 +474,6 @@ export class RequestsService {
           currency: violation.voucher?.currency,
           date: violation.voucher?.date,
         },
-        rule: {
-          expense_class: violation.policy_rule?.expense_class,
-          operator: violation.policy_rule?.operator,
-          threshold_value: violation.policy_rule?.threshold_value,
-          threshold_unit: violation.policy_rule?.threshold_unit,
-          consequence: violation.policy_rule?.consequence,
-        },
       })),
     };
   }

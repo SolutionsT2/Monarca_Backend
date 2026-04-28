@@ -188,7 +188,15 @@ export class RequestsStatusService {
       { persist: false },
     );
 
-    return { policy_summary: summary };
+      return {
+        policy_summary: {
+          ...summary,
+          violations: summary.violations.map((violation) => ({
+            ...violation,
+            evaluated_value: undefined,
+          })),
+        },
+      };
   }
 
   async approve(

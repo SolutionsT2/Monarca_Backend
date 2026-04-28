@@ -3,7 +3,7 @@
  * Description: Service for voucher CRUD, create (with creator check), approve/deny, and findByRequest.
  */
 
-import { Injectable, NotFoundException,ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
@@ -53,6 +53,14 @@ export class VouchersService {
         `User ${id_user} is not authorized to create a voucher for this request`,
       );
     }
+
+    const duplicate = await this.findDuplicateVoucher(data);
+    if (duplicate) {
+      throw new ConflictException(
+        'Duplicate voucher detected for this request. Please review the existing voucher before uploading again.',
+      );
+    }
+
     const voucher = this.voucherRepo.create({
       id_request: data.id_request, // Using the correct DTO property
       id_document_class: await this.getVoucherDocumentClassId(),
@@ -94,6 +102,53 @@ export class VouchersService {
     }
 
     return savedVoucher;
+  }
+
+  private async findDuplicateVoucher(data: CreateVoucherDto): Promise<Voucher | null> {
+    const normalizedDate = data.date ? new Date(data.date) : null;
+    const hasPdf = Boolean(data.file_url_pdf);
+    const hasXml = Boolean(data.file_url_xml);
+
+    if (hasPdf || hasXml) {
+      const fileMatches = await this.voucherRepo.findOne({
+        where: [
+          ...(hasPdf
+            ? [
+                {
+                  id_request: data.id_request,
+                  file_url_pdf: data.file_url_pdf,
+                },
+              ]
+            : []),
+          ...(hasXml
+            ? [
+                {
+                  id_request: data.id_request,
+                  file_url_xml: data.file_url_xml,
+                },
+              ]
+            : []),
+        ],
+      });
+
+      if (fileMatches) {
+        return fileMatches;
+      }
+    }
+
+    if (!normalizedDate) {
+      return null;
+    }
+
+    return this.voucherRepo.findOne({
+      where: {
+        id_request: data.id_request,
+        class: data.class,
+        amount: data.amount,
+        currency: data.currency,
+        date: normalizedDate,
+      },
+    });
   }
 
   async findAll(): Promise<Voucher[]> {
