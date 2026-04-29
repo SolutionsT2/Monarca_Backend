@@ -22,8 +22,15 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 import { Department } from 'src/departments/entity/department.entity';
-import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
-
+interface VoucherPolicyPreviewInput {
+  id_request?: string;
+  class: string;
+  amount: number;
+  currency?: string;
+  date?: string;
+  has_xml?: boolean;
+  has_pdf?: boolean;
+}
 // STATUSES (order after creation):
 // Pending Review → (approver) → Pending Accounting Approval (SOI) → Pending Reservations (travel agent) → In Progress → …
 // ['Pending Review', 'Changes Needed', 'Denied', 'Cancelled', 'Pending Accounting Approval', 'Pending Reservations', 'In Progress', 'Pending Vouchers Approval', 'Pending Refund Approval', 'Completed']
@@ -37,24 +44,159 @@ export class RequestsStatusService {
     private readonly vouchersRepo: Repository<Voucher>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
-    @InjectRepository(DocumentClass)
-    private readonly documentClassRepo: Repository<DocumentClass>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
     private readonly policyEngineService: PolicyEngineService,
   ) {}
 
-  private async getVoucherDocumentClassId(): Promise<string> {
-    const documentClass = await this.documentClassRepo.findOne({
-      where: { key: 'gv' },
+  private buildPreviewVoucherContext(
+    id_request: string,
+    vouchers: VoucherPolicyPreviewInput[],
+  ) {
+    return vouchers.map((voucher, index) => ({
+      id: `preview-${index + 1}`,
+      id_request,
+      class: voucher.class || '',
+      amount: Number(voucher.amount || 0),
+      currency: voucher.currency || 'MXN',
+      file_url_pdf: voucher.has_pdf ? 'preview://pdf' : null,
+      file_url_xml: voucher.has_xml ? 'preview://xml' : null,
+      date: voucher.date ? new Date(voucher.date) : new Date(''),
+    }));
+  }
+
+  async previewVoucherPolicy(
+    req: RequestInterface,
+    id_request: string,
+    vouchers: VoucherPolicyPreviewInput[],
+  ) {
+    const id_user = req.sessionInfo.id;
+    const request = await this.requestsRepo.findOne({
+      where: { id: id_request },
+      relations: ['requests_destinations', 'user', 'user.department'],
     });
 
-    if (!documentClass) {
-      throw new NotFoundException('Document class with key gv not found.');
+    if (!request) throw new NotFoundException('Invalid request id');
+
+    if (request.id_user !== id_user)
+      throw new UnauthorizedException('Unable to validate vouchers for request.');
+
+    if (request.status !== 'In Progress')
+      throw new ConflictException(
+        'Unable to validate vouchers because of the requests current status.',
+      );
+
+    const normalizedVouchers = Array.isArray(vouchers)
+      ? vouchers
+          .filter((voucher) => {
+            const hasData =
+              Boolean(voucher.class) ||
+              Boolean(voucher.date) ||
+              Number(voucher.amount) > 0 ||
+              Boolean(voucher.has_pdf) ||
+              Boolean(voucher.has_xml);
+            return hasData;
+          })
+          .map((voucher) => ({
+            ...voucher,
+            id_request,
+          }))
+      : [];
+
+    const hasAdvance = Number(request.advance_money || 0) > 0;
+    const destinations = request.requests_destinations || [];
+
+    const tripStartDate = destinations.length
+      ? new Date(
+          Math.min(
+            ...destinations.map((destination) =>
+              new Date(destination.departure_date).getTime(),
+            ),
+          ),
+        )
+      : null;
+
+    const tripEndDate = destinations.length
+      ? new Date(
+          Math.max(
+            ...destinations.map((destination) =>
+              new Date(destination.arrival_date).getTime(),
+            ),
+          ),
+        )
+      : null;
+
+    if (hasAdvance && normalizedVouchers.length === 0) {
+      return {
+        policy_summary: {
+          total_rules: 1,
+          passed: 0,
+          failed: 1,
+          blocking_violations: 1,
+          can_submit: false,
+          violations: [
+            {
+              policy_id: 'ADVANCE_REQUIRES_VOUCHERS',
+              policy_code: 'ADVANCE_REQUIRES_VOUCHERS',
+              passed: false,
+              message:
+                'Advance exists on request, but no vouchers were uploaded for reimbursement.',
+              severity: 'BLOCKING',
+              consequence: 'POLICY_VIOLATION',
+              can_override: false,
+            },
+          ],
+        },
+      };
     }
 
-    return documentClass.id;
+    if (!request.id_company) {
+      const fallbackCompanyId =
+        request.user?.department?.id_company ||
+        (request.user?.idDepartment
+          ? (
+              await this.departmentRepo.findOne({
+                where: { id: request.user.idDepartment },
+                select: ['id', 'id_company'],
+              })
+            )?.id_company
+          : undefined);
+
+      if (!fallbackCompanyId) {
+        throw new ConflictException(
+          'Unable to evaluate reimbursement policies because request company context is missing.',
+        );
+      }
+
+      request.id_company = fallbackCompanyId;
+      await this.requestsRepo.update(request.id, {
+        id_company: fallbackCompanyId,
+      });
+    }
+
+      const summary = await this.policyEngineService.evaluateRequestSubmission(
+      {
+        id: request.id,
+        id_company: request.id_company,
+        advance_money: request.advance_money,
+        createdAt: request.createdAt,
+        trip_start_date: tripStartDate,
+        trip_end_date: tripEndDate,
+      },
+      this.buildPreviewVoucherContext(id_request, normalizedVouchers),
+      { persist: false },
+    );
+
+      return {
+        policy_summary: {
+          ...summary,
+          violations: summary.violations.map((violation) => ({
+            ...violation,
+            evaluated_value: undefined,
+          })),
+        },
+      };
   }
 
   async approve(

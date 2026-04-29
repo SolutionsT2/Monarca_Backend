@@ -69,20 +69,31 @@ export class PolicyEngineService {
 
     const violations: PolicyViolation[] = [];
 
+    let hasBlockingViolation = false;
+
     for (const rule of rules) {
+      const operator = this.normalizeOperator(rule.operator);
+      if (
+        this.isGlobalExpenseClass(rule.expense_class) &&
+        this.hasSpecificRuleForOperator(rules, operator, voucher.class)
+      ) {
+        continue;
+      }
+
       const violated = this.evaluateRule(rule, voucher);
       if (violated) {
-        // eslint-disable-next-line no-console
+        const severity = this.resolveSeverity(rule); // Guardamos la severidad real
+
+        if (severity === PolicySeverity.BLOCKING) {
+          hasBlockingViolation = true;
+        }
         console.warn(
           `[${this.contextLabel}][VOUCHER_EVALUATION] Policy violated`,
           JSON.stringify(
             {
               voucher_id: voucher.id,
-              expense_class: voucher.class,
               policy_rule_id: rule.id,
-              operator: rule.operator,
-              threshold_value: rule.threshold_value,
-              threshold_unit: rule.threshold_unit,
+              severity: severity
             },
             null,
             2,
@@ -92,13 +103,19 @@ export class PolicyEngineService {
         const violation = this.policyViolationRepo.create({
           id_voucher: voucher.id,
           id_policy_rule: rule.id,
-          detail: `Regla violada: ${rule.operator} con valor ${rule.threshold_value}`,
+          detail: `ERROR: El comprobante incumple la política de montos. Se requiere ${this.getOperatorDescription(operator)} (${rule.threshold_value}).`,
         });
-        violations.push(await this.policyViolationRepo.save(violation));
+        const savedViolation = await this.policyViolationRepo.save(violation);
+
+        // 2. IMPORTANTE: Solo agregamos al array de retorno si es un BLOQUEO
+        // Esto evitará que el servicio que llama a esta función dispare el error 422
+        if (severity === PolicySeverity.BLOCKING) {
+          violations.push(savedViolation);
+        }
       }
     }
 
-    const policy_status = violations.length > 0 ? 'POLICY_VIOLATION' : 'APPROVED';
+    const policy_status = hasBlockingViolation ? 'POLICY_VIOLATION' : 'APPROVED';
     await this.voucherRepo.update(voucher.id, { policy_status });
 
     return violations;
@@ -107,9 +124,14 @@ export class PolicyEngineService {
   async evaluateRequestSubmission(
     requestContext: RequestPolicyContext,
     vouchers: VoucherPolicyContext[],
+    options?: { persist?: boolean },
   ): Promise<PolicyValidationSummary> {
     const uniqueVouchers = Array.from(
       new Map(vouchers.map((voucher) => [voucher.id, voucher])).values(),
+    );
+    const shouldPersist = options?.persist ?? true;
+    const voucherRowById = new Map(
+      uniqueVouchers.map((voucher, index) => [voucher.id, index + 1]),
     );
 
     const activeRules = await this.policyRuleRepo
@@ -127,18 +149,32 @@ export class PolicyEngineService {
       const operator = this.normalizeOperator(rule.operator);
 
       if (REQUEST_LEVEL_OPERATORS.has(operator)) {
-        evaluations.push(
-          this.evaluateRequestLevelRule(
-            rule,
-            operator,
-            requestContext,
-            uniqueVouchers,
-          ),
+        const evaluation = this.evaluateRequestLevelRule(
+          rule,
+          operator,
+          requestContext,
+          uniqueVouchers,
         );
+
+        if (operator === 'VOUCHER_DATE_WITHIN_TRIP_WINDOW') {
+          evaluations.push(
+            ...this.expandTripWindowEvaluations(evaluation, voucherRowById),
+          );
+          continue;
+        }
+
+        evaluations.push(evaluation);
         continue;
       }
 
       for (const voucher of uniqueVouchers) {
+        if (
+          this.isGlobalExpenseClass(rule.expense_class) &&
+          this.hasSpecificRuleForOperator(activeRules, operator, voucher.class)
+        ) {
+          continue;
+        }
+
         if (!this.ruleAppliesToVoucher(rule, voucher.class)) {
           continue;
         }
@@ -155,14 +191,77 @@ export class PolicyEngineService {
       blockingViolations: summary.blocking_violations,
       violations: summary.violations,
     });
-    await this.persistBlockingViolations(evaluations);
-    await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
+    if (shouldPersist) {
+      await this.persistViolations(evaluations);
+      await this.updateVoucherPolicyStatus(uniqueVouchers, evaluations);
+    }
 
     return summary;
   }
 
   private normalizeOperator(operator: string): string {
     return operator.trim().toUpperCase();
+  }
+
+  private isGlobalExpenseClass(expenseClass: string): boolean {
+    const normalizedClass = normalizeVoucherSpendClass(expenseClass);
+    return GLOBAL_EXPENSE_CLASSES.has(normalizedClass);
+  }
+
+  private hasSpecificRuleForOperator(
+    rules: PolicyRule[],
+    operator: string,
+    voucherClass: string,
+  ): boolean {
+    const normalizedVoucherClass = normalizeVoucherSpendClass(voucherClass);
+    return rules.some((rule) => {
+      const ruleOperator = this.normalizeOperator(rule.operator);
+      if (ruleOperator !== operator) {
+        return false;
+      }
+
+      const ruleClass = normalizeVoucherSpendClass(rule.expense_class);
+      return !GLOBAL_EXPENSE_CLASSES.has(ruleClass) && ruleClass === normalizedVoucherClass;
+    });
+  }
+
+  private getOperatorDescription(operator: string): string {
+    switch (operator) {
+      case 'LT':
+        return 'Monto menor que el umbral';
+      case 'LTE':
+        return 'Monto menor o igual al umbral';
+      case 'GT':
+        return 'Monto mayor que el umbral';
+      case 'GTE':
+        return 'Monto mayor o igual al umbral';
+      default:
+        return operator;
+    }
+  }
+
+  private expandTripWindowEvaluations(
+    evaluation: EvaluatedRuleResult,
+    voucherRowById: Map<string, number>,
+  ): EvaluatedRuleResult[] {
+    if (evaluation.passed) {
+      return [evaluation];
+    }
+
+    const outOfWindowIds = this.extractOutOfWindowVoucherIds(evaluation);
+    if (!outOfWindowIds.length) {
+      return [evaluation];
+    }
+
+    return outOfWindowIds.map((voucherId) => {
+      const row = voucherRowById.get(voucherId);
+      const rowLabel = row ? `fila ${row}` : 'fila desconocida';
+      return {
+        ...evaluation,
+        voucher_id: voucherId,
+        message: `ERROR: La fecha del comprobante en ${rowLabel} está fuera de la ventana del viaje permitida.`,
+      };
+    });
   }
 
   private allowPreTripVoucherDatesForTesting(): boolean {
@@ -173,11 +272,8 @@ export class PolicyEngineService {
     return process.env.ALLOW_VOUCHER_AMOUNT_RULE_BYPASS_FOR_TESTS?.toLowerCase() === 'true';
   }
 
-  private resolveSeverity(rule: PolicyRule): PolicySeverity {
-    const consequence = rule.consequence?.trim().toUpperCase();
-    return consequence === 'WARNING'
-      ? PolicySeverity.WARNING
-      : PolicySeverity.BLOCKING;
+  private resolveSeverity(_rule: PolicyRule): PolicySeverity {
+    return PolicySeverity.WARNING;
   }
 
   private resolveConsequence(rule: PolicyRule): PolicyConsequence {
@@ -224,8 +320,8 @@ export class PolicyEngineService {
         ...warningBase,
         passed,
         message: passed
-          ? `Total vouchers (${totalVouchers}) is within advance (${requestContext.advance_money}).`
-          : `Total vouchers (${totalVouchers}) exceeds advance (${requestContext.advance_money}); this is reported as a warning for reimbursement processing.`,
+          ? `El monto total de los comprobantes (${totalVouchers}) está dentro del anticipo permitido (${requestContext.advance_money}).`
+          : `ADVERTENCIA: El monto total de los comprobantes (${totalVouchers}) excede el anticipo asignado (${requestContext.advance_money}). Esto será revisado durante el procesamiento del reembolso.`,
         evaluated_value: {
           total_vouchers: totalVouchers,
           advance_money: requestContext.advance_money,
@@ -243,8 +339,8 @@ export class PolicyEngineService {
         ...base,
         passed,
         message: passed
-          ? `Submission is within ${limit} day(s).`
-          : `Submission exceeded ${limit} day(s) limit.`,
+          ? `La solicitud se envió dentro del plazo permitido de ${limit} día(s).`
+          : `ERROR: La solicitud ha excedido el plazo máximo de ${limit} día(s) permitidos.`,
         evaluated_value: {
           elapsed_days: elapsedDays,
           max_days: limit,
@@ -260,7 +356,7 @@ export class PolicyEngineService {
         return {
           ...base,
           passed: true,
-          message: 'Voucher-date trip-window rule bypassed in testing mode.',
+          message: 'La validación de fechas de comprobantes dentro de la ventana del viaje ha sido omitida en modo de prueba.',
           evaluated_value: {
             allow_pretrip_voucher_dates_for_tests: true,
             bypass_trip_window_rule_for_tests: true,
@@ -279,7 +375,7 @@ export class PolicyEngineService {
         return {
           ...base,
           passed: true,
-          message: 'Trip window is not available; voucher-date rule skipped.',
+          message: 'No hay fechas definidas para la ventana del viaje. La validación de fechas de comprobantes ha sido omitida.',
           evaluated_value: {
             trip_start_date: requestContext.trip_start_date ?? null,
             trip_end_date: requestContext.trip_end_date ?? null,
@@ -302,8 +398,8 @@ export class PolicyEngineService {
         ...base,
         passed,
         message: passed
-          ? 'All voucher dates are within the trip window.'
-          : 'One or more voucher dates are outside the trip window.',
+          ? 'Todas las fechas de los comprobantes están dentro de la ventana del viaje.'
+          : 'ERROR: Una o más fechas de comprobantes se encuentran fuera de la ventana del viaje permitida.',
         evaluated_value: {
           trip_start_date: tripStart.toISOString(),
           trip_end_date: tripEnd.toISOString(),
@@ -316,7 +412,7 @@ export class PolicyEngineService {
     return {
       ...base,
       passed: true,
-      message: 'Rule operator not implemented yet.',
+      message: 'El operador de esta regla aún no ha sido implementado en el sistema.',
     };
   }
 
@@ -327,14 +423,13 @@ export class PolicyEngineService {
   ): EvaluatedRuleResult {
     const base = this.createEvaluationBase(rule);
     const threshold = typeof rule.threshold_value === 'number' ? rule.threshold_value : null;
-
     if (operator === 'MISSING_XML') {
       const passed = !!voucher.file_url_xml;
       return {
         ...base,
         voucher_id: voucher.id,
         passed,
-        message: passed ? 'Voucher has XML file.' : 'Voucher is missing XML file.',
+        message: passed ? 'El comprobante contiene el archivo XML requerido.' : 'ERROR: El comprobante no tiene el archivo XML. Este es obligatorio.',
       };
     }
 
@@ -344,7 +439,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed,
-        message: passed ? 'Voucher has PDF file.' : 'Voucher is missing PDF file.',
+        message: passed ? 'El comprobante contiene el archivo PDF requerido.' : 'ERROR: El comprobante no tiene el archivo PDF. Este es obligatorio.',
       };
     }
 
@@ -355,8 +450,8 @@ export class PolicyEngineService {
         voucher_id: voucher.id,
         passed,
         message: passed
-          ? 'Voucher has at least one required file.'
-          : 'Voucher is missing both PDF and XML files.',
+          ? 'El comprobante contiene al menos uno de los archivos requeridos (PDF o XML).'
+          : 'ERROR: El comprobante no tiene ni PDF ni XML. Se requiere al menos uno de estos archivos.',
       };
     }
 
@@ -365,7 +460,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed: true,
-        message: 'Rule threshold is not configured.',
+        message: 'El umbral de esta regla no está configurado en el sistema.',
       };
     }
 
@@ -377,7 +472,7 @@ export class PolicyEngineService {
         ...base,
         voucher_id: voucher.id,
         passed: true,
-        message: `Amount rule ${operator} bypassed in testing mode.`,
+        message: `La validación de montos ha sido omitida en modo de prueba (${this.getOperatorDescription(operator)}).`,
         evaluated_value: {
           amount: voucher.amount,
           operator,
@@ -389,18 +484,28 @@ export class PolicyEngineService {
     }
 
     let passed = true;
-    if (operator === 'LT') passed = voucher.amount >= threshold;
-    else if (operator === 'LTE') passed = voucher.amount > threshold;
-    else if (operator === 'GT') passed = voucher.amount <= threshold;
-    else if (operator === 'GTE') passed = voucher.amount < threshold;
+    let comparisonDescription = '';
+    if (operator === 'LT') {
+      passed = voucher.amount >= threshold;
+      comparisonDescription = `debe ser mayor que ${threshold}`;
+    } else if (operator === 'LTE') {
+      passed = voucher.amount > threshold;
+      comparisonDescription = `debe ser mayor o igual que ${threshold}`;
+    } else if (operator === 'GT') {
+      passed = voucher.amount <= threshold;
+      comparisonDescription = `debe ser menor que ${threshold}`;
+    } else if (operator === 'GTE') {
+      passed = voucher.amount < threshold;
+      comparisonDescription = `debe ser menor o igual que ${threshold}`;
+    }
 
     return {
       ...base,
       voucher_id: voucher.id,
       passed,
       message: passed
-        ? `Voucher amount (${voucher.amount}) passed ${operator} rule (${threshold}).`
-        : `Voucher amount (${voucher.amount}) violated ${operator} rule (${threshold}).`,
+        ? `El monto del comprobante (${voucher.amount} ${voucher.currency}) cumple con la política: ${comparisonDescription}.`
+        : `ERROR: El monto del comprobante (${voucher.amount} ${voucher.currency}) incumple la política: ${comparisonDescription}.`,
       evaluated_value: {
         amount: voucher.amount,
         operator,
@@ -432,28 +537,69 @@ export class PolicyEngineService {
     };
   }
 
-  private async persistBlockingViolations(
+  private async persistViolations(
     evaluations: EvaluatedRuleResult[],
   ): Promise<void> {
     const violationsToPersist = evaluations.filter(
-      (evaluation) =>
-        !evaluation.passed &&
-        evaluation.severity === PolicySeverity.BLOCKING &&
-        evaluation.voucher_id,
+      (evaluation) => !evaluation.passed,
     );
 
     if (!violationsToPersist.length) {
       return;
     }
 
+    const persistedKeys = new Set<string>();
+
     for (const evaluation of violationsToPersist) {
-      const violation = this.policyViolationRepo.create({
-        id_voucher: evaluation.voucher_id!,
-        id_policy_rule: evaluation.policy_id,
-        detail: evaluation.message,
-      });
-      await this.policyViolationRepo.save(violation);
+      const voucherIds = evaluation.voucher_id
+        ? [evaluation.voucher_id]
+        : this.extractOutOfWindowVoucherIds(evaluation);
+
+      if (!voucherIds.length) {
+        continue;
+      }
+
+      for (const voucherId of voucherIds) {
+        const violationKey = `${voucherId}:${evaluation.policy_id}`;
+        if (persistedKeys.has(violationKey)) {
+          continue;
+        }
+
+        const existingViolation = await this.policyViolationRepo.findOne({
+          where: {
+            id_voucher: voucherId,
+            id_policy_rule: evaluation.policy_id,
+          },
+        });
+        if (existingViolation) {
+          persistedKeys.add(violationKey);
+          continue;
+        }
+
+        const violation = this.policyViolationRepo.create({
+          id_voucher: voucherId,
+          id_policy_rule: evaluation.policy_id,
+          detail: evaluation.message,
+        });
+        await this.policyViolationRepo.save(violation);
+        persistedKeys.add(violationKey);
+      }
     }
+  }
+
+  private extractOutOfWindowVoucherIds(evaluation: EvaluatedRuleResult): string[] {
+    const evaluatedValue = evaluation.evaluated_value as
+      | { out_of_window_voucher_ids?: unknown }
+      | undefined;
+    if (!evaluatedValue?.out_of_window_voucher_ids) {
+      return [];
+    }
+
+    return Array.isArray(evaluatedValue.out_of_window_voucher_ids)
+      ? evaluatedValue.out_of_window_voucher_ids.filter(
+          (voucherId): voucherId is string => typeof voucherId === 'string',
+        )
+      : [];
   }
 
   private async updateVoucherPolicyStatus(

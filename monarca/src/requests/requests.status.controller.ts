@@ -81,6 +81,19 @@ export class RequestsStatusController {
     );
   }
 
+  @Post(':id/vouchers-policy-preview')
+  async previewVoucherPolicy(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id_request: string,
+    @Body() body: { vouchers?: any[] },
+  ) {
+    return await this.requestsStatusService.previewVoucherPolicy(
+      req,
+      id_request,
+      body?.vouchers || [],
+    );
+  }
+
   @Patch('finished-approving-vouchers/:id')
   async finsihedApprovingVouchers(
     @Request() req: RequestInterface,
