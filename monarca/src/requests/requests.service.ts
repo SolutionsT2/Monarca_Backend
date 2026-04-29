@@ -23,7 +23,10 @@ import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
-import { NotificationsService } from 'src/notifications/notifications.service';
+import {
+  EmailWarning,
+  NotificationsService,
+} from 'src/notifications/notifications.service';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Department } from 'src/departments/entity/department.entity';
 
@@ -48,7 +51,9 @@ export class RequestsService {
     return await this.destinationChecks.getCityNameById(id);
   }
 
-  private async validateAirportSelection(data: CreateRequestDto): Promise<void> {
+  private async validateAirportSelection(
+    data: CreateRequestDto,
+  ): Promise<void> {
     if (data.id_origin_airport) {
       const isOriginAirportValid = await this.destinationChecks.isAirportValid(
         data.id_origin_airport,
@@ -108,7 +113,7 @@ export class RequestsService {
       }
     }
   }
-  
+
   private async getDocumentClassIdForAdvance(
     advanceMoney: number,
   ): Promise<string | null> {
@@ -121,9 +126,7 @@ export class RequestsService {
     });
 
     if (!documentClass) {
-      throw new NotFoundException(
-        'Document class with key av not found.',
-      );
+      throw new NotFoundException('Document class with key av not found.');
     }
 
     return documentClass.id;
@@ -168,7 +171,9 @@ export class RequestsService {
     }
 
     if (!req?.userInfo) {
-      throw new UnauthorizedException('Missing user context for request creation.');
+      throw new UnauthorizedException(
+        'Missing user context for request creation.',
+      );
     }
 
     // Validate origin city
@@ -237,6 +242,8 @@ export class RequestsService {
 
     const saved = await this.requestsRepo.save(request);
 
+    const emailWarnings: EmailWarning[] = [];
+
     // Log request creation
     const originCityName = await this.getCityName(saved.id_origin_city);
     await this.logRequestAction(
@@ -257,42 +264,43 @@ export class RequestsService {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
-    // Notify assigned admin
-    try {
-      await this.notificationsService.notify(
-        admin.email,
-        `Nueva solicitud asignada`,
-        `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
-        `<p>Hola ${admin.name},</p>
+    const adminEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: admin.email,
+      subject: 'Nueva solicitud asignada',
+      text: `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
+      html: `<p>Hola ${admin.name},</p>
 <p>Se te ha asignado una nueva solicitud de viaje con ID: <strong>${saved.id}</strong>.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send notification email:', emailError);
+      failureMessage:
+        'La solicitud fue creada, pero no se pudo enviar el correo de notificación al aprobador.',
+    });
+
+    if (adminEmailWarning) {
+      emailWarnings.push(adminEmailWarning);
     }
 
-    return saved;
+    return Object.assign(saved, { emailWarnings });
   }
 
   async findAll(): Promise<RequestEntity[]> {
-  return this.requestsRepo.find({
-    relations: [
-      'requests_destinations',
-      'requests_destinations.destination',
-      'requests_destinations.airport',
-      'revisions',
-      'user',
-      'admin',
-      'SOI',
-      'destination',
-      'origin_airport',
-      'travelAgency',           
-      'travelAgency.users',     
-    ],
-  });
-}
+    return this.requestsRepo.find({
+      relations: [
+        'requests_destinations',
+        'requests_destinations.destination',
+        'requests_destinations.airport',
+        'revisions',
+        'user',
+        'admin',
+        'SOI',
+        'destination',
+        'origin_airport',
+        'travelAgency',
+        'travelAgency.users',
+      ],
+    });
+  }
 
   async findOne(req: RequestInterface, id: string): Promise<RequestEntity> {
     const userId = req.sessionInfo.id;
@@ -550,6 +558,8 @@ export class RequestsService {
 
       const updated = await repo.save(entity);
 
+      const emailWarnings: EmailWarning[] = [];
+
       // Log request update
       await this.logRequestAction(
         manager,
@@ -567,23 +577,25 @@ export class RequestsService {
         );
       }
 
-      // Email failure should not abort request update
-      try {
-        await this.notificationsService.notify(
-          admin.email,
-          `Solicitud actualizada`,
-          `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
-          `<p>Hola ${admin.name},</p>
+      // Email failures are returned as warnings so the request update can continue.
+      const adminEmailWarning = await this.notificationsService.notifyOrWarn({
+        to: admin.email,
+        subject: 'Solicitud actualizada',
+        text: `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
+        html: `<p>Hola ${admin.name},</p>
 <p>La solicitud de viaje con ID: <strong>${updated.id}</strong> ha sido actualizada.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-        );
-      } catch (emailError) {
-        console.error('Failed to send update notification email:', emailError);
+        failureMessage:
+          'La solicitud fue actualizada, pero no se pudo enviar el correo de notificación al aprobador.',
+      });
+
+      if (adminEmailWarning) {
+        emailWarnings.push(adminEmailWarning);
       }
 
-      return updated;
+      return Object.assign(updated, { emailWarnings });
     });
   }
 
@@ -626,4 +638,5 @@ export class RequestsService {
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch in create() and updateRequest() to prevent email failures from aborting request operations.
+ * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
  */

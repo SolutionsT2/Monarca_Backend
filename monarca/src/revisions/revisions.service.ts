@@ -15,7 +15,10 @@ import { Revision } from './entities/revision.entity';
 import { RequestsService } from 'src/requests/requests.service';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsChecks } from 'src/requests/requests.checks';
-import { NotificationsService } from 'src/notifications/notifications.service';
+import {
+  EmailWarning,
+  NotificationsService,
+} from 'src/notifications/notifications.service';
 import { UserChecks } from 'src/users/user.checks.service';
 
 @Injectable()
@@ -77,27 +80,36 @@ export class RevisionsService {
       throw new NotFoundException('Request not found.');
     }
 
-    // Notify the user that a revision has been created
-    await this.notificationsService.notify(
-      user.email,
-      'Solicitud con cambios necesarios',
-      `Tu solicitud de viaje con el título "${request.title}" ha sido marcada con cambios necesarios.`,
-      `<p>Hola ${user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: user.email,
+      subject: 'Solicitud con cambios necesarios',
+      text: `Tu solicitud de viaje con el título "${request.title}" ha sido marcada con cambios necesarios.`,
+      html: `<p>Hola ${user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido marcada con cambios necesario. Por favor revisa los comentarios y ajusta tu solicitud.</p>
 <p>Comentarios:</p>
 <p>${data.comment}</p>
 <p>Para más detalles, visita tu panel de solicitudes.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-    );
+      failureMessage:
+        'Los cambios fueron solicitados, pero no se pudo enviar el correo de notificación.',
+    });
 
-    // const revision = this.revisionRepository.create(data);
-    this.requestService.updateStatus(data.id_request, 'Changes Needed');
-    return await this.revisionRepository.save(revision);
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
+    }
+
+    await this.requestService.updateStatus(data.id_request, 'Changes Needed');
+    const savedRevision = await this.revisionRepository.save(revision);
+
+    return Object.assign(savedRevision, { emailWarnings });
   }
 }
 
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history; removed unused UseGuards import.
+ * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling when revision notification delivery fails.
  */
