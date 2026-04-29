@@ -13,7 +13,18 @@ export class PolicyExportsService {
     private readonly companyRepo: Repository<Company>,
   ) {}
 
-  async generateAdvancePolicies(): Promise<any[]> {
+  private getTripStartDate(req: Request): Date | null {
+    if (!req.requests_destinations || req.requests_destinations.length === 0) {
+      return null;
+    }
+    const dates = req.requests_destinations.map(d => new Date(d.departure_date).getTime());
+    return new Date(Math.min(...dates));
+  }
+
+  async generateAdvancePolicies(startDate: string, endDate: string): Promise<any[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
     const requests = await this.requestRepo.find({
       where: {}, 
       relations: [
@@ -21,13 +32,21 @@ export class PolicyExportsService {
         'user.department',
         'user.department.cost_center',
         'user.department.cost_center.company',
+        'requests_destinations',
       ],
     });
 
-    const filteredRequests = requests.filter(req => req.advance_money > 0);
+    const filteredRequests = requests.filter(req => {
+      if (req.advance_money <= 0) return false;
+      
+      const tripStartDate = this.getTripStartDate(req);
+      if (!tripStartDate) return false;
+
+      return tripStartDate >= start && tripStartDate <= end;
+    });
 
     if (filteredRequests.length === 0) {
-      throw new NotFoundException('No hay datos disponibles para generar pólizas');
+      throw new NotFoundException('No hay datos disponibles para generar pólizas en el rango de fechas seleccionado');
     }
 
     const policies = filteredRequests.map(req => {
@@ -84,7 +103,10 @@ export class PolicyExportsService {
     return policies;
   }
 
-  async generateReconciliationPolicies(): Promise<any[]> {
+  async generateReconciliationPolicies(startDate: string, endDate: string): Promise<any[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
     const requests = await this.requestRepo.find({
       where: {}, 
       relations: [
@@ -93,10 +115,18 @@ export class PolicyExportsService {
         'user.department.cost_center',
         'user.department.cost_center.company',
         'vouchers',
+        'requests_destinations',
       ],
     });
 
-    const filteredRequests = requests.filter(req => req.advance_money > 0);
+    const filteredRequests = requests.filter(req => {
+      if (req.advance_money <= 0) return false;
+      
+      const tripStartDate = this.getTripStartDate(req);
+      if (!tripStartDate) return false;
+
+      return tripStartDate >= start && tripStartDate <= end;
+    });
 
     const policies: any[] = [];
 
@@ -167,13 +197,16 @@ export class PolicyExportsService {
     }
 
     if (policies.length === 0) {
-      throw new NotFoundException('No hay datos disponibles para generar pólizas');
+      throw new NotFoundException('No hay datos disponibles para generar pólizas en el rango de fechas seleccionado');
     }
 
     return policies;
   }
 
-  async generateNoAdvanceReconciliationPolicies(): Promise<any[]> {
+  async generateNoAdvanceReconciliationPolicies(startDate: string, endDate: string): Promise<any[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
     const requests = await this.requestRepo.find({
       where: {}, 
       relations: [
@@ -182,10 +215,18 @@ export class PolicyExportsService {
         'user.department.cost_center',
         'user.department.cost_center.company',
         'vouchers',
+        'requests_destinations',
       ],
     });
 
-    const filteredRequests = requests.filter(req => !req.advance_money || req.advance_money <= 0);
+    const filteredRequests = requests.filter(req => {
+      if (req.advance_money > 0) return false;
+      
+      const tripStartDate = this.getTripStartDate(req);
+      if (!tripStartDate) return false;
+
+      return tripStartDate >= start && tripStartDate <= end;
+    });
 
     const policies: any[] = [];
 
@@ -254,7 +295,7 @@ export class PolicyExportsService {
     }
 
     if (policies.length === 0) {
-      throw new NotFoundException('No hay datos disponibles para generar pólizas');
+      throw new NotFoundException('No hay datos disponibles para generar pólizas en el rango de fechas seleccionado');
     }
 
     return policies;

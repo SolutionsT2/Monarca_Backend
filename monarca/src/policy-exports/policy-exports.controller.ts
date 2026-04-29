@@ -1,4 +1,4 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Query, Res, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { PolicyExportsService } from './policy-exports.service';
 
@@ -7,9 +7,17 @@ export class PolicyExportsController {
   constructor(private readonly policyExportsService: PolicyExportsService) {}
 
   @Get('advance-policies')
-  async downloadAdvancePolicies(@Res() res: Response) {
+  async downloadAdvancePolicies(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Res() res: Response,
+  ) {
+    if (!startDate || !endDate) {
+      throw new BadRequestException('Las fechas de inicio y fin son obligatorias');
+    }
+
     try {
-      const data = await this.policyExportsService.generateAdvancePolicies();
+      const data = await this.policyExportsService.generateAdvancePolicies(startDate, endDate);
       
       const fileName = `polizas_anticipo_${new Date().toISOString().split('T')[0]}.json`;
       
@@ -25,9 +33,17 @@ export class PolicyExportsController {
   }
 
   @Get('reconciliation-policies')
-  async downloadReconciliationPolicies(@Res() res: Response) {
+  async downloadReconciliationPolicies(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Res() res: Response,
+  ) {
+    if (!startDate || !endDate) {
+      throw new BadRequestException('Las fechas de inicio y fin son obligatorias');
+    }
+
     try {
-      const data = await this.policyExportsService.generateReconciliationPolicies();
+      const data = await this.policyExportsService.generateReconciliationPolicies(startDate, endDate);
       
       const fileName = `polizas_comprobacion_${new Date().toISOString().split('T')[0]}.json`;
       
@@ -43,9 +59,17 @@ export class PolicyExportsController {
   }
 
   @Get('no-advance-reconciliation-policies')
-  async downloadNoAdvanceReconciliationPolicies(@Res() res: Response) {
+  async downloadNoAdvanceReconciliationPolicies(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Res() res: Response,
+  ) {
+    if (!startDate || !endDate) {
+      throw new BadRequestException('Las fechas de inicio y fin son obligatorias');
+    }
+
     try {
-      const data = await this.policyExportsService.generateNoAdvanceReconciliationPolicies();
+      const data = await this.policyExportsService.generateNoAdvanceReconciliationPolicies(startDate, endDate);
       
       const fileName = `polizas_comprobacion_sin_anticipo_${new Date().toISOString().split('T')[0]}.json`;
       
