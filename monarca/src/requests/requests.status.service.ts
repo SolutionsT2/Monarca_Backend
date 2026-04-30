@@ -23,6 +23,7 @@ import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 import { Department } from 'src/departments/entity/department.entity';
 import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
+import { EmailActionService } from './email-action.service';
 
 // STATUSES (order after creation):
 // Pending Review → (approver) → Pending Accounting Approval (SOI) → Pending Reservations (travel agent) → In Progress → …
@@ -43,6 +44,7 @@ export class RequestsStatusService {
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
     private readonly policyEngineService: PolicyEngineService,
+    private readonly emailActionService: EmailActionService,
   ) {}
 
   private async getVoucherDocumentClassId(): Promise<string> {
@@ -66,7 +68,7 @@ export class RequestsStatusService {
     const id_travel_agency = data.id_travel_agency;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['user', 'SOI'],
+      relations: ['user', 'SOI', 'requests_destinations', 'requests_destinations.destination'],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -106,15 +108,73 @@ export class RequestsStatusService {
       );
     }
 
+    // Generate SOI action token and send email with approval button
     try {
+      const soiToken = this.emailActionService.generateActionToken({
+        requestId: id_request,
+        action: 'soi-approve',
+        userId: request.id_SOI,
+      });
+      const soiActionUrl = `${process.env.BACKEND_URL || 'http://localhost:3000'}/requests/email-action?token=${soiToken}`;
+
+      const destinosHtml = (request.requests_destinations || [])
+        .sort((a, b) => a.destination_order - b.destination_order)
+        .map((d, i) => {
+          const lugar = d.destination?.city || d.id_destination;
+          const salida = new Date(d.departure_date).toLocaleDateString('es-MX');
+          const llegada = new Date(d.arrival_date).toLocaleDateString('es-MX');
+          const hotel = d.is_hotel_required ? 'Si' : 'No';
+          const avion = d.is_plane_required ? 'Si' : 'No';
+          return `<tr style="background:${i % 2 === 0 ? '#f9f9f9' : '#fff'}">
+            <td style="padding:8px;border:1px solid #ddd;">${lugar}</td>
+            <td style="padding:8px;border:1px solid #ddd;">${salida}</td>
+            <td style="padding:8px;border:1px solid #ddd;">${llegada}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center;">${d.stay_days} días</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center;">${hotel}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center;">${avion}</td>
+          </tr>`;
+        })
+        .join('');
+
       await this.notificationsService.notify(
         request.SOI.email,
         'Solicitud pendiente de tu aprobación',
         `La solicitud "${request.title}" fue aprobada por el aprobador y requiere tu revisión antes de las reservaciones.`,
         `<p>Hola ${request.SOI.name},</p>
-<p>La solicitud "<strong>${request.title}</strong>" está pendiente de tu aprobación contable. Después podrá continuar la agencia de viajes con las reservaciones.</p>
-<p>Saludos,</p>
-<p>Equipo de Monarca</p>`,
+<p>La solicitud "<strong>${request.title}</strong>" está pendiente de tu aprobación contable.</p>
+
+<table style="border-collapse:collapse;width:100%;margin:16px 0;">
+  <tr style="background:#1a73e8;color:#fff;">
+    <th style="padding:8px;text-align:left;">Campo</th>
+    <th style="padding:8px;text-align:left;">Detalle</th>
+  </tr>
+  <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Solicitante</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.user.name}</td></tr>
+  <tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Motivo</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.motive}</td></tr>
+  <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Prioridad</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.priority}</td></tr>
+  <tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Anticipo</strong></td><td style="padding:8px;border:1px solid #ddd;">$${request.advance_money} MXN</td></tr>
+  ${request.requirements ? `<tr><td style="padding:8px;border:1px solid #ddd;"><strong>Requerimientos</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.requirements}</td></tr>` : ''}
+</table>
+
+<h3 style="margin-top:24px;">Destinos</h3>
+<table style="border-collapse:collapse;width:100%;">
+  <tr style="background:#1a73e8;color:#fff;">
+    <th style="padding:8px;">Destino</th>
+    <th style="padding:8px;">Salida</th>
+    <th style="padding:8px;">Llegada</th>
+    <th style="padding:8px;">Días</th>
+    <th style="padding:8px;">Hotel</th>
+    <th style="padding:8px;">Avión</th>
+  </tr>
+  ${destinosHtml}
+</table>
+
+<p style="margin-top:24px;">
+  <a href="${soiActionUrl}" style="background:#1a73e8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
+    Aprobar solicitud
+  </a>
+</p>
+<p style="color:#888;font-size:12px;">Este enlace expira en 24 horas.</p>
+<p>Saludos,<br>Equipo de Monarca</p>`,
       );
     } catch (emailError) {
       console.error(
@@ -213,11 +273,6 @@ export class RequestsStatusService {
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
-
-    // console.log("Scenario 1: ")
-    // console.log (`(!(id_travel_agency && id_travel_agency === request.id_travel_agency)) ${(!(id_travel_agency && id_travel_agency === request.id_travel_agency))}`)
-    // console.log("Scenario 2: ")
-    // console.log (` (!!id_travel_agency && id_travel_agency !== request.id_travel_agency) ${ (!!id_travel_agency && id_travel_agency !== request.id_travel_agency)}`)
 
     if (!(id_travel_agency && id_travel_agency === request.id_travel_agency))
       // Needs further testing

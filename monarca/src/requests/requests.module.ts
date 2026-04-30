@@ -25,6 +25,9 @@ import { DocumentClass } from 'src/document-classes/entity/document-class.entity
 import { Department } from 'src/departments/entity/department.entity';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { JwtConfigModule } from 'src/jwt/jwt.config.module';
+import { EmailActionService } from './email-action.service';
+import { EmailActionController } from './email-action.controller';
 
 /**
  * Module encapsulating request domain logic
@@ -45,15 +48,17 @@ import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.ent
     DestinationsModule,
     TravelAgenciesModule,
     RequestLogsModule,
-    NotificationsModule, // Assuming this is a controller that handles notifications related to requests
+    NotificationsModule,
     PolicyEngineModule,
+    JwtConfigModule,
   ],
-  controllers: [RequestsController, RequestsStatusController],
+  controllers: [EmailActionController, RequestsController, RequestsStatusController],
   providers: [
     RequestsService,
     RequestsChecks,
     RequestsStatusService,
     NotificationsService,
+    EmailActionService,
   ],
   exports: [RequestsService, RequestsChecks],
 })
@@ -63,4 +68,5 @@ export class RequestsModule {}
 Modification History:
 
 - 2026-02-26 | Diego Vergara | Added module documentation and clarified inline comments.
+- 2026-04-24 | José Ángel | Added JwtConfigModule, EmailActionService, and EmailActionController for email-based SOI approval.
 */

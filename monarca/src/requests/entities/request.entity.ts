@@ -61,7 +61,7 @@ export class Request {
   @Column()
   motive: string;
 
-  @Column()
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   advance_money: number;
 
   @Column({ default: 'Pending Review' })

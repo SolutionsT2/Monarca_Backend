@@ -40,7 +40,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { CostCenter } from './cost-centers/entity/cost-centers.entity';
-import { AccountingAccountsModule } from './accounting-accounts/accounting-accounts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CfdiModule } from './cfdi/cfdi.module';
 import { Cfdi } from './cfdi/cfdi.entity';
@@ -51,6 +50,8 @@ import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
 import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 import { TravelIntegrationsModule } from './travel-integrations/travel-integrations.module';
+import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
+import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
@@ -73,7 +74,6 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     RolesModule,
     DepartmentsModule,
     CostCentersModule,
-    AccountingAccountsModule,
     CompaniesModule,
     RequestsModule,
     RequestLogsModule,
@@ -86,6 +86,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     CfdiModule,
     DelegationsModule,
     PolicyEngineModule,
+    ExchangeRateModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'localhost',
@@ -119,6 +120,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         PolicyRule,
         PolicyViolation,
         Delegation,
+        ExchangeRate,
         // Ditta Consulting
         Company,
         AccountingAccount,
@@ -155,6 +157,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       PolicyRule,
       PolicyViolation,
       Delegation,
+      ExchangeRate,
       // Ditta Consulting
       Company,
       AccountingAccount,
