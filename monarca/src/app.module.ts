@@ -52,6 +52,8 @@ import { PolicyViolation } from './policy-engine/entities/policy-violation.entit
 import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 import { TravelIntegrationsModule } from './travel-integrations/travel-integrations.module';
 import { PolicyExportsModule } from './policy-exports/policy-exports.module';
+import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
+import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
@@ -87,6 +89,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     CfdiModule,
     DelegationsModule,
     PolicyEngineModule,
+    ExchangeRateModule,
     PolicyExportsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -121,6 +124,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         PolicyRule,
         PolicyViolation,
         Delegation,
+        ExchangeRate,
         // Ditta Consulting
         Company,
         AccountingAccount,
@@ -162,6 +166,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       AccountingAccount,
       DocumentClass,
       PolicyExport,
+      ExchangeRate,
     ]),
   ],
   controllers: [],

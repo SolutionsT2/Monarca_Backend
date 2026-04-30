@@ -47,6 +47,38 @@ export class RequestsService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private buildRequestSummaryHtml(request: RequestEntity): string {
+    return `
+      <table style="border-collapse:collapse;width:100%;margin:16px 0;">
+        <tr style="background:#1a73e8;color:#fff;">
+          <th style="padding:8px;text-align:left;">Campo</th>
+          <th style="padding:8px;text-align:left;">Detalle</th>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Título</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${request.title}</td>
+        </tr>
+        <tr style="background:#f9f9f9;">
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Motivo</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${request.motive}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Prioridad</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${request.priority}</td>
+        </tr>
+        <tr style="background:#f9f9f9;">
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Anticipo</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">$${request.advance_money} MXN</td>
+        </tr>
+        ${request.requirements ? `
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Requerimientos</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${request.requirements}</td>
+        </tr>` : ''}
+      </table>
+    `;
+  }
+
   private async getCityName(id: string): Promise<string> {
     return await this.destinationChecks.getCityNameById(id);
   }
@@ -176,7 +208,6 @@ export class RequestsService {
       );
     }
 
-    // Validate origin city
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');
     }
@@ -188,11 +219,10 @@ export class RequestsService {
 
     await this.validateAirportSelection(data);
 
-    // Assign approver
     const id_department = req.userInfo.id_department;
     if (!id_department) {
       throw new BadRequestException(
-        'User must belong to a company department  to create requests.',
+        'User must belong to a company department to create requests.',
       );
     }
 
@@ -206,6 +236,7 @@ export class RequestsService {
         'User department is missing company context for request creation.',
       );
     }
+
     const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
       id_department,
       userId,
@@ -217,7 +248,6 @@ export class RequestsService {
       );
     }
 
-    // Assign SOI
     const SOIId = await this.userChecks.getRandomSoiId();
     if (!SOIId) {
       throw new HttpException(
@@ -244,7 +274,6 @@ export class RequestsService {
 
     const emailWarnings: EmailWarning[] = [];
 
-    // Log request creation
     const originCityName = await this.getCityName(saved.id_origin_city);
     await this.logRequestAction(
       this.dataSource.createEntityManager(),
@@ -259,17 +288,18 @@ export class RequestsService {
     );
 
     const admin = await this.userChecks.getUserById(saved.id_admin);
-
     if (!admin) {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
+    const summary = this.buildRequestSummaryHtml(saved);
     const adminEmailWarning = await this.notificationsService.notifyOrWarn({
       to: admin.email,
       subject: 'Nueva solicitud asignada',
-      text: `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
+      text: `Se te ha asignado una nueva solicitud de viaje: ${saved.title}.`,
       html: `<p>Hola ${admin.name},</p>
-<p>Se te ha asignado una nueva solicitud de viaje con ID: <strong>${saved.id}</strong>.</p>
+<p>Se te ha asignado una nueva solicitud de viaje: <strong>${saved.title}</strong>.</p>
+${summary}
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
@@ -323,14 +353,13 @@ export class RequestsService {
     });
     if (!request) throw new NotFoundException(`Request ${id} not found`);
 
-    // Validate access to request
     const id_travel_agency = req.userInfo.id_travel_agency;
 
     if (
       userId !== request.id_user &&
       userId !== request.id_admin &&
       userId !== request.id_SOI &&
-      !(id_travel_agency && id_travel_agency === request.id_travel_agency) // Needs further testing
+      !(id_travel_agency && id_travel_agency === request.id_travel_agency)
     )
       throw new UnauthorizedException('Cannot access this request.');
 
@@ -401,7 +430,6 @@ export class RequestsService {
     return list;
   }
 
-  // Fetch all requests with Pending Refund Approval status assigned to a SOI
   async findPendingRefundApproval(
     req: RequestInterface,
   ): Promise<RequestEntity[]> {
@@ -482,6 +510,13 @@ export class RequestsService {
           currency: violation.voucher?.currency,
           date: violation.voucher?.date,
         },
+        rule: {
+          expense_class: violation.policy_rule?.expense_class,
+          operator: violation.policy_rule?.operator,
+          threshold_value: violation.policy_rule?.threshold_value,
+          threshold_unit: violation.policy_rule?.threshold_unit,
+          consequence: violation.policy_rule?.consequence,
+        },
       })),
     };
   }
@@ -491,7 +526,6 @@ export class RequestsService {
     id: string,
     data: UpdateRequestDto,
   ) {
-    // Uses a transaction to ensure automatic rollback on error
     return await this.dataSource.transaction(async (manager) => {
       const repo = manager.withRepository(this.requestsRepo);
 
@@ -504,7 +538,6 @@ export class RequestsService {
       if (req.sessionInfo.id !== entity.id_user)
         throw new UnauthorizedException('Unable to edit this request.');
 
-      // A request can only be edited if it is in these states
       if (
         entity.status !== 'Pending Review' &&
         entity.status !== 'Changes Needed'
@@ -513,7 +546,6 @@ export class RequestsService {
           'Unable to edit this request beacuse of its current status.',
         );
 
-      // Validate destination cities
       if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
         throw new BadRequestException('Invalid id_origin_city.');
       }
@@ -525,7 +557,6 @@ export class RequestsService {
 
       await this.validateAirportSelection(data as CreateRequestDto);
 
-      // Update general request fields
       entity.advance_money = data.advance_money;
       entity.id_document_class = await this.getDocumentClassIdForAdvance(
         data.advance_money,
@@ -547,20 +578,17 @@ export class RequestsService {
         }
       }
 
-      // Replace all request destinations
       const destRepo = manager.getRepository(RequestsDestination);
       entity.requests_destinations = data.requests_destinations.map((d) =>
         destRepo.create({ ...d }),
       );
 
-      // Reset status to Pending Review
       entity.status = 'Pending Review';
 
       const updated = await repo.save(entity);
 
       const emailWarnings: EmailWarning[] = [];
 
-      // Log request update
       await this.logRequestAction(
         manager,
         updated.id,
@@ -569,7 +597,6 @@ export class RequestsService {
         updated.status,
       );
 
-      // Notify assigned admin
       const admin = await this.userChecks.getUserById(updated.id_admin);
       if (!admin) {
         throw new NotFoundException(
@@ -577,13 +604,14 @@ export class RequestsService {
         );
       }
 
-      // Email failures are returned as warnings so the request update can continue.
+      const summary = this.buildRequestSummaryHtml(updated);
       const adminEmailWarning = await this.notificationsService.notifyOrWarn({
         to: admin.email,
         subject: 'Solicitud actualizada',
-        text: `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
+        text: `La solicitud de viaje "${updated.title}" ha sido actualizada.`,
         html: `<p>Hola ${admin.name},</p>
-<p>La solicitud de viaje con ID: <strong>${updated.id}</strong> ha sido actualizada.</p>
+<p>La solicitud de viaje "<strong>${updated.title}</strong>" ha sido actualizada.</p>
+${summary}
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
@@ -615,12 +643,12 @@ export class RequestsService {
     if (!request) {
       throw new Error('Request not found');
     }
+
     const previousStatus = request.status;
     request.status = newStatus;
 
     const updated = await this.requestsRepo.save(request);
 
-    // Log status change
     await this.logRequestAction(
       this.dataSource.createEntityManager(),
       updated.id,
@@ -630,6 +658,26 @@ export class RequestsService {
       { fromStatus: previousStatus },
     );
 
+    // Notify request owner of status change
+    try {
+      const user = await this.userChecks.getUserById(updated.id_user);
+      if (user?.email) {
+        const summary = this.buildRequestSummaryHtml(updated);
+        await this.notificationsService.notify(
+          user.email,
+          `Tu solicitud ha sido actualizada`,
+          `El estado de tu solicitud "${updated.title}" cambió de '${previousStatus}' a '${newStatus}'.`,
+          `<p>Hola ${user.name},</p>
+<p>El estado de tu solicitud "<strong>${updated.title}</strong>" cambió de <em>${previousStatus}</em> a <em>${newStatus}</em>.</p>
+${summary}
+<p>Saludos,</p>
+<p>Equipo de Monarca</p>`,
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send status update email:', emailError);
+    }
+
     return updated;
   }
 }
@@ -637,6 +685,6 @@ export class RequestsService {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch in create() and updateRequest() to prevent email failures from aborting request operations.
+ * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch to prevent email failures from aborting request operations.
  * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
  */
