@@ -176,14 +176,44 @@ export class RequestsService {
       );
     }
 
+    // Server-side safety net for the destinations selector. The frontend
+    // already validates with Zod, so these branches normally don't fire — but
+    // when they do (Postman / direct API calls / a bug in the client) we want
+    // the toast to read in plain Spanish and, when possible, point at the
+    // exact field so react-hook-form can highlight it.
+    if (
+      !Array.isArray(data.requests_destinations) ||
+      data.requests_destinations.length === 0
+    ) {
+      throw new BadRequestException({
+        message: 'La solicitud debe incluir al menos un destino.',
+        field: 'requests_destinations',
+      });
+    }
+
+    for (const [idx, dest] of data.requests_destinations.entries()) {
+      if (
+        !dest.id_destination ||
+        (typeof dest.id_destination === 'string' &&
+          dest.id_destination.trim() === '')
+      ) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no tiene una ciudad seleccionada.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+
+      if (!(await this.destinationChecks.isValid(dest.id_destination))) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no es válido.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+    }
+
     // Validate origin city
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');
-    }
-
-    for (const rd of data.requests_destinations) {
-      if (!(await this.destinationChecks.isValid(rd.id_destination)))
-        throw new BadRequestException('Invalid id_destination.');
     }
 
     await this.validateAirportSelection(data);
@@ -639,4 +669,5 @@ export class RequestsService {
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch in create() and updateRequest() to prevent email failures from aborting request operations.
  * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
+ * - 2026-04-30 | Diego Vergara | Added Spanish, indexed destination validation in create() so the frontend toast can render the exact missing/invalid destino message and react-hook-form can highlight the offending field.
  */
