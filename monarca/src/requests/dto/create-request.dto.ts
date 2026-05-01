@@ -27,6 +27,9 @@ export class RequestDestinationtDto {
     description: 'Destination city identifier',
     example: 'destination-uuid-000',
   })
+  // Marked optional at the DTO level so the service can return user-friendly
+  // Spanish messages (with destino index and field path) for null/missing values.
+  @IsOptional()
   @IsUUID()
   id_destination: string;
 
@@ -167,6 +170,10 @@ export class CreateRequestDto {
     description: 'List of destinations for the trip request',
     type: [RequestDestinationtDto],
   })
+  // Optional at DTO level so the service can return a Spanish toast-friendly
+  // message ("La solicitud debe incluir al menos un destino.") instead of the
+  // generic class-validator array.
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true }) // Validate each object in the array
   @Type(() => RequestDestinationtDto)
@@ -178,4 +185,5 @@ Modification History:
 
 - 2026-02-26 | Diego Vergara | Fixed DTO naming typo and added full documentation compliance.
 - 2026-04-22 | Juan de Dios Gastélum Flores | Added is_round_trip optional field to CreateRequestDto.
+- 2026-04-30 | Diego Vergara | Made requests_destinations and id_destination optional at DTO level so the service can return user-friendly Spanish messages with field paths.
 */
