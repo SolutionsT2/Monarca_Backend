@@ -13,7 +13,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, EntityManager } from 'typeorm';
+import { Repository, DataSource, EntityManager, In, Not } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -450,6 +450,66 @@ export class RequestsService {
       ],
     });
     return list;
+  }
+
+  /** Statuses excluded from "viajes ya reservados" history for the travel agency. */
+  private static readonly TRAVEL_AGENT_HISTORY_EXCLUDED_STATUSES = [
+    'Pending Review',
+    'Denied',
+    'Cancelled',
+    'Changes Needed',
+    'Pending Accounting Approval',
+    'Pending Reservations',
+  ] as const;
+
+  /**
+   * Paginated list of requests assigned to the caller's travel agency that are
+   * past the reservation queue (excludes Pending Reservations and early pipeline states).
+   */
+  async findTravelAgentReservedHistory(
+    req: RequestInterface,
+    page: number,
+    limit: number,
+  ): Promise<{ data: RequestEntity[]; total: number }> {
+    const travelAgencyId = req.userInfo?.id_travel_agency;
+    if (!travelAgencyId) {
+      throw new UnauthorizedException('Travel agency context required.');
+    }
+
+    const safePage = Math.max(1, Math.floor(page) || 1);
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(limit) || 10));
+
+    const excluded = [
+      ...RequestsService.TRAVEL_AGENT_HISTORY_EXCLUDED_STATUSES,
+    ];
+    const where = {
+      id_travel_agency: travelAgencyId,
+      status: Not(In(excluded)),
+    };
+
+    const total = await this.requestsRepo.count({ where });
+
+    const data = await this.requestsRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      relations: [
+        'requests_destinations',
+        'requests_destinations.destination',
+        'requests_destinations.airport',
+        'revisions',
+        'user',
+        'admin',
+        'SOI',
+        'destination',
+        'origin_airport',
+        'travelAgency',
+        'travelAgency.users',
+      ],
+    });
+
+    return { data, total };
   }
 
   async findPolicyViolationsByRequest(req: RequestInterface, id: string) {

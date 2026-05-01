@@ -18,6 +18,7 @@ import {
   Request,
   UseGuards,
   Put,
+  Query,
 } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
@@ -67,6 +68,17 @@ export class RequestsController {
   @Get('to-reserve')
   async findAssignedTA(@Request() req: RequestInterface) {
     return this.requestsService.findByTA(req);
+  }
+
+  @Get('travel-agent/history')
+  async findTravelAgentReservedHistory(
+    @Request() req: RequestInterface,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const p = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const l = Math.min(50, Math.max(1, parseInt(limit ?? '10', 10) || 10));
+    return this.requestsService.findTravelAgentReservedHistory(req, p, l);
   }
 
   @Get('all')

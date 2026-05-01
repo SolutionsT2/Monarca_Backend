@@ -16,6 +16,7 @@ import {
   Request,
   UseInterceptors,
   UploadedFiles,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import {
@@ -42,13 +43,18 @@ export class ReservationsController {
     },
     @Body() createReservationDto: CreateReservationDto,
   ) {
+    const baseDownloadLink = process.env.DOWNLOAD_LINK?.replace(/\/+$/, '');
+    if (!baseDownloadLink) {
+      throw new InternalServerErrorException('DOWNLOAD_LINK not configured');
+    }
+
     // flatten both arrays into one list
     const uploaded = [...(files.file || [])];
 
     const fileMap: Record<string, string> = {};
 
     for (const file of uploaded) {
-      const publicUrl = `${process.env.DOWNLOAD_LINK}/files/reservations/${file.filename}`;
+      const publicUrl = `${baseDownloadLink}/files/reservations/${file.filename}`;
       if (file.fieldname === 'file') {
         fileMap.link = publicUrl;
       }
