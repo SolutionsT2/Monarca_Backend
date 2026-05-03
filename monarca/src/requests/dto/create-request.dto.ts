@@ -16,6 +16,7 @@ import {
   IsInt,
   IsDate,
   ValidateNested,
+  IsNumber,
 } from 'class-validator';
 
 /**
@@ -138,9 +139,9 @@ export class CreateRequestDto {
 
   @ApiProperty({
     description: 'Money asked for in advance for the trip',
-    example: 10000,
+    example: 10000.98,
   })
-  @IsInt()
+  @IsNumber()
   advance_money: number;
 
   @ApiProperty({
