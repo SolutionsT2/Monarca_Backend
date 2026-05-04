@@ -61,7 +61,7 @@ export class Request {
   @Column()
   motive: string;
 
-  @Column()
+  @Column({ name: 'advance_moeny', type: 'float' })
   advance_money: number;
 
   @Column({ default: 'Pending Review' })
