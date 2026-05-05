@@ -16,6 +16,7 @@ import { Request } from 'src/requests/entities/request.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
+import { BankAccount } from 'src/bank-accounts/entity/bank-account.entity';
 
 @Entity({ name: 'companies' })
 export class Company {
@@ -48,6 +49,9 @@ export class Company {
 
   @OneToMany(() => AccountingAccount, (accountingAccount) => accountingAccount.company)
   accountingAccounts: AccountingAccount[];
+
+  @OneToMany(() => BankAccount, (bankAccount) => bankAccount.company)
+  bankAccounts: BankAccount[];
 }
 
 /*

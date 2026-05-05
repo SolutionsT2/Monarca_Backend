@@ -14,6 +14,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Company } from 'src/companies/entity/company.entity';
+import { BankAccount } from 'src/bank-accounts/entity/bank-account.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 
 @Entity({ name: 'accounting_accounts' })
@@ -33,6 +34,9 @@ export class AccountingAccount {
   @Column({ name: 'id_company', type: 'uuid' })
   id_company: string;
 
+  @Column({ name: 'id_bank_account', type: 'uuid', nullable: true })
+  id_bank_account?: string | null;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
@@ -45,6 +49,13 @@ export class AccountingAccount {
   @ManyToOne(() => Company, (company) => company.accountingAccounts)
   @JoinColumn({ name: 'id_company' })
   company: Company;
+
+  @ManyToOne(() => BankAccount, (bankAccount) => bankAccount.accountingAccounts, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'id_bank_account' })
+  bankAccount?: BankAccount;
 }
 
 /*

@@ -23,6 +23,7 @@ import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Permission } from 'src/roles/entity/permissions.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
 import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
+import { BankAccount } from 'src/bank-accounts/entity/bank-account.entity';
 import { Policy } from 'src/policy-engine/entities/policy.entity';
 import { PolicyRule } from 'src/policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
@@ -66,6 +67,7 @@ export class SeedService {
         @InjectRepository(PolicyViolation) private readonly policyViolationRepo: Repository<PolicyViolation>,
         @InjectRepository(Delegation) private readonly delegationRepo: Repository<Delegation>,
         @InjectRepository(Company) private readonly companyRepo: Repository<Company>,
+        @InjectRepository(BankAccount) private readonly bankAccountRepo: Repository<BankAccount>,
         @InjectRepository(AccountingAccount) private readonly accountingAccountRepo: Repository<AccountingAccount>,
     ) {}
 
@@ -73,6 +75,7 @@ export class SeedService {
         const seedData: SeedData[] = [
             { repo: this.documentClassRepo, file: 'document-class.json', entityName: 'DocumentClass' },
             { repo: this.companyRepo, file: 'companies.json', entityName: 'Company' },
+            { repo: this.bankAccountRepo, file: 'bank-accounts.json', entityName: 'BankAccount' },
             { repo: this.accountingAccountRepo, file: 'accounting-accounts.json', entityName: 'AccountingAccount' },
             { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
             { repo: this.departmentRepo, file: 'departments.json', entityName: 'Department' },
@@ -182,6 +185,7 @@ export class SeedService {
                         requiresCostCenter:
                             entity.requires_cost_center ?? entity.requiresCostCenter ?? false,
                         id_company: entity.id_company ?? entity.idCompany,
+                        id_bank_account: entity.id_bank_account ?? entity.idBankAccount,
                     });
 
                     await this.accountingAccountRepo.save(accountingAccount);
@@ -231,6 +235,7 @@ export class SeedService {
                 'permissions',
                 'departments',
                 'companies',
+                'bank_accounts',
                 'cost_centers'
             ];
 

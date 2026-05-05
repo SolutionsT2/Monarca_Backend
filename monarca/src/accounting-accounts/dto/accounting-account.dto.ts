@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import { PartialType } from '@nestjs/swagger';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { Transform, Expose } from 'class-transformer';
 
 export class CreateAccountingAccountDto {
   @ApiProperty({ example: '1002' })
@@ -17,4 +19,10 @@ export class CreateAccountingAccountDto {
   @IsOptional()
   @IsBoolean()
   requiresCostCenter?: boolean;
+
+  @ApiProperty({ example: '11111111-1111-1111-1111-111111111111' })
+  @IsUUID()
+  idBankAccount: string;
 }
+
+export class UpdateAccountingAccountDto extends PartialType(CreateAccountingAccountDto) {}
