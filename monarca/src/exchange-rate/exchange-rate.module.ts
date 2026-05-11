@@ -16,4 +16,3 @@ import { ExchangeRateController } from './exchange-rate.controller';
   exports: [ExchangeRateService],
 })
 export class ExchangeRateModule {}
-

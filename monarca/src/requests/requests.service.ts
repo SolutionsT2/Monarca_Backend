@@ -13,7 +13,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, EntityManager } from 'typeorm';
+import { Repository, DataSource, EntityManager, In, Not } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -208,13 +208,78 @@ export class RequestsService {
       );
     }
 
-    if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
-      throw new BadRequestException('Invalid id_origin_city.');
+    // Server-side safety net for the destinations selector. The frontend
+    // already validates with Zod, so these branches normally don't fire — but
+    // when they do (Postman / direct API calls / a bug in the client) we want
+    // the toast to read in plain Spanish and, when possible, point at the
+    // exact field so react-hook-form can highlight it.
+    if (
+      !Array.isArray(data.requests_destinations) ||
+      data.requests_destinations.length === 0
+    ) {
+      throw new BadRequestException({
+        message: 'La solicitud debe incluir al menos un destino.',
+        field: 'requests_destinations',
+      });
     }
 
-    for (const rd of data.requests_destinations) {
-      if (!(await this.destinationChecks.isValid(rd.id_destination)))
-        throw new BadRequestException('Invalid id_destination.');
+    for (const [idx, dest] of data.requests_destinations.entries()) {
+      if (
+        !dest.id_destination ||
+        (typeof dest.id_destination === 'string' &&
+          dest.id_destination.trim() === '')
+      ) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no tiene una ciudad seleccionada.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+
+      if (!(await this.destinationChecks.isValid(dest.id_destination))) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no es válido.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+    }
+
+    // Server-side safety net for the destinations selector. The frontend
+    // already validates with Zod, so these branches normally don't fire — but
+    // when they do (Postman / direct API calls / a bug in the client) we want
+    // the toast to read in plain Spanish and, when possible, point at the
+    // exact field so react-hook-form can highlight it.
+    if (
+      !Array.isArray(data.requests_destinations) ||
+      data.requests_destinations.length === 0
+    ) {
+      throw new BadRequestException({
+        message: 'La solicitud debe incluir al menos un destino.',
+        field: 'requests_destinations',
+      });
+    }
+
+    for (const [idx, dest] of data.requests_destinations.entries()) {
+      if (
+        !dest.id_destination ||
+        (typeof dest.id_destination === 'string' &&
+          dest.id_destination.trim() === '')
+      ) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no tiene una ciudad seleccionada.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+
+      if (!(await this.destinationChecks.isValid(dest.id_destination))) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no es válido.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+    }
+
+    if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
+      throw new BadRequestException('Invalid id_origin_city.');
     }
 
     await this.validateAirportSelection(data);
@@ -480,6 +545,66 @@ ${summary}
     return list;
   }
 
+  /** Statuses excluded from "viajes ya reservados" history for the travel agency. */
+  private static readonly TRAVEL_AGENT_HISTORY_EXCLUDED_STATUSES = [
+    'Pending Review',
+    'Denied',
+    'Cancelled',
+    'Changes Needed',
+    'Pending Accounting Approval',
+    'Pending Reservations',
+  ] as const;
+
+  /**
+   * Paginated list of requests assigned to the caller's travel agency that are
+   * past the reservation queue (excludes Pending Reservations and early pipeline states).
+   */
+  async findTravelAgentReservedHistory(
+    req: RequestInterface,
+    page: number,
+    limit: number,
+  ): Promise<{ data: RequestEntity[]; total: number }> {
+    const travelAgencyId = req.userInfo?.id_travel_agency;
+    if (!travelAgencyId) {
+      throw new UnauthorizedException('Travel agency context required.');
+    }
+
+    const safePage = Math.max(1, Math.floor(page) || 1);
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(limit) || 10));
+
+    const excluded = [
+      ...RequestsService.TRAVEL_AGENT_HISTORY_EXCLUDED_STATUSES,
+    ];
+    const where = {
+      id_travel_agency: travelAgencyId,
+      status: Not(In(excluded)),
+    };
+
+    const total = await this.requestsRepo.count({ where });
+
+    const data = await this.requestsRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      relations: [
+        'requests_destinations',
+        'requests_destinations.destination',
+        'requests_destinations.airport',
+        'revisions',
+        'user',
+        'admin',
+        'SOI',
+        'destination',
+        'origin_airport',
+        'travelAgency',
+        'travelAgency.users',
+      ],
+    });
+
+    return { data, total };
+  }
+
   async findPolicyViolationsByRequest(req: RequestInterface, id: string) {
     await this.findOne(req, id);
 
@@ -687,4 +812,5 @@ ${summary}
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch to prevent email failures from aborting request operations.
  * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
+ * - 2026-04-30 | Diego Vergara | Added Spanish, indexed destination validation in create() so the frontend toast can render the exact missing/invalid destino message and react-hook-form can highlight the offending field.
  */

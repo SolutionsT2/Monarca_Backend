@@ -51,6 +51,8 @@ import { PolicyRule } from './policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from './policy-engine/entities/policy-violation.entity';
 import { PolicyEngineModule } from './policy-engine/policy-engine.module';
 import { TravelIntegrationsModule } from './travel-integrations/travel-integrations.module';
+import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
+import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 import { PolicyExportsModule } from './policy-exports/policy-exports.module';
 import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
 import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
@@ -161,6 +163,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       PolicyRule,
       PolicyViolation,
       Delegation,
+      ExchangeRate,
       // Ditta Consulting
       Company,
       AccountingAccount,

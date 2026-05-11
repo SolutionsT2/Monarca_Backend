@@ -284,7 +284,7 @@
     "id_policy": "0f2ed8b1-1e7e-4c7b-8d65-4dd204d6d6a8",
     "expense_class": "TODAS",
     "operator": "DAYS_EXCEEDED",
-    "threshold_value": 28,
+    "threshold_value": 5,
     "threshold_unit": "DAYS",
     "consequence": "WARNING",
     "is_active": true

@@ -62,7 +62,7 @@ export class VouchersController {
     },
     @Body() dto: CreateVoucherDto,
   ) {
-    const baseDownloadLink = process.env.DOWNLOAD_LINK;
+    const baseDownloadLink = process.env.DOWNLOAD_LINK?.replace(/\/+$/, '');
     const pathToVocuherDownload = '/files/vouchers/';
     if (!baseDownloadLink) {
       throw new InternalServerErrorException('DOWNLOAD_LINK not configured');

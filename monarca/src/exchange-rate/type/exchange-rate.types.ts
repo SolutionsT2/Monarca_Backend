@@ -1,4 +1,3 @@
-
 // esto hace que el DTO de Banxico sea más fácil de manejar y entender dentro del sistema, 
 export interface BanxicoRateDto {
   fecha: string;
