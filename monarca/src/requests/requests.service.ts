@@ -243,41 +243,6 @@ export class RequestsService {
       }
     }
 
-    // Server-side safety net for the destinations selector. The frontend
-    // already validates with Zod, so these branches normally don't fire — but
-    // when they do (Postman / direct API calls / a bug in the client) we want
-    // the toast to read in plain Spanish and, when possible, point at the
-    // exact field so react-hook-form can highlight it.
-    if (
-      !Array.isArray(data.requests_destinations) ||
-      data.requests_destinations.length === 0
-    ) {
-      throw new BadRequestException({
-        message: 'La solicitud debe incluir al menos un destino.',
-        field: 'requests_destinations',
-      });
-    }
-
-    for (const [idx, dest] of data.requests_destinations.entries()) {
-      if (
-        !dest.id_destination ||
-        (typeof dest.id_destination === 'string' &&
-          dest.id_destination.trim() === '')
-      ) {
-        throw new BadRequestException({
-          message: `El destino #${idx + 1} no tiene una ciudad seleccionada.`,
-          field: `requests_destinations.${idx}.id_destination`,
-        });
-      }
-
-      if (!(await this.destinationChecks.isValid(dest.id_destination))) {
-        throw new BadRequestException({
-          message: `El destino #${idx + 1} no es válido.`,
-          field: `requests_destinations.${idx}.id_destination`,
-        });
-      }
-    }
-
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');
     }
