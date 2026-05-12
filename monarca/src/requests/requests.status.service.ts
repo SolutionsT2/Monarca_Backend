@@ -26,7 +26,6 @@ import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 import { Department } from 'src/departments/entity/department.entity';
 import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
-import { EmailActionService } from './email-action.service';
 
 interface VoucherPolicyPreviewInput {
   id_request?: string;
@@ -57,7 +56,6 @@ export class RequestsStatusService {
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
     private readonly policyEngineService: PolicyEngineService,
-    private readonly emailActionService: EmailActionService,
   ) {}
 
   private async getVoucherDocumentClassId(): Promise<string> {
@@ -224,7 +222,13 @@ export class RequestsStatusService {
     const id_travel_agency = data.id_travel_agency;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['user', 'SOI', 'requests_destinations', 'requests_destinations.destination'],
+      relations: [
+        'user',
+        'SOI',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+      ],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -247,92 +251,41 @@ export class RequestsStatusService {
 
     const emailWarnings: EmailWarning[] = [];
 
-    const requesterEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.user.email,
-      subject: 'Solicitud aprobada — pendiente de contabilidad',
-      text: `Tu solicitud "${request.title}" fue aprobada por tu aprobador y está pendiente de revisión de contabilidad (SOI) antes de las reservaciones.`,
-      html: `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud "<strong>${request.title}</strong>" fue aprobada y está pendiente de revisión contable antes de que la agencia de viajes realice las reservaciones.</p>
+    const detailedRequest = await this.requestsRepo.findOne({
+      where: { id: id_request },
+      relations: [
+        'user',
+        'SOI',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'travelAgency',
+      ],
+    });
+    const summary = this.requestsService.buildRequestSummaryHtml(
+      detailedRequest || request,
+    );
+    const loginUrl = this.requestsService.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
+
+    const soiEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.SOI.email,
+      subject: 'Solicitud pendiente de aprobacion contable',
+      text: `Tienes la solicitud "${request.id}" por aprobar. Ingresa a la plataforma para revisarla.`,
+      html: `<p>Hola ${request.SOI.name},</p>
+<p>Tienes la solicitud <strong>${request.id}</strong> por aprobar.</p>
+${summary}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       failureMessage:
-        'La solicitud fue aprobada, pero no se pudo enviar el correo de notificación al solicitante.',
+        'La solicitud fue aprobada, pero no se pudo enviar el correo de notificacion al SOI.',
     });
 
-    if (requesterEmailWarning) {
-      emailWarnings.push(requesterEmailWarning);
-    }
-
-    // Generate SOI action token and send detailed email with approval button
-    try {
-      const soiToken = this.emailActionService.generateActionToken({
-        requestId: id_request,
-        action: 'soi-approve',
-        userId: request.id_SOI,
-      });
-      const soiActionUrl = `${process.env.BACKEND_URL || 'http://localhost:3000'}/requests/email-action?token=${soiToken}`;
-
-      const destinosHtml = (request.requests_destinations || [])
-        .sort((a, b) => a.destination_order - b.destination_order)
-        .map((d, i) => {
-          const lugar = d.destination?.city || d.id_destination;
-          const salida = new Date(d.departure_date).toLocaleDateString('es-MX');
-          const llegada = new Date(d.arrival_date).toLocaleDateString('es-MX');
-          const hotel = d.is_hotel_required ? 'Si' : 'No';
-          const avion = d.is_plane_required ? 'Si' : 'No';
-          return `<tr style="background:${i % 2 === 0 ? '#f9f9f9' : '#fff'}">
-            <td style="padding:8px;border:1px solid #ddd;">${lugar}</td>
-            <td style="padding:8px;border:1px solid #ddd;">${salida}</td>
-            <td style="padding:8px;border:1px solid #ddd;">${llegada}</td>
-            <td style="padding:8px;border:1px solid #ddd;text-align:center;">${d.stay_days} días</td>
-            <td style="padding:8px;border:1px solid #ddd;text-align:center;">${hotel}</td>
-            <td style="padding:8px;border:1px solid #ddd;text-align:center;">${avion}</td>
-          </tr>`;
-        })
-        .join('');
-
-      await this.notificationsService.notify(
-        request.SOI.email,
-        'Solicitud pendiente de tu aprobación',
-        `La solicitud "${request.title}" fue aprobada por el aprobador y requiere tu revisión antes de las reservaciones.`,
-        `<p>Hola ${request.SOI.name},</p>
-<p>La solicitud "<strong>${request.title}</strong>" está pendiente de tu aprobación contable.</p>
-
-<table style="border-collapse:collapse;width:100%;margin:16px 0;">
-  <tr style="background:#1a73e8;color:#fff;">
-    <th style="padding:8px;text-align:left;">Campo</th>
-    <th style="padding:8px;text-align:left;">Detalle</th>
-  </tr>
-  <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Solicitante</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.user.name}</td></tr>
-  <tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Motivo</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.motive}</td></tr>
-  <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Prioridad</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.priority}</td></tr>
-  <tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Anticipo</strong></td><td style="padding:8px;border:1px solid #ddd;">$${request.advance_money} MXN</td></tr>
-  ${request.requirements ? `<tr><td style="padding:8px;border:1px solid #ddd;"><strong>Requerimientos</strong></td><td style="padding:8px;border:1px solid #ddd;">${request.requirements}</td></tr>` : ''}
-</table>
-
-<h3 style="margin-top:24px;">Destinos</h3>
-<table style="border-collapse:collapse;width:100%;">
-  <tr style="background:#1a73e8;color:#fff;">
-    <th style="padding:8px;">Destino</th>
-    <th style="padding:8px;">Salida</th>
-    <th style="padding:8px;">Llegada</th>
-    <th style="padding:8px;">Días</th>
-    <th style="padding:8px;">Hotel</th>
-    <th style="padding:8px;">Avión</th>
-  </tr>
-  ${destinosHtml}
-</table>
-
-<p style="margin-top:24px;">
-  <a href="${soiActionUrl}" style="background:#1a73e8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
-    Aprobar solicitud
-  </a>
-</p>
-<p style="color:#888;font-size:12px;">Este enlace expira en 24 horas.</p>
-<p>Saludos,<br>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send approval notification to SOI:', emailError);
+    if (soiEmailWarning) {
+      emailWarnings.push(soiEmailWarning);
     }
 
     const updated = await this.requestsService.updateStatus(
@@ -347,7 +300,13 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['user'],
+      relations: [
+        'user',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'travelAgency',
+      ],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -361,21 +320,6 @@ export class RequestsStatusService {
       );
 
     const emailWarnings: EmailWarning[] = [];
-
-    const userEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.user.email,
-      subject: 'Solicitud de viaje denegada',
-      text: `Tu solicitud de viaje con el título "${request.title}" ha sido denegada.`,
-      html: `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido denegada.</p>
-<p>Por favor, revisa los detalles de tu solicitud y considera realizar los cambios necesarios.</p>
-<p>Saludos,</p>
-<p>Equipo de Monarca</p>`,
-      failureMessage:
-        'La solicitud fue denegada, pero no se pudo enviar el correo de notificación al solicitante.',
-    });
-
-    if (userEmailWarning) emailWarnings.push(userEmailWarning);
 
     const updated = await this.requestsService.updateStatus(id_request, 'Denied');
     return Object.assign(updated, { emailWarnings });
@@ -403,21 +347,6 @@ export class RequestsStatusService {
 
     const emailWarnings: EmailWarning[] = [];
 
-    const userEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.user.email,
-      subject: 'Solicitud de viaje cancelada',
-      text: `Tu solicitud de viaje con el título "${request.title}" ha sido cancelada.`,
-      html: `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido cancelada.</p>
-<p>Si tienes alguna pregunta o necesitas más información, no dudes en contactarnos.</p>
-<p>Saludos,</p>
-<p>Equipo de Monarca</p>`,
-      failureMessage:
-        'La solicitud fue cancelada, pero no se pudo enviar el correo de notificación al solicitante.',
-    });
-
-    if (userEmailWarning) emailWarnings.push(userEmailWarning);
-
     const updated = await this.requestsService.updateStatus(id_request, 'Cancelled');
     return Object.assign(updated, { emailWarnings });
   }
@@ -427,7 +356,13 @@ export class RequestsStatusService {
 
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['user'],
+      relations: [
+        'user',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'travelAgency',
+      ],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -442,19 +377,29 @@ export class RequestsStatusService {
 
     const emailWarnings: EmailWarning[] = [];
 
-    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+    const summary = this.requestsService.buildRequestSummaryHtml(request);
+    const loginUrl = this.requestsService.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
+
+    const requesterEmailWarning = await this.notificationsService.notifyOrWarn({
       to: request.user.email,
-      subject: 'Reservaciones registradas',
-      text: `La solicitud "${request.title}" tiene las reservaciones listas. Puedes continuar con el siguiente paso en el sistema.`,
+      subject: 'Solicitud lista para comprobacion de gastos',
+      text: `Ya puedes subir tus comprobantes para la solicitud "${request.id}". Ingresa a la plataforma para continuar.`,
       html: `<p>Hola ${request.user.name},</p>
-<p>La solicitud "<strong>${request.title}</strong>" tiene las reservaciones registradas por la agencia de viajes.</p>
+<p>Tu solicitud <strong>${request.id}</strong> ya cuenta con reservaciones. Puedes continuar con la carga de comprobantes.</p>
+${summary}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       failureMessage:
         'Las reservaciones fueron registradas, pero no se pudo enviar el correo de notificación al solicitante.',
     });
 
-    if (userEmailWarning) emailWarnings.push(userEmailWarning);
+    if (requesterEmailWarning) {
+      emailWarnings.push(requesterEmailWarning);
+    }
 
     const updated = await this.requestsService.updateStatus(id_request, 'In Progress');
     return Object.assign(updated, { emailWarnings });
@@ -485,19 +430,11 @@ export class RequestsStatusService {
 
     const emailWarnings: EmailWarning[] = [];
 
-    const userEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.user.email,
-      subject: 'Contabilidad aprobada — reservas pendientes',
-      text: `Tu solicitud "${request.title}" fue aprobada contablemente. La agencia de viajes realizará las reservaciones.`,
-      html: `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud "<strong>${request.title}</strong>" fue aprobada en contabilidad. La agencia asignada procederá con las reservaciones.</p>
-<p>Saludos,</p>
-<p>Equipo de Monarca</p>`,
-      failureMessage:
-        'La aprobación contable fue registrada, pero no se pudo enviar el correo de notificación al solicitante.',
-    });
-
-    if (userEmailWarning) emailWarnings.push(userEmailWarning);
+    const summary = this.requestsService.buildRequestSummaryHtml(request);
+    const loginUrl = this.requestsService.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
 
     await this.vouchersRepo.delete({ id_request });
 
@@ -508,10 +445,12 @@ export class RequestsStatusService {
     for (const agent of agents) {
       const agentEmailWarning = await this.notificationsService.notifyOrWarn({
         to: agent.email,
-        subject: 'Puedes iniciar las reservaciones',
-        text: `La solicitud "${request.title}" está lista para que registres hotel/vuelo según corresponda.`,
+        subject: 'Solicitud lista para reservaciones',
+        text: `Tienes la solicitud "${request.id}" lista para registrar vuelos y hospedaje. Ingresa a la plataforma para continuar.`,
         html: `<p>Hola ${agent.name},</p>
-<p>La solicitud "<strong>${request.title}</strong>" ya cuenta con aprobación contable. Puedes proceder con las reservaciones.</p>
+<p>Tienes la solicitud <strong>${request.id}</strong> lista para registrar vuelos y hospedaje.</p>
+${summary}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
         failureMessage: `La aprobación contable fue registrada, pero no se pudo enviar el correo de notificación al agente ${agent.email}.`,
@@ -532,7 +471,15 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['admin', 'requests_destinations', 'user', 'user.department'],
+      relations: [
+        'admin',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'user',
+        'user.department',
+        'destination',
+        'travelAgency',
+      ],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -659,13 +606,20 @@ export class RequestsStatusService {
 
     const emailWarnings: EmailWarning[] = [];
 
+    const summaryEmail = this.requestsService.buildRequestSummaryHtml(request);
+    const loginUrl = this.requestsService.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
+
     const adminEmailWarning = await this.notificationsService.notifyOrWarn({
       to: request.admin.email,
-      subject: 'Solicitud de viaje pendiente de aprobación de comprobantes',
-      text: `La solicitud de viaje con el título "${request.title}" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.`,
+      subject: 'Solicitud pendiente de aprobacion de comprobantes',
+      text: `Tienes la solicitud "${request.id}" lista para aprobar comprobantes. Ingresa a la plataforma para continuar.`,
       html: `<p>Hola ${request.admin.name},</p>
-<p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.</p>
-<p>Por favor, revisa los comprobantes cargados y procede con la aprobación.</p>
+<p>Tienes la solicitud <strong>${request.id}</strong> lista para aprobar comprobantes.</p>
+${summaryEmail}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       failureMessage:
@@ -686,7 +640,14 @@ export class RequestsStatusService {
     const id_user = req.sessionInfo.id;
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
-      relations: ['user', 'SOI'],
+      relations: [
+        'user',
+        'SOI',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'travelAgency',
+      ],
     });
 
     if (!request) throw new NotFoundException('Invalid request id');
@@ -701,28 +662,20 @@ export class RequestsStatusService {
 
     const emailWarnings: EmailWarning[] = [];
 
-    const userEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.user.email,
-      subject: 'Comprobación de gastos del viaje completada',
-      text: `Tu comprobación de gastos del viaje con el título "${request.title}" ha sido completada y está pendiente de aprobación de reembolso.`,
-      html: `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de aprobación de reembolso.</p>
-<p>Por favor, espera a que se realice la aprobación de reembolso.</p>
-<p>Saludos,</p>
-<p>Equipo de Monarca</p>`,
-      failureMessage:
-        'La comprobación fue aprobada, pero no se pudo enviar el correo de notificación al solicitante.',
-    });
-
-    if (userEmailWarning) emailWarnings.push(userEmailWarning);
+    const summaryEmail = this.requestsService.buildRequestSummaryHtml(request);
+    const loginUrl = this.requestsService.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
 
     const soiEmailWarning = await this.notificationsService.notifyOrWarn({
       to: request.SOI.email,
-      subject: 'Solicitud de viaje pendiente de aprobación de reembolso',
-      text: `La solicitud de viaje con el título "${request.title}" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.`,
+      subject: 'Solicitud pendiente de registro de reembolso',
+      text: `Tienes la solicitud "${request.id}" lista para registrar el reembolso. Ingresa a la plataforma para continuar.`,
       html: `<p>Hola ${request.SOI.name},</p>
-<p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.</p>
-<p>Por favor, revisa los detalles de la solicitud y procede con la aprobación de reembolso.</p>
+<p>Tienes la solicitud <strong>${request.id}</strong> lista para registrar el reembolso.</p>
+${summaryEmail}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       failureMessage:
@@ -757,22 +710,6 @@ export class RequestsStatusService {
       );
 
     const emailWarnings: EmailWarning[] = [];
-
-    const userEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.user.email,
-      subject: 'Solicitud de viaje completada',
-      text: `Tu solicitud de viaje con el título "${request.title}" ha sido completada y registrada.`,
-      html: `<p>Hola ${request.user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido completada y registrada.</p>
-<p>En breve se realizará su reembolso si aplica.</p>
-<p>Gracias por utilizar Monarca para gestionar tus viajes.</p>
-<p>Saludos,</p>
-<p>Equipo de Monarca</p>`,
-      failureMessage:
-        'La solicitud fue completada, pero no se pudo enviar el correo de notificación al solicitante.',
-    });
-
-    if (userEmailWarning) emailWarnings.push(userEmailWarning);
 
     const updated = await this.requestsService.updateStatus(id_request, 'Completed');
     return Object.assign(updated, { emailWarnings });

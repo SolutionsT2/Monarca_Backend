@@ -47,7 +47,21 @@ export class RequestsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  private buildRequestSummaryHtml(request: RequestEntity): string {
+  public buildRequestSummaryHtml(request: RequestEntity): string {
+    const requesterName = request.user
+      ? `${request.user.name} ${request.user.lastName || ''}`.trim()
+      : 'N/A';
+    const originCity = request.destination?.city || request.id_origin_city || 'N/A';
+    const travelAgencyName = request.travelAgency?.name
+      ? request.travelAgency.name
+      : request.id_travel_agency
+      ? 'Agencia asignada'
+      : 'Sin asignar';
+    const createdAt = request.createdAt
+      ? new Date(request.createdAt).toLocaleDateString('es-MX')
+      : 'N/A';
+    const destinationsHtml = this.buildDestinationsSummaryHtml(request);
+
     return `
       <table style="border-collapse:collapse;width:100%;margin:16px 0;">
         <tr style="background:#1a73e8;color:#fff;">
@@ -55,28 +69,115 @@ export class RequestsService {
           <th style="padding:8px;text-align:left;">Detalle</th>
         </tr>
         <tr>
-          <td style="padding:8px;border:1px solid #ddd;"><strong>Título</strong></td>
-          <td style="padding:8px;border:1px solid #ddd;">${request.title}</td>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>ID solicitud</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${request.id}</td>
         </tr>
         <tr style="background:#f9f9f9;">
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Solicitante</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${requesterName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Ciudad de origen</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${originCity}</td>
+        </tr>
+        <tr style="background:#f9f9f9;">
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Agencia de viaje</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${travelAgencyName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Fecha de creacion</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${createdAt}</td>
+        </tr>
+        <tr style="background:#f9f9f9;">
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Titulo</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${request.title}</td>
+        </tr>
+        <tr>
           <td style="padding:8px;border:1px solid #ddd;"><strong>Motivo</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">${request.motive}</td>
         </tr>
-        <tr>
+        <tr style="background:#f9f9f9;">
           <td style="padding:8px;border:1px solid #ddd;"><strong>Prioridad</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">${request.priority}</td>
         </tr>
-        <tr style="background:#f9f9f9;">
+        <tr>
           <td style="padding:8px;border:1px solid #ddd;"><strong>Anticipo</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">$${request.advance_money} MXN</td>
         </tr>
         ${request.requirements ? `
-        <tr>
+        <tr style="background:#f9f9f9;">
           <td style="padding:8px;border:1px solid #ddd;"><strong>Requerimientos</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">${request.requirements}</td>
         </tr>` : ''}
       </table>
+      ${destinationsHtml}
     `;
+  }
+
+  private buildDestinationsSummaryHtml(request: RequestEntity): string {
+    const destinations = request.requests_destinations || [];
+    if (destinations.length === 0) {
+      return '<p><strong>Destinos:</strong> N/A</p>';
+    }
+
+    const rows = destinations
+      .sort((a, b) => (a.destination_order || 0) - (b.destination_order || 0))
+      .map((destination, index) => {
+        const cityName = destination.destination?.city || destination.id_destination;
+        const departure = this.formatDate(destination.departure_date);
+        const arrival = this.formatDate(destination.arrival_date);
+        const hotel = destination.is_hotel_required ? 'Si' : 'No';
+        const airplane = destination.is_plane_required ? 'Si' : 'No';
+        return `<tr style="background:${index % 2 === 0 ? '#f9f9f9' : '#fff'}">
+          <td style="padding:8px;border:1px solid #ddd;">${cityName}</td>
+          <td style="padding:8px;border:1px solid #ddd;">${departure}</td>
+          <td style="padding:8px;border:1px solid #ddd;">${arrival}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:center;">${destination.stay_days || 0}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:center;">${hotel}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:center;">${airplane}</td>
+        </tr>`;
+      })
+      .join('');
+
+    return `
+      <h3 style="margin-top:24px;">Destinos</h3>
+      <table style="border-collapse:collapse;width:100%;">
+        <tr style="background:#1a73e8;color:#fff;">
+          <th style="padding:8px;">Destino</th>
+          <th style="padding:8px;">Salida</th>
+          <th style="padding:8px;">Llegada</th>
+          <th style="padding:8px;">Dias</th>
+          <th style="padding:8px;">Hotel</th>
+          <th style="padding:8px;">Avion</th>
+        </tr>
+        ${rows}
+      </table>
+    `;
+  }
+
+  private formatDate(value?: Date | string | null): string {
+    if (!value) {
+      return 'N/A';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return 'N/A';
+    }
+
+    return parsed.toLocaleDateString('es-MX');
+  }
+
+  public getLoginUrl(): string {
+    const baseUrl = (process.env.FRONTEND_URL || '').trim();
+    if (!baseUrl) {
+      return '';
+    }
+
+    const normalized = baseUrl.endsWith('/')
+      ? baseUrl.slice(0, -1)
+      : baseUrl;
+    return `${normalized}/dashboard`;
   }
 
   private async getCityName(id: string): Promise<string> {
@@ -317,20 +418,54 @@ export class RequestsService {
       },
     );
 
+    const detailedRequest = await this.requestsRepo.findOne({
+      where: { id: saved.id },
+      relations: [
+        'user',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'travelAgency',
+      ],
+    });
+    const summary = this.buildRequestSummaryHtml(detailedRequest || saved);
+    const loginUrl = this.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
+    const requesterEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: req.userInfo.email,
+      subject: 'Solicitud enviada a revision',
+      text: `Tu solicitud "${saved.title}" fue enviada al aprobador para su revision.`,
+      html: `<p>Hola ${req.userInfo.name},</p>
+<p>Tu solicitud "<strong>${saved.title}</strong>" fue enviada al aprobador para revision.</p>
+${summary}
+${loginLine}
+<p>Te avisaremos cuando cambie el estatus.</p>
+<p>Saludos,</p>
+<p>Equipo de Monarca</p>`,
+      failureMessage:
+        'La solicitud fue creada, pero no se pudo enviar el correo de notificacion al solicitante.',
+    });
+
+    if (requesterEmailWarning) {
+      emailWarnings.push(requesterEmailWarning);
+    }
+
     const admin = await this.userChecks.getUserById(saved.id_admin);
     if (!admin) {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
-    const summary = this.buildRequestSummaryHtml(saved);
     const adminEmailWarning = await this.notificationsService.notifyOrWarn({
       to: admin.email,
-      subject: 'Nueva solicitud asignada',
-      text: `Se te ha asignado una nueva solicitud de viaje: ${saved.title}.`,
+      subject: 'Solicitud pendiente de aprobacion',
+      text: `Tienes una nueva solicitud de viaje pendiente de aprobacion: ${saved.title}.`,
       html: `<p>Hola ${admin.name},</p>
-<p>Se te ha asignado una nueva solicitud de viaje: <strong>${saved.title}</strong>.</p>
+<p>Tienes una nueva solicitud de viaje pendiente de aprobacion: <strong>${saved.title}</strong>.</p>
 ${summary}
-<p>Por favor, revisa los detalles en el sistema.</p>
+${loginLine}
+<p>Por favor, revisa los detalles en el sistema para aprobar, denegar o solicitar cambios.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       failureMessage:
@@ -694,7 +829,21 @@ ${summary}
         );
       }
 
-      const summary = this.buildRequestSummaryHtml(updated);
+      const detailedRequest = await repo.findOne({
+        where: { id: updated.id },
+        relations: [
+          'user',
+          'destination',
+          'requests_destinations',
+          'requests_destinations.destination',
+          'travelAgency',
+        ],
+      });
+      const summary = this.buildRequestSummaryHtml(detailedRequest || updated);
+      const loginUrl = this.getLoginUrl();
+      const loginLine = loginUrl
+        ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+        : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
       const adminEmailWarning = await this.notificationsService.notifyOrWarn({
         to: admin.email,
         subject: 'Solicitud actualizada',
@@ -702,6 +851,7 @@ ${summary}
         html: `<p>Hola ${admin.name},</p>
 <p>La solicitud de viaje "<strong>${updated.title}</strong>" ha sido actualizada.</p>
 ${summary}
+${loginLine}
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
@@ -720,6 +870,13 @@ ${summary}
   async getRequestById(id: string): Promise<RequestEntity> {
     const request = await this.requestsRepo.findOne({
       where: { id },
+      relations: [
+        'user',
+        'destination',
+        'requests_destinations',
+        'requests_destinations.destination',
+        'travelAgency',
+      ],
     });
     if (!request) {
       throw new NotFoundException(`Request with ID ${id} not found.`);
@@ -750,16 +907,35 @@ ${summary}
 
     // Notify request owner of status change
     try {
-      const user = await this.userChecks.getUserById(updated.id_user);
-      if (user?.email) {
-        const summary = this.buildRequestSummaryHtml(updated);
+      const detailedRequest = await this.requestsRepo.findOne({
+        where: { id: updated.id },
+        relations: [
+          'user',
+          'destination',
+          'requests_destinations',
+          'requests_destinations.destination',
+          'travelAgency',
+        ],
+      });
+      const requestUser = detailedRequest?.user
+        ? detailedRequest.user
+        : await this.userChecks.getUserById(updated.id_user);
+
+      if (requestUser?.email) {
+        const summary = this.buildRequestSummaryHtml(detailedRequest || updated);
+        const loginUrl = this.getLoginUrl();
+        const loginLine = loginUrl
+          ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+          : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
+
         await this.notificationsService.notify(
-          user.email,
-          `Tu solicitud ha sido actualizada`,
+          requestUser.email,
+          'Cambio de estatus de solicitud',
           `El estado de tu solicitud "${updated.title}" cambió de '${previousStatus}' a '${newStatus}'.`,
-          `<p>Hola ${user.name},</p>
+          `<p>Hola ${requestUser.name},</p>
 <p>El estado de tu solicitud "<strong>${updated.title}</strong>" cambió de <em>${previousStatus}</em> a <em>${newStatus}</em>.</p>
 ${summary}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
         );
