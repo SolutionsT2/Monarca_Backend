@@ -54,8 +54,6 @@ import { TravelIntegrationsModule } from './travel-integrations/travel-integrati
 import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
 import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 import { PolicyExportsModule } from './policy-exports/policy-exports.module';
-import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
-import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
