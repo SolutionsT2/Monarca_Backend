@@ -123,6 +123,16 @@ export class VouchersController {
     return this.vouchersService.create(id_user, { ...dto, ...fileMap });
   }
 
+  // Get all vouchers for the current user
+  @Get('user')
+  async findByUser(@Req() req: RequestInterface): Promise<Voucher[]> {
+    const userId = req?.sessionInfo?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Missing authenticated session context.');
+    }
+    return this.vouchersService.findByUser(userId);
+  }
+
   // Get all vouchers
   @Get()
   async findAll(): Promise<Voucher[]> {
@@ -158,6 +168,13 @@ export class VouchersController {
     @Param('id') id: string,
   ): Promise<{ status: boolean; message: string }> {
     return this.vouchersService.deny(id);
+  }
+
+  @Delete(':id')
+  async remove(
+    @Param('id') id: string,
+  ): Promise<{ status: boolean; message: string }> {
+    return this.vouchersService.remove(id);
   }
 }
 
