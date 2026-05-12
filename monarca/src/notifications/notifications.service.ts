@@ -19,7 +19,7 @@ export type EmailWarning = {
 };
 
 export type NotifyOrWarnArgs = {
-  to: string;
+  to: string | null | undefined;
   subject: string;
   text: string;
   html: string;
@@ -91,7 +91,15 @@ export class NotificationsService {
     text: string,
     html?: string,
   ) {
-    return this.sendMail(to, subject, text, html);
+    if (!to || !String(to).trim()) {
+      const logger = new Logger('NotificationsService');
+      logger.warn(
+        `Skipping sendNotification with empty recipient (subject: ${subject}).`,
+      );
+      return;
+    }
+
+    return this.sendMail(String(to).trim(), subject, text, html);
   }
 
   /**
@@ -175,7 +183,7 @@ export class NotificationsService {
         return {
           code: 'EMAIL_NOTIFICATION_FAILED',
           message: failureMessage,
-          recipients: [to],
+          recipients: to != null && String(to).trim() ? [String(to).trim()] : [],
         };
       }
 
@@ -187,7 +195,7 @@ export class NotificationsService {
       return {
         code: 'EMAIL_NOTIFICATION_FAILED',
         message: failureMessage,
-        recipients: [to],
+        recipients: to != null && String(to).trim() ? [String(to).trim()] : [],
       };
     }
   }
