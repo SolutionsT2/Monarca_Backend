@@ -18,12 +18,23 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsService } from './requests.service';
 import { ApproveRequestDTO } from './dto/approve-request.dto';
 import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
-import { NotificationsService } from 'src/notifications/notifications.service';
+import {
+  EmailWarning,
+  NotificationsService,
+} from 'src/notifications/notifications.service';
+
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 import { Department } from 'src/departments/entity/department.entity';
-import { DocumentClass } from 'src/document-classes/entity/document-class.entity';
-import { ApproverSubstituteService } from './services/approver-substitute.service';
+interface VoucherPolicyPreviewInput {
+  id_request?: string;
+  class: string;
+  amount: number;
+  currency?: string;
+  date?: string;
+  has_xml?: boolean;
+  has_pdf?: boolean;
+}import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 // STATUSES (order after creation):
 // Pending Review → (approver) → Pending Accounting Approval (SOI) → Pending Reservations (travel agent) → In Progress → …
@@ -38,8 +49,6 @@ export class RequestsStatusService {
     private readonly vouchersRepo: Repository<Voucher>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
-    @InjectRepository(DocumentClass)
-    private readonly documentClassRepo: Repository<DocumentClass>,
     private readonly requestsService: RequestsService,
     private readonly notificationsService: NotificationsService,
     private readonly travelAgenciesChecks: TravelAgenciesChecks,
@@ -47,16 +56,153 @@ export class RequestsStatusService {
     private readonly approverSubstituteService: ApproverSubstituteService,
   ) {}
 
-  private async getVoucherDocumentClassId(): Promise<string> {
-    const documentClass = await this.documentClassRepo.findOne({
-      where: { key: 'gv' },
+  private buildPreviewVoucherContext(
+    id_request: string,
+    vouchers: VoucherPolicyPreviewInput[],
+  ) {
+    return vouchers.map((voucher, index) => ({
+      id: `preview-${index + 1}`,
+      id_request,
+      class: voucher.class || '',
+      amount: Number(voucher.amount || 0),
+      currency: voucher.currency || 'MXN',
+      file_url_pdf: voucher.has_pdf ? 'preview://pdf' : null,
+      file_url_xml: voucher.has_xml ? 'preview://xml' : null,
+      date: voucher.date ? new Date(voucher.date) : new Date(''),
+    }));
+  }
+
+  async previewVoucherPolicy(
+    req: RequestInterface,
+    id_request: string,
+    vouchers: VoucherPolicyPreviewInput[],
+  ) {
+    const id_user = req.sessionInfo.id;
+    const request = await this.requestsRepo.findOne({
+      where: { id: id_request },
+      relations: ['requests_destinations', 'user', 'user.department'],
     });
 
-    if (!documentClass) {
-      throw new NotFoundException('Document class with key gv not found.');
+    if (!request) throw new NotFoundException('Invalid request id');
+
+    if (request.id_user !== id_user)
+      throw new UnauthorizedException('Unable to validate vouchers for request.');
+
+    if (request.status !== 'In Progress')
+      throw new ConflictException(
+        'Unable to validate vouchers because of the requests current status.',
+      );
+
+    const normalizedVouchers = Array.isArray(vouchers)
+      ? vouchers
+          .filter((voucher) => {
+            const hasData =
+              Boolean(voucher.class) ||
+              Boolean(voucher.date) ||
+              Number(voucher.amount) > 0 ||
+              Boolean(voucher.has_pdf) ||
+              Boolean(voucher.has_xml);
+            return hasData;
+          })
+          .map((voucher) => ({
+            ...voucher,
+            id_request,
+          }))
+      : [];
+
+    const hasAdvance = Number(request.advance_money || 0) > 0;
+    const destinations = request.requests_destinations || [];
+
+    const tripStartDate = destinations.length
+      ? new Date(
+          Math.min(
+            ...destinations.map((destination) =>
+              new Date(destination.departure_date).getTime(),
+            ),
+          ),
+        )
+      : null;
+
+    const tripEndDate = destinations.length
+      ? new Date(
+          Math.max(
+            ...destinations.map((destination) =>
+              new Date(destination.arrival_date).getTime(),
+            ),
+          ),
+        )
+      : null;
+
+    if (hasAdvance && normalizedVouchers.length === 0) {
+      return {
+        policy_summary: {
+          total_rules: 1,
+          passed: 0,
+          failed: 1,
+          blocking_violations: 1,
+          can_submit: false,
+          violations: [
+            {
+              policy_id: 'ADVANCE_REQUIRES_VOUCHERS',
+              policy_code: 'ADVANCE_REQUIRES_VOUCHERS',
+              passed: false,
+              message:
+                'Advance exists on request, but no vouchers were uploaded for reimbursement.',
+              severity: 'BLOCKING',
+              consequence: 'POLICY_VIOLATION',
+              can_override: false,
+            },
+          ],
+        },
+      };
     }
 
-    return documentClass.id;
+    if (!request.id_company) {
+      const fallbackCompanyId =
+        request.user?.department?.id_company ||
+        (request.user?.idDepartment
+          ? (
+              await this.departmentRepo.findOne({
+                where: { id: request.user.idDepartment },
+                select: ['id', 'id_company'],
+              })
+            )?.id_company
+          : undefined);
+
+      if (!fallbackCompanyId) {
+        throw new ConflictException(
+          'Unable to evaluate reimbursement policies because request company context is missing.',
+        );
+      }
+
+      request.id_company = fallbackCompanyId;
+      await this.requestsRepo.update(request.id, {
+        id_company: fallbackCompanyId,
+      });
+    }
+
+      const summary = await this.policyEngineService.evaluateRequestSubmission(
+      {
+        id: request.id,
+        id_company: request.id_company,
+        advance_money: request.advance_money,
+        createdAt: request.createdAt,
+        trip_start_date: tripStartDate,
+        trip_end_date: tripEndDate,
+      },
+      this.buildPreviewVoucherContext(id_request, normalizedVouchers),
+      { persist: false },
+    );
+
+      return {
+        policy_summary: {
+          ...summary,
+          violations: summary.violations.map((violation) => ({
+            ...violation,
+            evaluated_value: undefined,
+          })),
+        },
+      };
   }
 
   async approve(
@@ -92,45 +238,46 @@ export class RequestsStatusService {
       { id_travel_agency: id_travel_agency },
     );
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Solicitud aprobada — pendiente de contabilidad',
-        `Tu solicitud "${request.title}" fue aprobada por tu aprobador y está pendiente de revisión de contabilidad (SOI) antes de las reservaciones.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const requesterEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Solicitud aprobada — pendiente de contabilidad',
+      text: `Tu solicitud "${request.title}" fue aprobada por tu aprobador y está pendiente de revisión de contabilidad (SOI) antes de las reservaciones.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud "<strong>${request.title}</strong>" fue aprobada y está pendiente de revisión contable antes de que la agencia de viajes realice las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error(
-        'Failed to send approval notification to requester:',
-        emailError,
-      );
+      failureMessage:
+        'La solicitud fue aprobada, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (requesterEmailWarning) {
+      emailWarnings.push(requesterEmailWarning);
     }
 
-    try {
-      await this.notificationsService.notify(
-        request.SOI.email,
-        'Solicitud pendiente de tu aprobación',
-        `La solicitud "${request.title}" fue aprobada por el aprobador y requiere tu revisión antes de las reservaciones.`,
-        `<p>Hola ${request.SOI.name},</p>
+    const soiEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.SOI.email,
+      subject: 'Solicitud pendiente de tu aprobación',
+      text: `La solicitud "${request.title}" fue aprobada por el aprobador y requiere tu revisión antes de las reservaciones.`,
+      html: `<p>Hola ${request.SOI.name},</p>
 <p>La solicitud "<strong>${request.title}</strong>" está pendiente de tu aprobación contable. Después podrá continuar la agencia de viajes con las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error(
-        'Failed to send approval notification to SOI:',
-        emailError,
-      );
+      failureMessage:
+        'La solicitud fue aprobada, pero no se pudo enviar el correo de notificación al SOI.',
+    });
+
+    if (soiEmailWarning) {
+      emailWarnings.push(soiEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(
+    const updated = await this.requestsService.updateStatus(
       id_request,
       'Pending Accounting Approval',
     );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   async deny(req: RequestInterface, id_request: string) {
@@ -152,23 +299,31 @@ export class RequestsStatusService {
         'Unable to deny because of the requests current status.',
       );
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Solicitud de viaje denegada',
-        `Tu solicitud de viaje con el título "${request.title}" ha sido denegada.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Solicitud de viaje denegada',
+      text: `Tu solicitud de viaje con el título "${request.title}" ha sido denegada.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido denegada.</p>
 <p>Por favor, revisa los detalles de tu solicitud y considera realizar los cambios necesarios.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send denial notification:', emailError);
+      failureMessage:
+        'La solicitud fue denegada, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(id_request, 'Denied');
+    const updated = await this.requestsService.updateStatus(
+      id_request,
+      'Denied',
+    );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   async cancel(req: RequestInterface, id_request: string) {
@@ -191,23 +346,31 @@ export class RequestsStatusService {
         'Unable to cancel because of the requests current status.',
       );
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Solicitud de viaje cancelada',
-        `Tu solicitud de viaje con el título "${request.title}" ha sido cancelada.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Solicitud de viaje cancelada',
+      text: `Tu solicitud de viaje con el título "${request.title}" ha sido cancelada.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido cancelada.</p>
 <p>Si tienes alguna pregunta o necesitas más información, no dudes en contactarnos.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send cancellation notification:', emailError);
+      failureMessage:
+        'La solicitud fue cancelada, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(id_request, 'Cancelled');
+    const updated = await this.requestsService.updateStatus(
+      id_request,
+      'Cancelled',
+    );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   async finishedReservations(req: RequestInterface, id_request: string) {
@@ -234,25 +397,30 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Reservaciones registradas',
-        `La solicitud "${request.title}" tiene las reservaciones listas. Puedes continuar con el siguiente paso en el sistema.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Reservaciones registradas',
+      text: `La solicitud "${request.title}" tiene las reservaciones listas. Puedes continuar con el siguiente paso en el sistema.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>La solicitud "<strong>${request.title}</strong>" tiene las reservaciones registradas por la agencia de viajes.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error(
-        'Failed to send finished reservations notification:',
-        emailError,
-      );
+      failureMessage:
+        'Las reservaciones fueron registradas, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(id_request, 'In Progress');
+    const updated = await this.requestsService.updateStatus(
+      id_request,
+      'In Progress',
+    );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   async SOIApproval(req: RequestInterface, id_request: string) {
@@ -278,22 +446,24 @@ export class RequestsStatusService {
       );
     }
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Contabilidad aprobada — reservas pendientes',
-        `Tu solicitud "${request.title}" fue aprobada contablemente. La agencia de viajes realizará las reservaciones.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Contabilidad aprobada — reservas pendientes',
+      text: `Tu solicitud "${request.title}" fue aprobada contablemente. La agencia de viajes realizará las reservaciones.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud "<strong>${request.title}</strong>" fue aprobada en contabilidad. La agencia asignada procederá con las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send SOI approval notification:', emailError);
+      failureMessage:
+        'La aprobación contable fue registrada, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
     }
 
-    // Start each voucher-upload cycle from a clean slate for this request.
     await this.vouchersRepo.delete({ id_request });
 
     const agents = await this.travelAgenciesChecks.getTravelAgencyUsers(
@@ -301,28 +471,28 @@ export class RequestsStatusService {
     );
 
     for (const agent of agents) {
-      try {
-        await this.notificationsService.notify(
-          agent.email,
-          'Puedes iniciar las reservaciones',
-          `La solicitud "${request.title}" está lista para que registres hotel/vuelo según corresponda.`,
-          `<p>Hola ${agent.name},</p>
+      const agentEmailWarning = await this.notificationsService.notifyOrWarn({
+        to: agent.email,
+        subject: 'Puedes iniciar las reservaciones',
+        text: `La solicitud "${request.title}" está lista para que registres hotel/vuelo según corresponda.`,
+        html: `<p>Hola ${agent.name},</p>
 <p>La solicitud "<strong>${request.title}</strong>" ya cuenta con aprobación contable. Puedes proceder con las reservaciones.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-        );
-      } catch (emailError) {
-        console.error(
-          `Failed to send post-SOI notification to agent ${agent.email}:`,
-          emailError,
-        );
+        failureMessage: `La aprobación contable fue registrada, pero no se pudo enviar el correo de notificación al agente ${agent.email}.`,
+      });
+
+      if (agentEmailWarning) {
+        emailWarnings.push(agentEmailWarning);
       }
     }
 
-    return await this.requestsService.updateStatus(
+    const updated = await this.requestsService.updateStatus(
       id_request,
       'Pending Reservations',
     );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   async finishedUploadingVouchers(req: RequestInterface, id_request: string) {
@@ -364,7 +534,9 @@ export class RequestsStatusService {
     const tripStartDate = destinations.length
       ? new Date(
           Math.min(
-            ...destinations.map((destination) => new Date(destination.departure_date).getTime()),
+            ...destinations.map((destination) =>
+              new Date(destination.departure_date).getTime(),
+            ),
           ),
         )
       : null;
@@ -372,7 +544,9 @@ export class RequestsStatusService {
     const tripEndDate = destinations.length
       ? new Date(
           Math.max(
-            ...destinations.map((destination) => new Date(destination.arrival_date).getTime()),
+            ...destinations.map((destination) =>
+              new Date(destination.arrival_date).getTime(),
+            ),
           ),
         )
       : null;
@@ -423,7 +597,9 @@ export class RequestsStatusService {
       }
 
       request.id_company = fallbackCompanyId;
-      await this.requestsRepo.update(request.id, { id_company: fallbackCompanyId });
+      await this.requestsRepo.update(request.id, {
+        id_company: fallbackCompanyId,
+      });
     }
 
     // Evaluate reimbursement policies before moving the request to approval.
@@ -459,26 +635,31 @@ export class RequestsStatusService {
       });
     }
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.admin.email,
-        'Solicitud de viaje pendiente de aprobación de comprobantes',
-        `La solicitud de viaje con el título "${request.title}" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.`,
-        `<p>Hola ${request.admin.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const adminEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.admin.email,
+      subject: 'Solicitud de viaje pendiente de aprobación de comprobantes',
+      text: `La solicitud de viaje con el título "${request.title}" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.`,
+      html: `<p>Hola ${request.admin.name},</p>
 <p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado la carga de comprobantes y está pendiente de tu aprobación.</p>
 <p>Por favor, revisa los comprobantes cargados y procede con la aprobación.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send voucher upload notification:', emailError);
+      failureMessage:
+        'La solicitud de reembolso fue enviada, pero no se pudo enviar el correo de notificación al aprobador.',
+    });
+
+    if (adminEmailWarning) {
+      emailWarnings.push(adminEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(
+    const updated = await this.requestsService.updateStatus(
       id_request,
       'Pending Vouchers Approval',
     );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   // Status changes from Pending Vouchers Approval to Pending Refund Approval
@@ -501,48 +682,48 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Comprobación de gastos del viaje completada',
-        `Tu comprobación de gastos del viaje con el título "${request.title}" ha sido completada y está pendiente de aprobación de reembolso.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Comprobación de gastos del viaje completada',
+      text: `Tu comprobación de gastos del viaje con el título "${request.title}" ha sido completada y está pendiente de aprobación de reembolso.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido aprobada y está pendiente de aprobación de reembolso.</p>
 <p>Por favor, espera a que se realice la aprobación de reembolso.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error(
-        'Failed to send voucher approval notification to user:',
-        emailError,
-      );
+      failureMessage:
+        'La comprobación fue aprobada, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
     }
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.SOI.email,
-        'Solicitud de viaje pendiente de aprobación de reembolso',
-        `La solicitud de viaje con el título "${request.title}" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.`,
-        `<p>Hola ${request.SOI.name},</p>
+    const soiEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.SOI.email,
+      subject: 'Solicitud de viaje pendiente de aprobación de reembolso',
+      text: `La solicitud de viaje con el título "${request.title}" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.`,
+      html: `<p>Hola ${request.SOI.name},</p>
 <p>La solicitud de viaje con el título "<strong>${request.title}</strong>" ha finalizado la comprobación de gastos y está pendiente de tu aprobación de reembolso.</p>
 <p>Por favor, revisa los detalles de la solicitud y procede con la aprobación de reembolso.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error(
-        'Failed to send refund approval notification to SOI:',
-        emailError,
-      );
+      failureMessage:
+        'La comprobación fue aprobada, pero no se pudo enviar el correo de notificación al SOI.',
+    });
+
+    if (soiEmailWarning) {
+      emailWarnings.push(soiEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(
+    const updated = await this.requestsService.updateStatus(
       id_request,
       'Pending Refund Approval',
     );
+
+    return Object.assign(updated, { emailWarnings });
   }
 
   async finsihedRegisteringRequest(req: RequestInterface, id_request: string) {
@@ -562,24 +743,32 @@ export class RequestsStatusService {
         'Unable to change status because of the requests current status.',
       );
 
-    // Email failure should not abort status transition
-    try {
-      await this.notificationsService.notify(
-        request.user.email,
-        'Solicitud de viaje completada',
-        `Tu solicitud de viaje con el título "${request.title}" ha sido completada y registrada.`,
-        `<p>Hola ${request.user.name},</p>
+    const emailWarnings: EmailWarning[] = [];
+
+    const userEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: request.user.email,
+      subject: 'Solicitud de viaje completada',
+      text: `Tu solicitud de viaje con el título "${request.title}" ha sido completada y registrada.`,
+      html: `<p>Hola ${request.user.name},</p>
 <p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido completada y registrada.</p>
 <p>En breve se realizará su reembolso si aplica.</p>
 <p>Gracias por utilizar Monarca para gestionar tus viajes.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-      );
-    } catch (emailError) {
-      console.error('Failed to send completion notification:', emailError);
+      failureMessage:
+        'La solicitud fue completada, pero no se pudo enviar el correo de notificación al solicitante.',
+    });
+
+    if (userEmailWarning) {
+      emailWarnings.push(userEmailWarning);
     }
 
-    return await this.requestsService.updateStatus(id_request, 'Completed');
+    const updated = await this.requestsService.updateStatus(
+      id_request,
+      'Completed',
+    );
+
+    return Object.assign(updated, { emailWarnings });
   }
 }
 
@@ -587,4 +776,5 @@ export class RequestsStatusService {
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped all notificationsService.notify() calls in try-catch to prevent email failures from aborting status transitions.
+ * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning responses for request status transitions when notification delivery fails.
  */

@@ -12,6 +12,7 @@ import {
 import {
   CreateCompanyDepartmentDto,
   CreateCompanyDto,
+  UpdateCompanyDepartmentCostCenterDto,
   UpdateCompanyDto,
 } from './dto/company.dtos';
 import { CompaniesService } from './companies.service';
@@ -79,5 +80,25 @@ export class CompaniesController {
       id,
     );
     return this.companiesService.findDepartments(id);
+  }
+
+  @Patch(':id/departments/:departmentId/cost-center')
+  async updateDepartmentCostCenter(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('departmentId', new ParseUUIDPipe()) departmentId: string,
+    @Body() data: UpdateCompanyDepartmentCostCenterDto,
+  ) {
+    await this.companiesService.assertCompanyDepartmentAccess(
+      req.userInfo.id_role,
+      req.userInfo.id_department,
+      id,
+    );
+
+    return this.companiesService.updateDepartmentCostCenter(
+      id,
+      departmentId,
+      data,
+    );
   }
 }

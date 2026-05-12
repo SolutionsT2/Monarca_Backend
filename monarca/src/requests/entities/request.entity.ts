@@ -61,7 +61,7 @@ export class Request {
   @Column()
   motive: string;
 
-  @Column()
+  @Column({ name: 'advance_moeny', type: 'float' })
   advance_money: number;
 
   @Column({ default: 'Pending Review' })
@@ -72,6 +72,9 @@ export class Request {
 
   @Column()
   priority: string;
+
+  @Column({ name: 'is_round_trip', type: 'boolean', default: false })
+  is_round_trip: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -151,4 +154,5 @@ export class Request {
 Modification History:
 - 2026-02-26 | Diego Vergara | Added entity documentation and improved relationship comments.
 - 2026-04-13 | Diego Vergara | Added Ditta Consulting fields: id_company and id_document_class with relationships to Company and DocumentClass.
+- 2026-04-22 | Juan de Dios Gastélum Flores | Added is_round_trip field to support round trip travel requests.
 */

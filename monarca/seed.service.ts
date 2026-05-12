@@ -22,6 +22,7 @@ import { Revision } from 'src/revisions/entities/revision.entity';
 import { Voucher } from 'src/vouchers/entities/vouchers.entity';
 import { Permission } from 'src/roles/entity/permissions.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
+import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
 import { Policy } from 'src/policy-engine/entities/policy.entity';
 import { PolicyRule } from 'src/policy-engine/entities/policy-rule.entity';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
@@ -65,12 +66,14 @@ export class SeedService {
         @InjectRepository(PolicyViolation) private readonly policyViolationRepo: Repository<PolicyViolation>,
         @InjectRepository(Delegation) private readonly delegationRepo: Repository<Delegation>,
         @InjectRepository(Company) private readonly companyRepo: Repository<Company>,
+        @InjectRepository(AccountingAccount) private readonly accountingAccountRepo: Repository<AccountingAccount>,
     ) {}
 
     async run() {
         const seedData: SeedData[] = [
             { repo: this.documentClassRepo, file: 'document-class.json', entityName: 'DocumentClass' },
             { repo: this.companyRepo, file: 'companies.json', entityName: 'Company' },
+            { repo: this.accountingAccountRepo, file: 'accounting-accounts.json', entityName: 'AccountingAccount' },
             { repo: this.costCenterRepo, file: 'cost-centers.json', entityName: 'CostCenter' },
             { repo: this.departmentRepo, file: 'departments.json', entityName: 'Department' },
             { repo: this.permissionRepo, file: 'permissions.json', entityName: 'Permission' },
@@ -173,6 +176,16 @@ export class SeedService {
                     });
 
                     await this.departmentRepo.save(department);
+                } else if (entityName === 'AccountingAccount') {
+                    const accountingAccount = this.accountingAccountRepo.create({
+                        key: String(entity.key),
+                        description: entity.description,
+                        requiresCostCenter:
+                            entity.requires_cost_center ?? entity.requiresCostCenter ?? false,
+                        id_company: entity.id_company ?? entity.idCompany,
+                    });
+
+                    await this.accountingAccountRepo.save(accountingAccount);
                 } else {
                     const newEntity = repo.create(entity);
                     await repo.save(newEntity);

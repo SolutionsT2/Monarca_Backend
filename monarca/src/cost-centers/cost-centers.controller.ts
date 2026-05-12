@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
@@ -27,6 +27,18 @@ export class CostCentersController {
       req.userInfo.id_role,
       req.userInfo.id_department,
       data,
+    );
+  }
+
+  @Delete(':id')
+  async delete(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.costCentersService.deleteForCompanyAdmin(
+      req.userInfo.id_role,
+      req.userInfo.id_department,
+      id,
     );
   }
 }

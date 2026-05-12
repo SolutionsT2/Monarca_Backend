@@ -77,4 +77,11 @@ export class CreateCompanyDepartmentDto {
   cost_center_id!: number;
 }
 
+export class UpdateCompanyDepartmentCostCenterDto {
+  @ApiProperty({ example: 100 })
+  @IsInt()
+  @Min(1)
+  cost_center_id!: number;
+}
+
 export class CompanyDepartmentDto extends OmitType(Department, ['users']) {}

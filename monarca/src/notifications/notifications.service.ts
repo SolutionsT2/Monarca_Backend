@@ -6,11 +6,25 @@
  * including optional HTML rendering and safe content handling.
  */
 
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import * as fs from 'fs';
-import * as Handlebars from 'handlebars';
-import { join } from 'path';
+
+export type EmailWarning = {
+  code: 'EMAIL_NOTIFICATION_FAILED';
+  message: string;
+  recipients: string[];
+};
+
+export type NotifyOrWarnArgs = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  failureMessage: string;
+};
 
 /**
  * Service responsible for handling email notifications
@@ -48,23 +62,10 @@ export class NotificationsService {
    * @param html Optional HTML content.
    * @returns Promise containing the Nodemailer response.
    */
-  async sendMail(
-    to: string | null | undefined,
-    subject: string,
-    text: string,
-    html?: string,
-  ) {
-    if (!to || !String(to).trim()) {
-      const logger = new Logger('NotificationsService');
-      logger.warn(
-        `Skipping email with empty recipient (subject: ${subject}).`,
-      );
-      return null;
-    }
-
-    const fromAddress = process.env.EMAIL_USER 
-  ? `"Sistema Monarca" <${process.env.EMAIL_USER}>`
-  : '"Sistema Monarca" <noreply@monarca.dev>';
+  async sendMail(to: string, subject: string, text: string, html?: string) {
+    const fromAddress = process.env.EMAIL_USER
+      ? `"Sistema Monarca" <${process.env.EMAIL_USER}>`
+      : '"Sistema Monarca" <noreply@monarca.dev>';
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromAddress,
       to,
@@ -126,11 +127,6 @@ export class NotificationsService {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 
-    // Assumes message is plain text and escapes it before rendering.
-    // To allow optional HTML, you could distinguish: if you detect HTML tags, don't escape.
-    // Here we treat the message as plain text and escape it, while allowing optional HTML content to be included as-is.
-    const safeText = escapeHtml(message);
-
     // Generates a minimal HTML structure for email rendering.
     const htmlComplete = `
       <!DOCTYPE html>
@@ -155,12 +151,51 @@ export class NotificationsService {
       // Do not rethrow: failures to send emails should not make the whole request fail
       return null;
     }
-}
+  }
 
+  /**
+   * Sends an email notification and returns a warning when the delivery fails.
+   * This allows business operations to continue while reporting notification
+   * failures to API consumers.
+   *
+   * @param args Email notification data and warning message.
+   * @returns A warning object when the email fails, otherwise null.
+   */
+  async notifyOrWarn({
+    to,
+    subject,
+    text,
+    html,
+    failureMessage,
+  }: NotifyOrWarnArgs): Promise<EmailWarning | null> {
+    try {
+      const result = await this.notify(to, subject, text, html);
+
+      if (result === null) {
+        return {
+          code: 'EMAIL_NOTIFICATION_FAILED',
+          message: failureMessage,
+          recipients: [to],
+        };
+      }
+
+      return null;
+    } catch (error) {
+      const logger = new Logger('NotificationsService');
+      logger.warn(`${failureMessage}: ${error?.message || error}`);
+
+      return {
+        code: 'EMAIL_NOTIFICATION_FAILED',
+        message: failureMessage,
+        recipients: [to],
+      };
+    }
+  }
 }
 
 /*
 Modification History:
 
 - 2026-02-26 | Diego Vergara | Added full documentation, JSDoc comments, and standardized comment language to English.
+- 2026-04-29 | Juan de Dios Gastélum Flores | Added reusable email warning helper for non-blocking notification failures.
 */

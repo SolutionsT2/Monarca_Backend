@@ -10,19 +10,22 @@ import { Company } from 'src/companies/entity/company.entity';
 @Entity({ name: 'cost_centers' })
 export class CostCenter {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'numeric_id', type: 'int', nullable: true })
   numericId?: number;
 
   @Column({ name: 'key', type: 'varchar', length: 10, nullable: true })
-  key: string;
+  key!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ name: 'id_company', type: 'uuid', nullable: true })
   id_company?: string;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
 
   @ManyToOne(() => Company, (company) => company.costCenters, {
     nullable: true,
@@ -33,7 +36,7 @@ export class CostCenter {
 
   // One cost center can have many departments
   @OneToMany(() => Department, (department) => department.cost_center)
-  departments: Department[];
+  departments!: Department[];
 }
 
 /**

@@ -1,11 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { IsNull } from 'typeorm';
 import {
   CompanyDto,
   CompanyDepartmentDto,
   CreateCompanyDepartmentDto,
   CreateCompanyDto,
+  UpdateCompanyDepartmentCostCenterDto,
   UpdateCompanyDto,
 } from './dto/company.dtos';
 import { Company } from './entity/company.entity';
@@ -110,7 +112,11 @@ export class CompaniesService {
     await this.findOne(idCompany);
 
     const costCenter = await this.costCenterRepo.findOne({
-      where: { numericId: data.cost_center_id, id_company: idCompany },
+      where: {
+        numericId: data.cost_center_id,
+        id_company: idCompany,
+        deletedAt: IsNull(),
+      },
     });
 
     if (!costCenter) {
@@ -134,6 +140,43 @@ export class CompaniesService {
       where: { id_company: idCompany },
       relations: ['cost_center'],
       order: { name: 'ASC' },
+    });
+  }
+
+  async updateDepartmentCostCenter(
+    idCompany: string,
+    idDepartment: string,
+    data: UpdateCompanyDepartmentCostCenterDto,
+  ): Promise<CompanyDepartmentDto> {
+    const department = await this.departmentRepo.findOne({
+      where: { id: idDepartment, id_company: idCompany },
+      relations: ['cost_center'],
+    });
+
+    if (!department) {
+      throw new NotFoundException(`Department ${idDepartment} not found`);
+    }
+
+    const costCenter = await this.costCenterRepo.findOne({
+      where: {
+        numericId: data.cost_center_id,
+        id_company: idCompany,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!costCenter) {
+      throw new NotFoundException(
+        `Cost center ${data.cost_center_id} not found`,
+      );
+    }
+
+    department.cost_center = costCenter;
+    await this.departmentRepo.save(department);
+
+    return this.departmentRepo.findOneOrFail({
+      where: { id: idDepartment },
+      relations: ['cost_center'],
     });
   }
 

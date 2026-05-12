@@ -13,7 +13,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, EntityManager } from 'typeorm';
+import { Repository, DataSource, EntityManager, In, Not } from 'typeorm';
 import { Request as RequestEntity } from './entities/request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -23,7 +23,10 @@ import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { RequestsDestination } from './entities/requests-destination.entity';
 import { RequestLog } from 'src/request-logs/entities/request-log.entity';
-import { NotificationsService } from 'src/notifications/notifications.service';
+import {
+  EmailWarning,
+  NotificationsService,
+} from 'src/notifications/notifications.service';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
@@ -50,7 +53,9 @@ export class RequestsService {
     return await this.destinationChecks.getCityNameById(id);
   }
 
-  private async validateAirportSelection(data: CreateRequestDto): Promise<void> {
+  private async validateAirportSelection(
+    data: CreateRequestDto,
+  ): Promise<void> {
     if (data.id_origin_airport) {
       const isOriginAirportValid = await this.destinationChecks.isAirportValid(
         data.id_origin_airport,
@@ -110,7 +115,7 @@ export class RequestsService {
       }
     }
   }
-  
+
   private async getDocumentClassIdForAdvance(
     advanceMoney: number,
   ): Promise<string | null> {
@@ -123,9 +128,7 @@ export class RequestsService {
     });
 
     if (!documentClass) {
-      throw new NotFoundException(
-        'Document class with key av not found.',
-      );
+      throw new NotFoundException('Document class with key av not found.');
     }
 
     return documentClass.id;
@@ -170,17 +173,49 @@ export class RequestsService {
     }
 
     if (!req?.userInfo) {
-      throw new UnauthorizedException('Missing user context for request creation.');
+      throw new UnauthorizedException(
+        'Missing user context for request creation.',
+      );
+    }
+
+    // Server-side safety net for the destinations selector. The frontend
+    // already validates with Zod, so these branches normally don't fire — but
+    // when they do (Postman / direct API calls / a bug in the client) we want
+    // the toast to read in plain Spanish and, when possible, point at the
+    // exact field so react-hook-form can highlight it.
+    if (
+      !Array.isArray(data.requests_destinations) ||
+      data.requests_destinations.length === 0
+    ) {
+      throw new BadRequestException({
+        message: 'La solicitud debe incluir al menos un destino.',
+        field: 'requests_destinations',
+      });
+    }
+
+    for (const [idx, dest] of data.requests_destinations.entries()) {
+      if (
+        !dest.id_destination ||
+        (typeof dest.id_destination === 'string' &&
+          dest.id_destination.trim() === '')
+      ) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no tiene una ciudad seleccionada.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
+
+      if (!(await this.destinationChecks.isValid(dest.id_destination))) {
+        throw new BadRequestException({
+          message: `El destino #${idx + 1} no es válido.`,
+          field: `requests_destinations.${idx}.id_destination`,
+        });
+      }
     }
 
     // Validate origin city
     if (!(await this.destinationChecks.isValid(data.id_origin_city))) {
       throw new BadRequestException('Invalid id_origin_city.');
-    }
-
-    for (const rd of data.requests_destinations) {
-      if (!(await this.destinationChecks.isValid(rd.id_destination)))
-        throw new BadRequestException('Invalid id_destination.');
     }
 
     await this.validateAirportSelection(data);
@@ -242,6 +277,8 @@ export class RequestsService {
 
     const saved = await this.requestsRepo.save(request);
 
+    const emailWarnings: EmailWarning[] = [];
+
     // Log request creation
     const originCityName = await this.getCityName(saved.id_origin_city);
     await this.logRequestAction(
@@ -262,46 +299,43 @@ export class RequestsService {
       throw new NotFoundException(`Admin with ID ${saved.id_admin} not found.`);
     }
 
-    // Notify assigned admin only when email exists.
-    if (admin.email) {
-      try {
-        await this.notificationsService.notify(
-          admin.email,
-          `Nueva solicitud asignada`,
-          `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
-          `<p>Hola ${admin.name},</p>
+    const adminEmailWarning = await this.notificationsService.notifyOrWarn({
+      to: admin.email,
+      subject: 'Nueva solicitud asignada',
+      text: `Se te ha asignado una nueva solicitud de viaje con ID: ${saved.id}. Por favor, revisa los detalles en el sistema.`,
+      html: `<p>Hola ${admin.name},</p>
 <p>Se te ha asignado una nueva solicitud de viaje con ID: <strong>${saved.id}</strong>.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-        );
-      } catch (emailError) {
-        console.error('Failed to send notification email:', emailError);
-      }
-    } else {
-      console.warn(`Skipping admin notification: user ${admin.id} has no email`);
+      failureMessage:
+        'La solicitud fue creada, pero no se pudo enviar el correo de notificación al aprobador.',
+    });
+
+    if (adminEmailWarning) {
+      emailWarnings.push(adminEmailWarning);
     }
 
-    return saved;
+    return Object.assign(saved, { emailWarnings });
   }
 
   async findAll(): Promise<RequestEntity[]> {
-  return this.requestsRepo.find({
-    relations: [
-      'requests_destinations',
-      'requests_destinations.destination',
-      'requests_destinations.airport',
-      'revisions',
-      'user',
-      'admin',
-      'SOI',
-      'destination',
-      'origin_airport',
-      'travelAgency',           
-      'travelAgency.users',     
-    ],
-  });
-}
+    return this.requestsRepo.find({
+      relations: [
+        'requests_destinations',
+        'requests_destinations.destination',
+        'requests_destinations.airport',
+        'revisions',
+        'user',
+        'admin',
+        'SOI',
+        'destination',
+        'origin_airport',
+        'travelAgency',
+        'travelAgency.users',
+      ],
+    });
+  }
 
   async findOne(req: RequestInterface, id: string): Promise<RequestEntity> {
     const userId = req.sessionInfo.id;
@@ -453,6 +487,66 @@ export class RequestsService {
     return list;
   }
 
+  /** Statuses excluded from "viajes ya reservados" history for the travel agency. */
+  private static readonly TRAVEL_AGENT_HISTORY_EXCLUDED_STATUSES = [
+    'Pending Review',
+    'Denied',
+    'Cancelled',
+    'Changes Needed',
+    'Pending Accounting Approval',
+    'Pending Reservations',
+  ] as const;
+
+  /**
+   * Paginated list of requests assigned to the caller's travel agency that are
+   * past the reservation queue (excludes Pending Reservations and early pipeline states).
+   */
+  async findTravelAgentReservedHistory(
+    req: RequestInterface,
+    page: number,
+    limit: number,
+  ): Promise<{ data: RequestEntity[]; total: number }> {
+    const travelAgencyId = req.userInfo?.id_travel_agency;
+    if (!travelAgencyId) {
+      throw new UnauthorizedException('Travel agency context required.');
+    }
+
+    const safePage = Math.max(1, Math.floor(page) || 1);
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(limit) || 10));
+
+    const excluded = [
+      ...RequestsService.TRAVEL_AGENT_HISTORY_EXCLUDED_STATUSES,
+    ];
+    const where = {
+      id_travel_agency: travelAgencyId,
+      status: Not(In(excluded)),
+    };
+
+    const total = await this.requestsRepo.count({ where });
+
+    const data = await this.requestsRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      relations: [
+        'requests_destinations',
+        'requests_destinations.destination',
+        'requests_destinations.airport',
+        'revisions',
+        'user',
+        'admin',
+        'SOI',
+        'destination',
+        'origin_airport',
+        'travelAgency',
+        'travelAgency.users',
+      ],
+    });
+
+    return { data, total };
+  }
+
   async findPolicyViolationsByRequest(req: RequestInterface, id: string) {
     await this.findOne(req, id);
 
@@ -482,13 +576,6 @@ export class RequestsService {
           amount: violation.voucher?.amount,
           currency: violation.voucher?.currency,
           date: violation.voucher?.date,
-        },
-        rule: {
-          expense_class: violation.policy_rule?.expense_class,
-          operator: violation.policy_rule?.operator,
-          threshold_value: violation.policy_rule?.threshold_value,
-          threshold_unit: violation.policy_rule?.threshold_unit,
-          consequence: violation.policy_rule?.consequence,
         },
       })),
     };
@@ -566,6 +653,8 @@ export class RequestsService {
 
       const updated = await repo.save(entity);
 
+      const emailWarnings: EmailWarning[] = [];
+
       // Log request update
       await this.logRequestAction(
         manager,
@@ -583,29 +672,25 @@ export class RequestsService {
         );
       }
 
-      // Email failure should not abort request update
-      if (admin.email) {
-        try {
-          await this.notificationsService.notify(
-            admin.email,
-            `Solicitud actualizada`,
-            `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
-            `<p>Hola ${admin.name},</p>
+      // Email failures are returned as warnings so the request update can continue.
+      const adminEmailWarning = await this.notificationsService.notifyOrWarn({
+        to: admin.email,
+        subject: 'Solicitud actualizada',
+        text: `La solicitud de viaje con ID: ${updated.id} ha sido actualizada. Por favor, revisa los detalles en el sistema.`,
+        html: `<p>Hola ${admin.name},</p>
 <p>La solicitud de viaje con ID: <strong>${updated.id}</strong> ha sido actualizada.</p>
 <p>Por favor, revisa los detalles en el sistema.</p>
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
-          );
-        } catch (emailError) {
-          console.error('Failed to send update notification email:', emailError);
-        }
-      } else {
-        console.warn(
-          `Skipping update notification: admin ${admin.id} has no email`,
-        );
+        failureMessage:
+          'La solicitud fue actualizada, pero no se pudo enviar el correo de notificación al aprobador.',
+      });
+
+      if (adminEmailWarning) {
+        emailWarnings.push(adminEmailWarning);
       }
 
-      return updated;
+      return Object.assign(updated, { emailWarnings });
     });
   }
 
@@ -648,4 +733,6 @@ export class RequestsService {
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch in create() and updateRequest() to prevent email failures from aborting request operations.
+ * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
+ * - 2026-04-30 | Diego Vergara | Added Spanish, indexed destination validation in create() so the frontend toast can render the exact missing/invalid destino message and react-hook-form can highlight the offending field.
  */
