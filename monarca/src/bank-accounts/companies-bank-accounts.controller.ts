@@ -2,20 +2,20 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Reque
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
-import { AccountingAccountsService } from './accounting-accounts.service';
-import { CreateAccountingAccountDto, UpdateAccountingAccountDto } from './dto/accounting-account.dto';
+import { BankAccountsService } from './bank-accounts.service';
+import { CreateBankAccountDto, UpdateBankAccountDto } from './dto/bank-account.dto';
 
 @UseGuards(AuthGuard, PermissionsGuard)
-@Controller('companies/:companyId/accounting-accounts')
-export class AccountingAccountsController {
-  constructor(private readonly accountingAccountsService: AccountingAccountsService) {}
+@Controller('companies/:companyId/bank-accounts')
+export class CompaniesBankAccountsController {
+  constructor(private readonly bankAccountsService: BankAccountsService) {}
 
   @Get()
   async findAll(
     @Request() req: RequestInterface,
     @Param('companyId', new ParseUUIDPipe()) companyId: string,
   ) {
-    return this.accountingAccountsService.findAllForCompanyAdmin(
+    return this.bankAccountsService.findAllForCompanyAdmin(
       req.userInfo.id_role,
       req.userInfo.id_department,
       companyId,
@@ -26,27 +26,13 @@ export class AccountingAccountsController {
   async create(
     @Request() req: RequestInterface,
     @Param('companyId', new ParseUUIDPipe()) companyId: string,
-    @Body() data: CreateAccountingAccountDto,
+    @Body() data: CreateBankAccountDto,
   ) {
-    return this.accountingAccountsService.createForCompanyAdmin(
+    return this.bankAccountsService.createForCompanyAdmin(
       req.userInfo.id_role,
       req.userInfo.id_department,
       companyId,
       data,
-    );
-  }
-
-  @Get(':id')
-  async findOne(
-    @Request() req: RequestInterface,
-    @Param('companyId', new ParseUUIDPipe()) companyId: string,
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ) {
-    return this.accountingAccountsService.findOneForCompanyAdmin(
-      req.userInfo.id_role,
-      req.userInfo.id_department,
-      companyId,
-      id,
     );
   }
 
@@ -55,9 +41,9 @@ export class AccountingAccountsController {
     @Request() req: RequestInterface,
     @Param('companyId', new ParseUUIDPipe()) companyId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() data: UpdateAccountingAccountDto,
+    @Body() data: UpdateBankAccountDto,
   ) {
-    return this.accountingAccountsService.updateForCompanyAdmin(
+    return this.bankAccountsService.updateForCompanyAdmin(
       req.userInfo.id_role,
       req.userInfo.id_department,
       companyId,
@@ -72,7 +58,7 @@ export class AccountingAccountsController {
     @Param('companyId', new ParseUUIDPipe()) companyId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.accountingAccountsService.deleteForCompanyAdmin(
+    return this.bankAccountsService.deleteForCompanyAdmin(
       req.userInfo.id_role,
       req.userInfo.id_department,
       companyId,

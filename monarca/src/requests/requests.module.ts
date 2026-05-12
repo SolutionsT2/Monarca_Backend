@@ -27,6 +27,11 @@ import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { EmailActionService } from './email-action.service';
 import { EmailActionController } from './email-action.controller';
+import { User } from 'src/users/entities/user.entity';
+import { AuthorizationSubstitute } from 'src/roles/entity/authorization-substitute.entity';
+import { NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { ApproverSubstituteMiddleware } from './middleware/approver-substitute.middleware';
 
 @Module({
   imports: [
@@ -37,6 +42,8 @@ import { EmailActionController } from './email-action.controller';
       DocumentClass,
       Department,
       PolicyViolation,
+      User,
+      AuthorizationSubstitute,
     ]),
     GuardsModule,
     UsersModule,
@@ -52,11 +59,25 @@ import { EmailActionController } from './email-action.controller';
     RequestsChecks,
     RequestsStatusService,
     NotificationsService,
+    ApproverSubstituteService,
+    ApproverSubstituteMiddleware,
     EmailActionService,
   ],
-  exports: [RequestsService, RequestsChecks],
+  exports: [RequestsService, RequestsChecks, ApproverSubstituteService],
 })
-export class RequestsModule {}
+export class RequestsModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(ApproverSubstituteMiddleware).forRoutes(
+      { path: 'requests/to-approve', method: RequestMethod.GET },
+      { path: 'requests/approve/:id', method: RequestMethod.PATCH },
+      { path: 'requests/deny/:id', method: RequestMethod.PATCH },
+      {
+        path: 'requests/finished-approving-vouchers/:id',
+        method: RequestMethod.PATCH,
+      },
+    );
+  }
+}
 
 /*
 Modification History:

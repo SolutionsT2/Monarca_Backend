@@ -14,7 +14,7 @@ export class Policy {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'id_company', type: 'uuid' })
+  @Column({ name: 'id_company', type: 'uuid', nullable: true })
   id_company!: string;
 
   @Column({ name: 'name', type: 'varchar' })

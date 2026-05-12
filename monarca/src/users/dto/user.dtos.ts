@@ -32,6 +32,9 @@ export class CreateUserDto {
 
   @ApiProperty()
   idTravelAgency?: string;
+
+  @ApiProperty({ example: 'Emp001', required: false })
+  employeeNumber?: string;
 }
 
 /**

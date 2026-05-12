@@ -21,6 +21,7 @@ import { DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 describe('RequestsController', () => {
   let controller: RequestsController;
@@ -38,6 +39,7 @@ describe('RequestsController', () => {
         { provide: DestinationsChecks, useValue: {} },
         { provide: NotificationsService, useValue: {} },
         { provide: DataSource, useValue: {} },
+        { provide: ApproverSubstituteService, useValue: {} },
         { provide: JwtService, useValue: {} },
       ],
     })

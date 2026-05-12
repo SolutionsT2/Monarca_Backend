@@ -42,7 +42,7 @@ export class PermissionsGuard implements CanActivate {
     request.sessionInfo.id = user.id;
     request.userInfo = {
       id: user.id,
-      email: user.email,
+      email: user.email ?? null,
       name: user.name,
       last_name: user.lastName,
       availabilityStatus: user.availabilityStatus,

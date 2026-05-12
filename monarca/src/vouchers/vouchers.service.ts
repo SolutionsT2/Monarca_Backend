@@ -185,7 +185,24 @@ export class VouchersService {
     return this.findOne(id); // Return the updated entity
   }
 
+  async findByUser(userId: string): Promise<Voucher[]> {
+    return this.voucherRepo.find({
+      where: {
+        requests: {
+          id_user: userId,
+        },
+      },
+      relations: ['requests'],
+    });
+  }
+
   async remove(id: string): Promise<{ status: boolean; message: string }> {
+    const voucher = await this.findOne(id);
+    if (voucher.status === 'Voucher Approved' || voucher.status === 'Approved') {
+      throw new ForbiddenException(
+        'Vouchers that have already been approved cannot be deleted.',
+      );
+    }
     const result = await this.voucherRepo.delete(id);
     if (!result.affected) {
       throw new NotFoundException(`Voucher with ID ${id} not found`);

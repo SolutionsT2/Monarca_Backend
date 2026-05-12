@@ -54,6 +54,7 @@ import { TravelIntegrationsModule } from './travel-integrations/travel-integrati
 import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
 import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 import { PolicyExportsModule } from './policy-exports/policy-exports.module';
+import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
@@ -61,6 +62,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { AccountingAccount } from './accounting-accounts/entity/accounting-account.entity';
 import { DocumentClass } from './document-classes/entity/document-class.entity';
 import { PolicyExport } from './policy-exports/entity/policy-export.entity';
+import { BankAccount } from './bank-accounts/entity/bank-account.entity';
 
 @Module({
   imports: [
@@ -73,6 +75,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
     AuthModule,
     UsersModule,
     TravelAgenciesModule,
+    BankAccountsModule,
     RolesModule,
     DepartmentsModule,
     CostCentersModule,
@@ -130,6 +133,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
         AccountingAccount,
         DocumentClass,
         PolicyExport,
+        BankAccount,
       ],
       synchronize:
         process.env.TYPEORM_SYNCHRONIZE === undefined
@@ -168,6 +172,7 @@ import { PolicyExport } from './policy-exports/entity/policy-export.entity';
       DocumentClass,
       PolicyExport,
       ExchangeRate,
+      BankAccount,
     ]),
   ],
   controllers: [],

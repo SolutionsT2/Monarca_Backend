@@ -29,6 +29,7 @@ import {
 } from 'src/notifications/notifications.service';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Department } from 'src/departments/entity/department.entity';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 @Injectable()
 export class RequestsService {
@@ -45,6 +46,7 @@ export class RequestsService {
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
+    private readonly approverSubstituteService: ApproverSubstituteService,
   ) {}
 
   public buildRequestSummaryHtml(request: RequestEntity): string {
@@ -379,6 +381,9 @@ export class RequestsService {
       );
     }
 
+    const resolvedAdminId =
+      await this.approverSubstituteService.resolveApprover(adminId);
+
     const SOIId = await this.userChecks.getRandomSoiId();
     if (!SOIId) {
       throw new HttpException(
@@ -389,7 +394,7 @@ export class RequestsService {
 
     const request = this.requestsRepo.create({
       id_user: userId,
-      id_admin: adminId,
+      id_admin: resolvedAdminId,
       id_SOI: SOIId,
       id_company: department.id_company,
       id_document_class: await this.getDocumentClassIdForAdvance(
