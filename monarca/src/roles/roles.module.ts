@@ -30,6 +30,7 @@ import { SubstitutesController } from './substitutes.controller';
   ],
   controllers: [RolesAdminController, SubstitutesController],
   providers: [RolesAdminService],
+  exports: [TypeOrmModule],
 })
 export class RolesModule {}
 
