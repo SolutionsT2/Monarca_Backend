@@ -3,24 +3,28 @@
         "key": 1000,
         "description": "Anticipo",
         "requires_cost_center": false,
-        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11" 
+        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
+        "id_bank_account": "11111111-1111-1111-1111-111111111111"
     },
     {
         "key": 1001,
         "description": "Cuenta x pagar Empleado",
         "requires_cost_center": false,
-        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11" 
+        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
+        "id_bank_account": "11111111-1111-1111-1111-111111111111"
     },
     {
         "key": 1002,
         "description": "Gasto de viaje",
         "requires_cost_center": true,
-        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11" 
+        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
+        "id_bank_account": "11111111-1111-1111-1111-111111111111"
     },
     {
         "key": 1003,
         "description": "Iva acreditable",
         "requires_cost_center": false,
-        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
+        "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11",
+        "id_bank_account": "11111111-1111-1111-1111-111111111111"
     }
 ]

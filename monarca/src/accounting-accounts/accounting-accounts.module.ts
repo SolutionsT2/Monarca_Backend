@@ -6,12 +6,13 @@ import { AccountingAccount } from './entity/accounting-account.entity';
 import { Company } from 'src/companies/entity/company.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
+import { BankAccount } from 'src/bank-accounts/entity/bank-account.entity';
 import { GuardsModule } from 'src/guards/guards.module';
 
 @Module({
   imports: [
     GuardsModule,
-    TypeOrmModule.forFeature([AccountingAccount, Company, Department, Roles]),
+    TypeOrmModule.forFeature([AccountingAccount, Company, Department, Roles, BankAccount]),
   ],
   controllers: [AccountingAccountsController],
   providers: [AccountingAccountsService],

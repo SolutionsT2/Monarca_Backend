@@ -2,10 +2,11 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AccountingAccount } from './entity/accounting-account.entity';
+import { BankAccount } from 'src/bank-accounts/entity/bank-account.entity';
 import { Company } from 'src/companies/entity/company.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
-import { CreateAccountingAccountDto } from './dto/accounting-account.dto';
+import { CreateAccountingAccountDto, UpdateAccountingAccountDto } from './dto/accounting-account.dto';
 
 @Injectable()
 export class AccountingAccountsService {
@@ -18,6 +19,8 @@ export class AccountingAccountsService {
     private readonly departmentRepo: Repository<Department>,
     @InjectRepository(Roles)
     private readonly roleRepo: Repository<Roles>,
+    @InjectRepository(BankAccount)
+    private readonly bankAccountRepo: Repository<BankAccount>,
   ) {}
 
   async createForCompanyAdmin(
@@ -36,6 +39,7 @@ export class AccountingAccountsService {
       description: data.description.trim(),
       requiresCostCenter: data.requiresCostCenter ?? false,
       id_company: idCompany,
+      id_bank_account: await this.findBankAccountIdForCompanyOrFail(idCompany, data.idBankAccount),
     });
 
     return this.accountingAccountRepo.save(accountingAccount);
@@ -50,8 +54,73 @@ export class AccountingAccountsService {
 
     return this.accountingAccountRepo.find({
       where: { id_company: idCompany, deletedAt: IsNull() },
+      relations: { bankAccount: true },
       order: { key: 'ASC' },
     });
+  }
+
+  async findOneForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    idAccountingAccount: string,
+  ): Promise<AccountingAccount> {
+    await this.assertCompanyAdminAccess(idRole, idDepartment, idCompany);
+
+    const accountingAccount = await this.accountingAccountRepo.findOne({
+      where: { id: idAccountingAccount, id_company: idCompany, deletedAt: IsNull() },
+      relations: { bankAccount: true },
+    });
+
+    if (!accountingAccount) {
+      throw new NotFoundException(`Accounting account ${idAccountingAccount} not found`);
+    }
+
+    return accountingAccount;
+  }
+
+  async updateForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    idAccountingAccount: string,
+    data: UpdateAccountingAccountDto,
+  ): Promise<AccountingAccount> {
+    await this.assertCompanyAdminAccess(idRole, idDepartment, idCompany);
+
+    const accountingAccount = await this.accountingAccountRepo.findOne({
+      where: { id: idAccountingAccount, id_company: idCompany, deletedAt: IsNull() },
+    });
+
+    if (!accountingAccount) {
+      throw new NotFoundException(`Accounting account ${idAccountingAccount} not found`);
+    }
+
+    if (data.key !== undefined) {
+      accountingAccount.key = data.key.trim();
+    }
+
+    if (data.description !== undefined) {
+      accountingAccount.description = data.description.trim();
+    }
+
+    if (data.requiresCostCenter !== undefined) {
+      accountingAccount.requiresCostCenter = data.requiresCostCenter;
+    }
+
+    if (data.idBankAccount !== undefined) {
+      accountingAccount.id_bank_account = await this.findBankAccountIdForCompanyOrFail(
+        idCompany,
+        data.idBankAccount,
+      );
+    }
+
+    await this.accountingAccountRepo.save(accountingAccount);
+
+    return (await this.accountingAccountRepo.findOne({
+      where: { id: idAccountingAccount, id_company: idCompany, deletedAt: IsNull() },
+      relations: { bankAccount: true },
+    })) as AccountingAccount;
   }
 
   async deleteForCompanyAdmin(
@@ -123,5 +192,20 @@ export class AccountingAccountsService {
     }
 
     return company;
+  }
+
+  private async findBankAccountIdForCompanyOrFail(
+    idCompany: string,
+    idBankAccount: string,
+  ): Promise<string> {
+    const bankAccount = await this.bankAccountRepo.findOne({
+      where: { id: idBankAccount, id_company: idCompany },
+    });
+
+    if (!bankAccount) {
+      throw new NotFoundException(`Bank account ${idBankAccount} not found for company ${idCompany}`);
+    }
+
+    return bankAccount.id;
   }
 }
