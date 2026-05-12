@@ -14,6 +14,7 @@ import { RequestsService } from './requests.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 describe('RequestsStatusService', () => {
   let service: RequestsStatusService;
@@ -58,6 +59,10 @@ describe('RequestsStatusService', () => {
         { provide: NotificationsService, useValue: notificationsService },
         { provide: TravelAgenciesChecks, useValue: {} },
         { provide: PolicyEngineService, useValue: policyEngineService },
+        {
+          provide: ApproverSubstituteService,
+          useValue: { reassignRequestIfNeeded: jest.fn().mockResolvedValue(null) },
+        },
       ],
     }).compile();
 
@@ -89,7 +94,7 @@ describe('RequestsStatusService', () => {
       'req-1',
       'In Progress',
     );
-    expect(result).toEqual({ id: 'req-2', emailWarnings: [] });
+    expect(result).toEqual({ id: 'req-1', emailWarnings: [] });
   });
 
   it('finishedUploadingVouchers should notify approver for voucher approval', async () => {
@@ -136,7 +141,7 @@ describe('RequestsStatusService', () => {
       'req-2',
       'Pending Vouchers Approval',
     );
-    expect(result).toEqual({ id: 'req-3', emailWarnings: [] });
+    expect(result).toEqual({ id: 'req-2', emailWarnings: [] });
   });
 
   it('finishedApprovingVouchers should notify SOI to register refund', async () => {
@@ -164,7 +169,7 @@ describe('RequestsStatusService', () => {
       'req-3',
       'Pending Refund Approval',
     );
-    expect(result).toEqual({ id: 'req-1', emailWarnings: [] });
+    expect(result).toEqual({ id: 'req-3', emailWarnings: [] });
   });
 
   it('finsihedRegisteringRequest should update status without direct emails', async () => {
