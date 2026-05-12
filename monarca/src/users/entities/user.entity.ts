@@ -66,7 +66,7 @@ export class User {
   idManager?: string | null;
 
   @ApiProperty({ example: '12345678' })
-  @Column({ name: 'supplier_number', type: 'varchar', length: 8, nullable: true })
+  @Column({ name: 'supplier_number', type: 'varchar', length: 20, nullable: true })
   supplierNumber?: string;
 
   @ApiProperty()

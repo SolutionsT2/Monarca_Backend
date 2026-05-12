@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { In, Repository } from 'typeorm';
+import { In, QueryFailedError, Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto, UserDto } from './dto/user.dtos';
 import { Department } from 'src/departments/entity/department.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
@@ -25,6 +25,7 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
+  private static readonly SUPPLIER_NUMBER_MAX_LENGTH = 20;
 
   constructor(
     @InjectRepository(User)
@@ -162,12 +163,20 @@ export class UsersService {
       throw new BadRequestException('Excel file has no rows');
     }
 
-    const [roles, users, departments, costCenters] = await Promise.all([
+    const [allRoles, users, departments, costCenters] = await Promise.all([
       this.rolesRepo.find({ order: { name: 'ASC' } }),
       this.repo.find({ select: ['employeeNumber'] }),
       this.departmentRepo.find({ relations: { cost_center: true } }),
       this.costCenterRepo.find(),
     ]);
+
+    const roles = allRoles;
+    const solicitanteRole = allRoles.find(
+      (r) => r.name.toLowerCase().replace(/\s+/g, '') === 'solicitante',
+    );
+    const aprobadorRole = allRoles.find(
+      (r) => r.name.toLowerCase().replace(/\s+/g, '') === 'aprobador',
+    );
 
     const existingUsers = new Set(
       users
@@ -199,6 +208,15 @@ export class UsersService {
       }
     }
 
+    // Build set of employee numbers that appear as "Jefe Inmediato" in at least one row
+    const managersInBatch = new Set<string>();
+    for (const row of rows) {
+      const boss = this.normalizeCellValue(row['Jefe Inmediato']);
+      if (boss) {
+        managersInBatch.add(boss);
+      }
+    }
+
     const employees: PreviewEmployeeDto[] = rows.map((row, index) => {
       const validationErrors: string[] = [];
 
@@ -227,9 +245,23 @@ export class UsersService {
       if (!ceco) {
         validationErrors.push('Ceco is required');
       }
+      if (
+        supplierNumber &&
+        supplierNumber.length > UsersService.SUPPLIER_NUMBER_MAX_LENGTH
+      ) {
+        validationErrors.push(
+          `Proveedor exceeds max length (${UsersService.SUPPLIER_NUMBER_MAX_LENGTH})`,
+        );
+      }
 
       const statusRaw = this.normalizeCellValue(row.status)?.toUpperCase() ?? 'A';
       const availabilityStatus = statusRaw === 'A' ? 'active' : 'inactive';
+
+      const isManagerInBatch =
+        !!employeeNumber && managersInBatch.has(employeeNumber);
+      const suggestedRoleId = isManagerInBatch
+        ? (aprobadorRole?.id ?? null)
+        : (solicitanteRole?.id ?? null);
 
       return {
         row: index + 2,
@@ -247,6 +279,7 @@ export class UsersService {
         lastchangeDate: this.excelValueToIsoString(row.FechaCambio),
         isUpdate: existingUsers.has(employeeNumber),
         validationErrors,
+        suggestedRoleId,
       };
     });
 
@@ -330,6 +363,19 @@ export class UsersService {
         });
         continue;
       }
+      const supplierNumber = this.normalizeNullableCellValue(
+        employee.supplierNumber,
+      );
+      if (
+        supplierNumber &&
+        supplierNumber.length > UsersService.SUPPLIER_NUMBER_MAX_LENGTH
+      ) {
+        result.errors.push({
+          employeeNumber,
+          message: `supplierNumber exceeds max length (${UsersService.SUPPLIER_NUMBER_MAX_LENGTH})`,
+        });
+        continue;
+      }
 
       const basePassword = `${employee.username ?? ''}${(employee.name ?? '').replace(/\s+/g, '')}${(employee.lastName ?? '').replace(/\s+/g, '')}`;
       const hashedPassword = await bcrypt.hash(basePassword, 10);
@@ -342,7 +388,7 @@ export class UsersService {
         lastName: employee.lastName,
         username: employee.username ?? null,
         email: employee.email ?? null,
-        supplierNumber: employee.supplierNumber ?? undefined,
+        supplierNumber: supplierNumber ?? undefined,
         idDepartment: employee.departmentId,
         idRole: employee.idRole,
         availabilityStatus: employee.availabilityStatus,
@@ -360,7 +406,11 @@ export class UsersService {
     }
 
     if (usersToSave.length > 0) {
-      await this.repo.save(usersToSave);
+      try {
+        await this.repo.save(usersToSave);
+      } catch (error) {
+        this.handleImportQueryError(error);
+      }
     }
 
     const usersAfterSave = await this.repo.find({
@@ -422,7 +472,11 @@ export class UsersService {
     }
 
     if (managerUpdates.length > 0) {
-      await this.repo.save(managerUpdates);
+      try {
+        await this.repo.save(managerUpdates);
+      } catch (error) {
+        this.handleImportQueryError(error);
+      }
     }
 
     this.logger.log(
@@ -517,6 +571,33 @@ export class UsersService {
     const date = new Date(String(value));
     if (Number.isNaN(date.getTime())) return null;
     return date.toISOString();
+  }
+
+  private handleImportQueryError(error: unknown): never {
+    if (error instanceof QueryFailedError) {
+      const dbError = error as QueryFailedError & {
+        code?: string;
+        detail?: string;
+        message?: string;
+      };
+
+      if (dbError.code === '22001') {
+        throw new BadRequestException(
+          'Import failed because one or more fields exceed the maximum allowed length in database.',
+        );
+      }
+
+      if (dbError.code === '23505') {
+        throw new BadRequestException(
+          'Import failed because one or more unique values are duplicated (employee number, username or email).',
+        );
+      }
+    }
+
+    this.logger.error('Unexpected error while saving imported employees', error);
+    throw new BadRequestException(
+      'Import failed due to invalid data. Please review the uploaded file and try again.',
+    );
   }
 }
 

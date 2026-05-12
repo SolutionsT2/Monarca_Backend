@@ -26,6 +26,26 @@
   },
   {
     "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
+    "idPermission": "c91a6104-4993-4653-8f39-c47dba9c9ce4",
+    "expiresAt": null
+  },
+  {
+    "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
+    "idPermission": "144d80a2-24b9-4826-a9bd-28d61d52c432",
+    "expiresAt": null
+  },
+  {
+    "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
+    "idPermission": "5d110d2b-8df6-413e-9255-9886faa598a5",
+    "expiresAt": null
+  },
+  {
+    "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
+    "idPermission": "b4904143-de77-4557-aa04-2d9c7141666f",
+    "expiresAt": null
+  },
+  {
+    "idRole": "8f28d424-2d93-483a-9018-f568cf6bc13a",
     "idPermission": "6ccf23e4-3ed3-40aa-8eac-6473704acf0c",
     "expiresAt": null
   },

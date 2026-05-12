@@ -14,6 +14,7 @@ import { UserChecks } from 'src/users/user.checks.service';
 import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { DataSource } from 'typeorm';
+import { ApproverSubstituteService } from './services/approver-substitute.service';
 
 describe('RequestsService', () => {
   let service: RequestsService;
@@ -30,6 +31,7 @@ describe('RequestsService', () => {
           { provide: DestinationsChecks, useValue: {} },
           { provide: NotificationsService, useValue: {} },
           { provide: DataSource, useValue: {} },
+          { provide: ApproverSubstituteService, useValue: {} },
         ],
     }).compile();
 

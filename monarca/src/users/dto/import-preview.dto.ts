@@ -50,6 +50,13 @@ export class PreviewEmployeeDto {
 
   @ApiProperty({ example: [], type: [String] })
   validationErrors: string[];
+
+  @ApiProperty({
+    example: 'b0d4211d-457e-4d84-b8a4-320af380683f',
+    nullable: true,
+    description: 'Auto-suggested role UUID: Aprobador if this employee is a manager in the batch, otherwise Solicitante.',
+  })
+  suggestedRoleId: string | null;
 }
 
 export class PreviewResponseDto {
