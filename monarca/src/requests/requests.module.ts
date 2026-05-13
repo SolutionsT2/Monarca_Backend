@@ -25,16 +25,14 @@ import { DocumentClass } from 'src/document-classes/entity/document-class.entity
 import { Department } from 'src/departments/entity/department.entity';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { EmailActionService } from './email-action.service';
+import { EmailActionController } from './email-action.controller';
 import { User } from 'src/users/entities/user.entity';
 import { AuthorizationSubstitute } from 'src/roles/entity/authorization-substitute.entity';
 import { NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 import { ApproverSubstituteMiddleware } from './middleware/approver-substitute.middleware';
 
-/**
- * Module encapsulating request domain logic
- * and related integrations.
- */
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -52,10 +50,10 @@ import { ApproverSubstituteMiddleware } from './middleware/approver-substitute.m
     DestinationsModule,
     TravelAgenciesModule,
     RequestLogsModule,
-    NotificationsModule, // Assuming this is a controller that handles notifications related to requests
+    NotificationsModule,
     PolicyEngineModule,
   ],
-  controllers: [RequestsController, RequestsStatusController],
+  controllers: [EmailActionController, RequestsController, RequestsStatusController],
   providers: [
     RequestsService,
     RequestsChecks,
@@ -63,6 +61,7 @@ import { ApproverSubstituteMiddleware } from './middleware/approver-substitute.m
     NotificationsService,
     ApproverSubstituteService,
     ApproverSubstituteMiddleware,
+    EmailActionService,
   ],
   exports: [RequestsService, RequestsChecks, ApproverSubstituteService],
 })
@@ -82,6 +81,6 @@ export class RequestsModule implements NestModule {
 
 /*
 Modification History:
-
 - 2026-02-26 | Diego Vergara | Added module documentation and clarified inline comments.
+- 2026-04-30 | Added EmailActionController and EmailActionService.
 */
