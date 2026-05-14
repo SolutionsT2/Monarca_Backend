@@ -22,6 +22,8 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
+import { ApprovalRulesService } from 'src/approval-rules/approval-rules.service';
 
 describe('RequestsController', () => {
   let controller: RequestsController;
@@ -35,11 +37,13 @@ describe('RequestsController', () => {
         { provide: getRepositoryToken(PolicyViolation), useValue: {} },
         { provide: getRepositoryToken(DocumentClass), useValue: {} },
         { provide: getRepositoryToken(Department), useValue: {} },
+        { provide: getRepositoryToken(RequestApprovalStep), useValue: {} },
         { provide: UserChecks, useValue: {} },
         { provide: DestinationsChecks, useValue: {} },
         { provide: NotificationsService, useValue: {} },
         { provide: DataSource, useValue: {} },
         { provide: ApproverSubstituteService, useValue: {} },
+        { provide: ApprovalRulesService, useValue: {} },
         { provide: JwtService, useValue: {} },
       ],
     })

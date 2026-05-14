@@ -15,6 +15,7 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 import { TravelAgenciesChecks } from 'src/travel-agencies/travel-agencies.checks';
 import { PolicyEngineService } from 'src/policy-engine/policy-engine.service';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
 
 describe('RequestsStatusService', () => {
   let service: RequestsStatusService;
@@ -54,6 +55,7 @@ describe('RequestsStatusService', () => {
         { provide: getRepositoryToken(RequestEntity), useValue: requestsRepo },
         { provide: getRepositoryToken(Voucher), useValue: vouchersRepo },
         { provide: getRepositoryToken(Department), useValue: {} },
+        { provide: getRepositoryToken(RequestApprovalStep), useValue: {} },
         { provide: getRepositoryToken(DocumentClass), useValue: {} },
         { provide: RequestsService, useValue: requestsService },
         { provide: NotificationsService, useValue: notificationsService },
@@ -61,7 +63,9 @@ describe('RequestsStatusService', () => {
         { provide: PolicyEngineService, useValue: policyEngineService },
         {
           provide: ApproverSubstituteService,
-          useValue: { reassignRequestIfNeeded: jest.fn().mockResolvedValue(null) },
+          useValue: {
+            reassignRequestIfNeeded: jest.fn().mockResolvedValue(null),
+          },
         },
       ],
     }).compile();

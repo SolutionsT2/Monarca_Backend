@@ -15,6 +15,8 @@ import { DestinationsChecks } from 'src/destinations/destinations.checks';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { DataSource } from 'typeorm';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
+import { ApprovalRulesService } from 'src/approval-rules/approval-rules.service';
 
 describe('RequestsService', () => {
   let service: RequestsService;
@@ -41,11 +43,13 @@ describe('RequestsService', () => {
         { provide: getRepositoryToken(PolicyViolation), useValue: {} },
         { provide: getRepositoryToken(DocumentClass), useValue: {} },
         { provide: getRepositoryToken(Department), useValue: {} },
+        { provide: getRepositoryToken(RequestApprovalStep), useValue: {} },
         { provide: UserChecks, useValue: userChecks },
         { provide: DestinationsChecks, useValue: {} },
         { provide: NotificationsService, useValue: notificationsService },
         { provide: DataSource, useValue: dataSource },
-          { provide: ApproverSubstituteService, useValue: {} },
+        { provide: ApproverSubstituteService, useValue: {} },
+        { provide: ApprovalRulesService, useValue: {} },
       ],
     }).compile();
 
@@ -89,6 +93,6 @@ describe('RequestsService', () => {
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * 
+ *
  * - 2026-04-15 - Santiago Arista Viramontes: Added providers
  */
