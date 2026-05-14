@@ -17,6 +17,7 @@ import { DataSource } from 'typeorm';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 import { RequestApprovalStep } from './entities/request-approval-step.entity';
 import { ApprovalRulesService } from 'src/approval-rules/approval-rules.service';
+import { Destination } from 'src/destinations/entities/destination.entity';
 
 describe('RequestsService', () => {
   let service: RequestsService;
@@ -44,6 +45,7 @@ describe('RequestsService', () => {
         { provide: getRepositoryToken(DocumentClass), useValue: {} },
         { provide: getRepositoryToken(Department), useValue: {} },
         { provide: getRepositoryToken(RequestApprovalStep), useValue: {} },
+        { provide: getRepositoryToken(Destination), useValue: {} },
         { provide: UserChecks, useValue: userChecks },
         { provide: DestinationsChecks, useValue: {} },
         { provide: NotificationsService, useValue: notificationsService },
