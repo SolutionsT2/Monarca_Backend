@@ -35,7 +35,9 @@ interface VoucherPolicyPreviewInput {
   date?: string;
   has_xml?: boolean;
   has_pdf?: boolean;
-}import { ApproverSubstituteService } from './services/approver-substitute.service';
+}
+import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
 
 
 // STATUSES (order after creation):
@@ -51,6 +53,8 @@ export class RequestsStatusService {
     private readonly vouchersRepo: Repository<Voucher>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(RequestApprovalStep)
+    private readonly requestApprovalStepsRepo: Repository<RequestApprovalStep>,
     @InjectRepository(DocumentClass)
     private readonly documentClassRepo: Repository<DocumentClass>,
     private readonly requestsService: RequestsService,
@@ -103,7 +107,9 @@ export class RequestsStatusService {
     if (!request) throw new NotFoundException('Invalid request id');
 
     if (request.id_user !== id_user)
-      throw new UnauthorizedException('Unable to validate vouchers for request.');
+      throw new UnauthorizedException(
+        'Unable to validate vouchers for request.',
+      );
 
     if (request.status !== 'In Progress')
       throw new ConflictException(
@@ -225,6 +231,7 @@ export class RequestsStatusService {
 
     const id_user = req.sessionInfo.id;
     const id_travel_agency = data.id_travel_agency;
+
     const request = await this.requestsRepo.findOne({
       where: { id: id_request },
       relations: [
@@ -238,16 +245,95 @@ export class RequestsStatusService {
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    if (!(await this.travelAgenciesChecks.Exists(id_travel_agency)))
-      throw new BadRequestException('Invalid travel agency id.');
-
-    if (request.id_admin !== id_user)
+    const canApprove =
+      await this.approverSubstituteService.isAuthorizedToApprove(
+        request.id_admin,
+        id_user,
+      );
+    if (!canApprove)
       throw new UnauthorizedException('Unable to approve request.');
 
     if (request.status !== 'Pending Review')
       throw new ConflictException(
         'Unable to approve because of the requests current status.',
       );
+
+    if (!(await this.travelAgenciesChecks.Exists(id_travel_agency))) {
+      throw new BadRequestException('Invalid travel agency id.');
+    }
+
+    const currentApprovalStep = await this.requestApprovalStepsRepo.findOne({
+      where: {
+        idRequest: id_request,
+        status: 'pending',
+      },
+      order: { order: 'ASC' },
+    });
+
+    if (currentApprovalStep) {
+      currentApprovalStep.status = 'approved';
+      currentApprovalStep.approvedAt = new Date();
+      currentApprovalStep.idApprovedBy = id_user;
+
+      await this.requestApprovalStepsRepo.save(currentApprovalStep);
+
+      const nextApprovalStep = await this.requestApprovalStepsRepo.findOne({
+        where: {
+          idRequest: id_request,
+          status: 'pending',
+        },
+        order: { order: 'ASC' },
+      });
+
+      if (nextApprovalStep) {
+        const nextApproverId =
+          await this.approverSubstituteService.resolveApprover(
+            nextApprovalStep.idApprover,
+          );
+
+        await this.requestsRepo.update(
+          { id: id_request },
+          {
+            id_admin: nextApproverId,
+            id_travel_agency: id_travel_agency,
+          },
+        );
+
+        const updated = await this.requestsRepo.findOne({
+          where: { id: id_request },
+          relations: ['user', 'admin', 'SOI'],
+        });
+
+        if (!updated) {
+          throw new NotFoundException('Invalid request id');
+        }
+
+        const emailWarnings: EmailWarning[] = [];
+
+        const nextApproverEmailWarning =
+          await this.notificationsService.notifyOrWarn({
+            to: updated.admin.email,
+            subject: 'Nueva solicitud pendiente de tu aprobación',
+            text: `La solicitud "${updated.title}" requiere tu aprobación como parte de la cadena jerárquica.`,
+            html: `<p>Hola ${updated.admin.name},</p>
+<p>La solicitud "<strong>${updated.title}</strong>" fue aprobada por el nivel anterior y ahora requiere tu aprobación.</p>
+<p>Por favor, revisa los detalles en el sistema.</p>
+<p>Saludos,</p>
+<p>Equipo de Monarca</p>`,
+            failureMessage:
+              'La cadena de aprobación avanzó, pero no se pudo notificar al siguiente aprobador.',
+          });
+
+        if (nextApproverEmailWarning) {
+          emailWarnings.push(nextApproverEmailWarning);
+        }
+
+        return Object.assign(updated, {
+          emailWarnings,
+          approvalChainContinues: true,
+        });
+      }
+    }
 
     await this.requestsRepo.update(
       { id: id_request },
@@ -318,13 +404,32 @@ ${loginLine}
 
     if (!request) throw new NotFoundException('Invalid request id');
 
-    if (request.id_admin !== id_user)
-      throw new UnauthorizedException('Unable to deny request.');
+    const canDeny = await this.approverSubstituteService.isAuthorizedToApprove(
+      request.id_admin,
+      id_user,
+    );
+    if (!canDeny) throw new UnauthorizedException('Unable to deny request.');
 
     if (request.status !== 'Pending Review')
       throw new ConflictException(
         'Unable to deny because of the requests current status.',
       );
+
+    const currentApprovalStep = await this.requestApprovalStepsRepo.findOne({
+      where: {
+        idRequest: id_request,
+        status: 'pending',
+      },
+      order: { order: 'ASC' },
+    });
+
+    if (currentApprovalStep) {
+      currentApprovalStep.status = 'denied';
+      currentApprovalStep.idApprovedBy = id_user;
+      currentApprovalStep.approvedAt = new Date();
+
+      await this.requestApprovalStepsRepo.save(currentApprovalStep);
+    }
 
     const emailWarnings: EmailWarning[] = [];
 
@@ -730,4 +835,5 @@ ${loginLine}
  * - 2026-03-02: Added file header with description and modification history.
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped all notificationsService.notify() calls in try-catch to prevent email failures from aborting status transitions.
  * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning responses for request status transitions when notification delivery fails.
+ * - 2026-05-12 | Juan de Dios Gastélum | Added hierarchical approval step progression before accounting approval. Added email notification to next approver when approval chain advances. Changed approve/deny authorization to allow substitute approvers via isAuthorizedToApprove.
  */

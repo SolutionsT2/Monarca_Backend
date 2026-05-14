@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager, In, Not } from 'typeorm';
@@ -30,6 +31,9 @@ import {
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
+import { ApprovalRulesService } from 'src/approval-rules/approval-rules.service';
+import { Destination } from 'src/destinations/entities/destination.entity';
 
 @Injectable()
 export class RequestsService {
@@ -42,23 +46,29 @@ export class RequestsService {
     private readonly policyViolationRepo: Repository<PolicyViolation>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(RequestApprovalStep)
+    private readonly requestApprovalStepsRepo: Repository<RequestApprovalStep>,
+    @InjectRepository(Destination)
+    private readonly destinationRepo: Repository<Destination>,
     private readonly userChecks: UserChecks,
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
     private readonly approverSubstituteService: ApproverSubstituteService,
+    private readonly approvalRulesService: ApprovalRulesService,
   ) {}
 
   public buildRequestSummaryHtml(request: RequestEntity): string {
     const requesterName = request.user
       ? `${request.user.name} ${request.user.lastName || ''}`.trim()
       : 'N/A';
-    const originCity = request.destination?.city || request.id_origin_city || 'N/A';
+    const originCity =
+      request.destination?.city || request.id_origin_city || 'N/A';
     const travelAgencyName = request.travelAgency?.name
       ? request.travelAgency.name
       : request.id_travel_agency
-      ? 'Agencia asignada'
-      : 'Sin asignar';
+        ? 'Agencia asignada'
+        : 'Sin asignar';
     const createdAt = request.createdAt
       ? new Date(request.createdAt).toLocaleDateString('es-MX')
       : 'N/A';
@@ -106,11 +116,15 @@ export class RequestsService {
           <td style="padding:8px;border:1px solid #ddd;"><strong>Anticipo</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">$${request.advance_money} MXN</td>
         </tr>
-        ${request.requirements ? `
+        ${
+          request.requirements
+            ? `
         <tr style="background:#f9f9f9;">
           <td style="padding:8px;border:1px solid #ddd;"><strong>Requerimientos</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">${request.requirements}</td>
-        </tr>` : ''}
+        </tr>`
+            : ''
+        }
       </table>
       ${destinationsHtml}
     `;
@@ -125,7 +139,8 @@ export class RequestsService {
     const rows = destinations
       .sort((a, b) => (a.destination_order || 0) - (b.destination_order || 0))
       .map((destination, index) => {
-        const cityName = destination.destination?.city || destination.id_destination;
+        const cityName =
+          destination.destination?.city || destination.id_destination;
         const departure = this.formatDate(destination.departure_date);
         const arrival = this.formatDate(destination.arrival_date);
         const hotel = destination.is_hotel_required ? 'Si' : 'No';
@@ -176,9 +191,7 @@ export class RequestsService {
       return '';
     }
 
-    const normalized = baseUrl.endsWith('/')
-      ? baseUrl.slice(0, -1)
-      : baseUrl;
+    const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     return `${normalized}/dashboard`;
   }
 
@@ -299,6 +312,120 @@ export class RequestsService {
     });
   }
 
+  /**
+   * Normalizes country names before comparing origin and destinations.
+   * @param country Country name to normalize.
+   * @returns Normalized lowercase country name without accents.
+   */
+  private normalizeCountry(country?: string | null): string {
+    return String(country ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  /**
+   * Builds the approval rule context from the request payload.
+   * @param data Request creation payload.
+   * @returns Trip type and monetary amount used by the approval rules engine.
+   */
+  private async buildApprovalContext(data: CreateRequestDto): Promise<{
+    tripType: 'nacional' | 'internacional';
+    cost: number;
+  }> {
+    const origin = await this.destinationRepo.findOne({
+      where: { id: data.id_origin_city },
+      select: ['id', 'country'],
+    });
+
+    if (!origin) {
+      throw new BadRequestException('Invalid id_origin_city.');
+    }
+
+    const destinationIds = data.requests_destinations.map(
+      (destination) => destination.id_destination,
+    );
+
+    const destinations = await this.destinationRepo.find({
+      where: { id: In(destinationIds) },
+      select: ['id', 'country'],
+    });
+
+    const originCountry = this.normalizeCountry(origin.country);
+
+    const isInternational = destinations.some(
+      (destination) =>
+        this.normalizeCountry(destination.country) !== originCountry,
+    );
+
+    return {
+      tripType: isInternational ? 'internacional' : 'nacional',
+      cost: Number(data.advance_money || 0),
+    };
+  }
+
+  /**
+   * Resolves the first approver and the frozen hierarchy chain for a new request.
+   * Falls back to the existing department approver logic when no rule matches.
+   * @param userId Requester user ID.
+   * @param departmentId Requester department ID.
+   * @param data Request creation payload.
+   * @returns First approver and full hierarchy approval chain.
+   */
+  private async resolveInitialApprover(
+    userId: string,
+    departmentId: string,
+    data: CreateRequestDto,
+  ): Promise<{
+    approverId: string;
+    approvalManagers: { userId: string }[];
+  }> {
+    const approvalContext = await this.buildApprovalContext(data);
+
+    let resolvedApproval = await this.approvalRulesService.resolveApprovers({
+      userId,
+      tripType: approvalContext.tripType,
+      cost: approvalContext.cost,
+      priority: data.priority,
+    });
+
+    const approvalManagers =
+      resolvedApproval?.steps.flatMap((step) => step.resolvedManagers ?? []) ??
+      [];
+
+    if (resolvedApproval && approvalManagers.length === 0) {
+      resolvedApproval = null;
+    }
+
+    const ruleApproverId = approvalManagers[0]?.userId;
+
+    if (ruleApproverId) {
+      return {
+        approverId: ruleApproverId,
+        approvalManagers,
+      };
+    }
+
+    const fallbackApproverId =
+      (await this.userChecks.getRandomApproverIdFromSameDepartment(
+        departmentId,
+        userId,
+      )) ?? (await this.userChecks.getRandomApproverId());
+
+    if (!fallbackApproverId) {
+      throw new HttpException(
+        'There is no admin available to assign the request.',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    return {
+      approverId: fallbackApproverId,
+      approvalManagers: [],
+    };
+  }
+
   async create(req: RequestInterface, data: CreateRequestDto) {
     const userId = req?.sessionInfo?.id;
     if (!userId) {
@@ -369,20 +496,14 @@ export class RequestsService {
         'User department is missing company context for request creation.',
       );
     }
-
-    const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
-      id_department,
+    const { approverId, approvalManagers } = await this.resolveInitialApprover(
       userId,
+      id_department,
+      data,
     );
-    if (!adminId) {
-      throw new HttpException(
-        'There is no admin available to assign the request.',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
-    }
 
     const resolvedAdminId =
-      await this.approverSubstituteService.resolveApprover(adminId);
+      await this.approverSubstituteService.resolveApprover(approverId);
 
     const SOIId = await this.userChecks.getRandomSoiId();
     if (!SOIId) {
@@ -407,6 +528,19 @@ export class RequestsService {
     });
 
     const saved = await this.requestsRepo.save(request);
+
+    if (approvalManagers.length > 0) {
+      await this.requestApprovalStepsRepo.save(
+        approvalManagers.map((manager, index) =>
+          this.requestApprovalStepsRepo.create({
+            idRequest: saved.id,
+            idApprover: manager.userId,
+            order: index + 1,
+            status: 'pending',
+          }),
+        ),
+      );
+    }
 
     const emailWarnings: EmailWarning[] = [];
 
@@ -525,11 +659,18 @@ ${loginLine}
 
     const id_travel_agency = req.userInfo.id_travel_agency;
 
+    const isSubstitute =
+      await this.approverSubstituteService.isAuthorizedToApprove(
+        request.id_admin,
+        userId,
+      );
+
     if (
       userId !== request.id_user &&
       userId !== request.id_admin &&
       userId !== request.id_SOI &&
-      !(id_travel_agency && id_travel_agency === request.id_travel_agency)
+      !(id_travel_agency && id_travel_agency === request.id_travel_agency) &&
+      !isSubstitute
     )
       throw new UnauthorizedException('Cannot access this request.');
 
@@ -558,6 +699,13 @@ ${loginLine}
   async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
 
+    const originalApproverIds =
+      await this.approverSubstituteService.getOriginalApproverIdsForSubstitute(
+        userId,
+      );
+
+    const adminIds = [userId, ...originalApproverIds];
+
     return this.requestsRepo
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.requests_destinations', 'rd')
@@ -568,7 +716,7 @@ ${loginLine}
       .leftJoinAndSelect('r.admin', 'adm')
       .leftJoinAndSelect('r.SOI', 'soi')
       .leftJoinAndSelect('r.destination', 'dest')
-      .where('r.id_admin = :userId', { userId })
+      .where('r.id_admin IN (:...adminIds)', { adminIds })
       .andWhere('r.status = :status', { status: 'Pending Review' })
       .orderBy(
         `CASE r.priority
@@ -813,9 +961,45 @@ ${loginLine}
         destRepo.create({ ...d }),
       );
 
+      // Reset approval flow when the requester resubmits after changes.
+      if (!req.userInfo.id_department) {
+        throw new BadRequestException(
+          'User must belong to a company department to update requests.',
+        );
+      }
+
+      const { approverId, approvalManagers } =
+        await this.resolveInitialApprover(
+          entity.id_user,
+          req.userInfo.id_department,
+          data as CreateRequestDto,
+        );
+
+      const resolvedAdminId =
+        await this.approverSubstituteService.resolveApprover(approverId);
+
+      entity.id_admin = resolvedAdminId;
+      entity.id_travel_agency = null;
       entity.status = 'Pending Review';
 
       const updated = await repo.save(entity);
+
+      const approvalStepRepo = manager.getRepository(RequestApprovalStep);
+
+      await approvalStepRepo.delete({ idRequest: updated.id });
+
+      if (approvalManagers.length > 0) {
+        await approvalStepRepo.save(
+          approvalManagers.map((managerEntry, index) =>
+            approvalStepRepo.create({
+              idRequest: updated.id,
+              idApprover: managerEntry.userId,
+              order: index + 1,
+              status: 'pending',
+            }),
+          ),
+        );
+      }
 
       const emailWarnings: EmailWarning[] = [];
 
@@ -927,7 +1111,9 @@ ${loginLine}
         : await this.userChecks.getUserById(updated.id_user);
 
       if (requestUser?.email) {
-        const summary = this.buildRequestSummaryHtml(detailedRequest || updated);
+        const summary = this.buildRequestSummaryHtml(
+          detailedRequest || updated,
+        );
         const loginUrl = this.getLoginUrl();
         const loginLine = loginUrl
           ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
@@ -959,4 +1145,6 @@ ${loginLine}
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch to prevent email failures from aborting request operations.
  * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
  * - 2026-04-30 | Diego Vergara | Added Spanish, indexed destination validation in create() so the frontend toast can render the exact missing/invalid destino message and react-hook-form can highlight the offending field.
+ * - 2026-05-12 | Juan de Dios Gastélum | Integrated approval rules into request creation and froze hierarchy approval steps.
+ * - 2026-05-13 | Juan de Dios Gastélum | Added company wide approver fallback when no approver exists in requester's department.
  */

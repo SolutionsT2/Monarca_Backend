@@ -44,7 +44,8 @@ export interface RoleResponse {
 
 export interface SubstituteResponse {
   id: string;
-  roleId: string;
+  originalUserId: string;
+  roleId: string | null;
   targetUserId: string;
   startDate: string;
   endDate: string;
@@ -293,21 +294,54 @@ export class RolesAdminService implements OnModuleInit {
     return rows.map((s) => this.toSubstituteResponse(s));
   }
 
+  async findSubstitutesByOriginalUser(
+    originalUserId: string,
+  ): Promise<SubstituteResponse[]> {
+    const rows = await this.substituteRepo.find({
+      where: { originalUserId },
+      order: { startDate: 'DESC' },
+    });
+    return rows.map((s) => this.toSubstituteResponse(s));
+  }
+
   async createSubstitute(
     dto: CreateSubstituteDto,
   ): Promise<SubstituteResponse> {
     if (dto.endDate < dto.startDate) {
       throw new BadRequestException('endDate must be on or after startDate');
     }
-    await this.loadRoleOrThrow(dto.roleId);
+
+    const minStartDate = this.addBusinessDays(new Date(), 2);
+    const minStartStr = minStartDate.toISOString().slice(0, 10);
+    if (dto.startDate < minStartStr) {
+      throw new BadRequestException(
+        `startDate must be at least 2 business days from today (earliest: ${minStartStr})`,
+      );
+    }
+
+    const original = await this.userRepo.findOne({
+      where: { id: dto.originalUserId },
+    });
+    if (!original) {
+      throw new NotFoundException('Original user not found');
+    }
+
     const target = await this.userRepo.findOne({
       where: { id: dto.targetUserId },
     });
     if (!target) {
       throw new NotFoundException('Target user not found');
     }
+
+    if (dto.originalUserId === dto.targetUserId) {
+      throw new BadRequestException(
+        'Cannot assign yourself as your own substitute',
+      );
+    }
+
     const entity = this.substituteRepo.create({
-      roleId: dto.roleId,
+      originalUserId: dto.originalUserId,
+      roleId: dto.roleId ?? null,
       targetUserId: dto.targetUserId,
       startDate: dto.startDate,
       endDate: dto.endDate,
@@ -315,6 +349,17 @@ export class RolesAdminService implements OnModuleInit {
     });
     const saved = await this.substituteRepo.save(entity);
     return this.toSubstituteResponse(saved);
+  }
+
+  private addBusinessDays(from: Date, days: number): Date {
+    const result = new Date(from);
+    let added = 0;
+    while (added < days) {
+      result.setDate(result.getDate() + 1);
+      const day = result.getDay();
+      if (day !== 0 && day !== 6) added++;
+    }
+    return result;
   }
 
   async deleteSubstitute(id: string): Promise<void> {
@@ -497,6 +542,7 @@ export class RolesAdminService implements OnModuleInit {
   private toSubstituteResponse(s: AuthorizationSubstitute): SubstituteResponse {
     return {
       id: s.id,
+      originalUserId: s.originalUserId,
       roleId: s.roleId,
       targetUserId: s.targetUserId,
       startDate: this.formatDateOnly(s.startDate),
@@ -512,3 +558,7 @@ export class RolesAdminService implements OnModuleInit {
     return String(value).slice(0, 10);
   }
 }
+
+/**
+ * - 2026-05-12 | Juan de Dios Gastélum | Added 2-business-day startDate validation, changed to p2p model using originalUserId.
+ */

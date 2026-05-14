@@ -3,6 +3,7 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
+import { HierarchyResolverService } from './hierarchy-resolver.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -17,8 +18,22 @@ describe('UsersController', () => {
           useValue: {
             findAll: jest.fn().mockResolvedValue([]),
             findOne: jest.fn().mockResolvedValue({ id: 'user-1' }),
-            update: jest.fn().mockResolvedValue({ id: 'user-1', name: 'Updated' }),
-            delete: jest.fn().mockResolvedValue({ status: true, message: 'User user-1 deleted' }),
+            update: jest
+              .fn()
+              .mockResolvedValue({ id: 'user-1', name: 'Updated' }),
+            delete: jest
+              .fn()
+              .mockResolvedValue({
+                status: true,
+                message: 'User user-1 deleted',
+              }),
+          },
+        },
+        {
+          provide: HierarchyResolverService,
+          useValue: {
+            resolveManagerChain: jest.fn(),
+            getManagerAtLevel: jest.fn(),
           },
         },
       ],
@@ -42,15 +57,22 @@ describe('UsersController', () => {
   });
 
   it('should get one user', async () => {
-    await expect(controller.findOne('user-1')).resolves.toEqual({ id: 'user-1' });
+    await expect(controller.findOne('user-1')).resolves.toEqual({
+      id: 'user-1',
+    });
   });
 
   it('should update a user', async () => {
-    await expect(controller.update('user-1', { name: 'Updated' })).resolves.toEqual({ id: 'user-1', name: 'Updated' });
+    await expect(
+      controller.update('user-1', { name: 'Updated' }),
+    ).resolves.toEqual({ id: 'user-1', name: 'Updated' });
   });
 
   it('should delete a user', async () => {
-    await expect(controller.remove('user-1')).resolves.toEqual({ status: true, message: 'User user-1 deleted' });
+    await expect(controller.remove('user-1')).resolves.toEqual({
+      status: true,
+      message: 'User user-1 deleted',
+    });
   });
 });
 

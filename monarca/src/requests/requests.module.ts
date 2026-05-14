@@ -32,15 +32,20 @@ import { AuthorizationSubstitute } from 'src/roles/entity/authorization-substitu
 import { NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 import { ApproverSubstituteMiddleware } from './middleware/approver-substitute.middleware';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
+import { ApprovalRulesModule } from 'src/approval-rules/approval-rules.module';
+import { Destination } from 'src/destinations/entities/destination.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Request,
       RequestsDestination,
+      RequestApprovalStep,
       Voucher,
       DocumentClass,
       Department,
+      Destination,
       PolicyViolation,
       User,
       AuthorizationSubstitute,
@@ -52,6 +57,7 @@ import { ApproverSubstituteMiddleware } from './middleware/approver-substitute.m
     RequestLogsModule,
     NotificationsModule,
     PolicyEngineModule,
+    ApprovalRulesModule,
   ],
   controllers: [EmailActionController, RequestsController, RequestsStatusController],
   providers: [
@@ -82,5 +88,6 @@ export class RequestsModule implements NestModule {
 /*
 Modification History:
 - 2026-02-26 | Diego Vergara | Added module documentation and clarified inline comments.
+- 2026-05-12 | Juan de Dios Gastélum | Registered request approval steps and approval rules dependencies.
 - 2026-04-30 | Added EmailActionController and EmailActionService.
 */

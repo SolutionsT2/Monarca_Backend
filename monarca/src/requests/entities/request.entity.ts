@@ -53,7 +53,7 @@ export class Request {
   id_SOI: string;
 
   @Column({ nullable: true, default: null })
-  id_travel_agency: string;
+  id_travel_agency: string | null;
 
   @Column()
   title: string;
@@ -61,7 +61,7 @@ export class Request {
   @Column()
   motive: string;
 
-  @Column({ name: 'advance_moeny', type: 'float' })
+  @Column({ name: 'advance_money', type: 'float', nullable: true, default: 0 })
   advance_money: number;
 
   @Column({ default: 'Pending Review' })
