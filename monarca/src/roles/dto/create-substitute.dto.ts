@@ -1,39 +1,37 @@
 /**
  * File: create-substitute.dto.ts
- * Description: Payload to register a temporary permission overlay for a user from another role.
+ * Description: Payload to register a person-to-person substitute assignment.
+ * originalUserId is the approver delegating their authority.
  */
 
-import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsUUID,
-  Matches,
-  MinLength,
-} from 'class-validator';
+import { IsOptional, IsString, IsUUID, Matches } from 'class-validator';
 
 export class CreateSubstituteDto {
-  @ApiProperty()
   @IsUUID()
-  roleId: string;
+  originalUserId: string;
 
-  @ApiProperty()
+  @IsUUID()
+  @IsOptional()
+  roleId?: string;
+
   @IsUUID()
   targetUserId: string;
 
-  @ApiProperty({ example: '2026-01-15' })
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   startDate: string;
 
-  @ApiProperty({ example: '2026-01-20' })
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   endDate: string;
 
-  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  @MinLength(0)
   notes?: string;
 }
+
+/*
+Modification History:
+- 2026-03-27 | Efren | Initial implementation.
+- 2026-05-12 | Juan de Dios Gastélum | Added originalUserId, made roleId optional.
+*/

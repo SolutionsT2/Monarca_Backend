@@ -1,7 +1,9 @@
 /**
  * File: users.controller.ts
- * Description: Controller responsible for handling HTTP requests related to user management and Excel import.
+ * Description: Controller for user management, Excel employee import,
+ * and organizational hierarchy queries.
  */
+
 import {
   BadRequestException,
   Body,
@@ -9,15 +11,18 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Request,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { HierarchyResolverService } from './hierarchy-resolver.service';
 import { UpdateUserDto } from './dto/user.dtos';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
@@ -28,21 +33,38 @@ import { RequestInterface } from 'src/guards/interfaces/request.interface';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly hierarchyResolver: HierarchyResolverService,
+  ) {}
 
   /**
    * Retrieves all users from the database.
-   * @returns An array of user objects.
    */
   @Get()
-  get() {
-    return this.usersService.findAll();
+  get(@Query('roleName') roleName?: string) {
+    return this.usersService.findAll(roleName);
+  }
+
+  /**
+   * Traverses the manager chain of a user upward up to `levels` deep.
+   * Returns the list of resolved managers with their name and email.
+   * Stops early if the chain is shorter than requested or a cycle is detected.
+   * @param id UUID of the starting user (requester).
+   * @param levels Number of hierarchy levels to climb (default: 1, max: 10).
+   */
+  @Get(':id/manager-chain')
+  @UseGuards(AuthGuard)
+  getManagerChain(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query('levels', new ParseIntPipe({ optional: true })) levels: number = 1,
+  ) {
+    return this.hierarchyResolver.resolveManagerChain(id, levels);
   }
 
   /**
    * Retrieves a single user by their unique identifier.
    * @param id The UUID of the user.
-   * @returns The requested user object.
    */
   @Get(':id')
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
@@ -52,8 +74,7 @@ export class UsersController {
   /**
    * Updates an existing user's information.
    * @param id The UUID of the user to update.
-   * @param updateUserDto Data transfer object containing the fields to update.
-   * @returns The updated user object.
+   * @param updateUserDto Fields to update.
    */
   @Patch(':id')
   update(
@@ -66,7 +87,6 @@ export class UsersController {
   /**
    * Deletes a user from the system.
    * @param id The UUID of the user to delete.
-   * @returns A status object confirming deletion.
    */
   @Delete(':id')
   remove(@Param('id', new ParseUUIDPipe()) id: string) {
@@ -89,16 +109,14 @@ export class UsersController {
     @Request() req: RequestInterface,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
+    if (!file) throw new BadRequestException('No file uploaded');
     await this.usersService.assertCompanyAdmin(req.sessionInfo.id);
     return this.usersService.previewExcel(file.buffer);
   }
 
   /**
-   * Step 2: Receive the confirmed employee list (with admin-assigned roles)
-   * and persist them via batch upsert + manager hierarchy resolution.
+   * Step 2: Receive the confirmed employee list and persist via batch upsert
+   * with manager hierarchy resolution.
    */
   @Post('import/confirm')
   @UseGuards(AuthGuard, PermissionsGuard)
@@ -113,7 +131,9 @@ export class UsersController {
 }
 
 /*
-Modification History:
-- 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
-- 2026-04-15 | Excel Import | Added import/preview and import/confirm endpoints.
-*/
+ * Modification History:
+ * - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
+ * - 2026-04-15 | Excel Import | Added import/preview and import/confirm endpoints.
+ * - 2026-05-12 | Juan de Dios Gastélum | Injected HierarchyResolverService;
+ *   added GET :id/manager-chain endpoint.
+ */

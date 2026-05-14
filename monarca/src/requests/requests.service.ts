@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager, In, Not } from 'typeorm';
@@ -30,6 +31,9 @@ import {
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { ApproverSubstituteService } from './services/approver-substitute.service';
+import { RequestApprovalStep } from './entities/request-approval-step.entity';
+import { ApprovalRulesService } from 'src/approval-rules/approval-rules.service';
+import { Destination } from 'src/destinations/entities/destination.entity';
 
 @Injectable()
 export class RequestsService {
@@ -42,11 +46,16 @@ export class RequestsService {
     private readonly policyViolationRepo: Repository<PolicyViolation>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(RequestApprovalStep)
+    private readonly requestApprovalStepsRepo: Repository<RequestApprovalStep>,
+    @InjectRepository(Destination)
+    private readonly destinationRepo: Repository<Destination>,
     private readonly userChecks: UserChecks,
     private readonly destinationChecks: DestinationsChecks,
     private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
     private readonly approverSubstituteService: ApproverSubstituteService,
+    private readonly approvalRulesService: ApprovalRulesService,
   ) {}
 
   private async getCityName(id: string): Promise<string> {
@@ -166,6 +175,120 @@ export class RequestsService {
     });
   }
 
+  /**
+   * Normalizes country names before comparing origin and destinations.
+   * @param country Country name to normalize.
+   * @returns Normalized lowercase country name without accents.
+   */
+  private normalizeCountry(country?: string | null): string {
+    return String(country ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  /**
+   * Builds the approval rule context from the request payload.
+   * @param data Request creation payload.
+   * @returns Trip type and monetary amount used by the approval rules engine.
+   */
+  private async buildApprovalContext(data: CreateRequestDto): Promise<{
+    tripType: 'nacional' | 'internacional';
+    cost: number;
+  }> {
+    const origin = await this.destinationRepo.findOne({
+      where: { id: data.id_origin_city },
+      select: ['id', 'country'],
+    });
+
+    if (!origin) {
+      throw new BadRequestException('Invalid id_origin_city.');
+    }
+
+    const destinationIds = data.requests_destinations.map(
+      (destination) => destination.id_destination,
+    );
+
+    const destinations = await this.destinationRepo.find({
+      where: { id: In(destinationIds) },
+      select: ['id', 'country'],
+    });
+
+    const originCountry = this.normalizeCountry(origin.country);
+
+    const isInternational = destinations.some(
+      (destination) =>
+        this.normalizeCountry(destination.country) !== originCountry,
+    );
+
+    return {
+      tripType: isInternational ? 'internacional' : 'nacional',
+      cost: Number(data.advance_money || 0),
+    };
+  }
+
+  /**
+   * Resolves the first approver and the frozen hierarchy chain for a new request.
+   * Falls back to the existing department approver logic when no rule matches.
+   * @param userId Requester user ID.
+   * @param departmentId Requester department ID.
+   * @param data Request creation payload.
+   * @returns First approver and full hierarchy approval chain.
+   */
+  private async resolveInitialApprover(
+    userId: string,
+    departmentId: string,
+    data: CreateRequestDto,
+  ): Promise<{
+    approverId: string;
+    approvalManagers: { userId: string }[];
+  }> {
+    const approvalContext = await this.buildApprovalContext(data);
+
+    let resolvedApproval = await this.approvalRulesService.resolveApprovers({
+      userId,
+      tripType: approvalContext.tripType,
+      cost: approvalContext.cost,
+      priority: data.priority,
+    });
+
+    const approvalManagers =
+      resolvedApproval?.steps.flatMap((step) => step.resolvedManagers ?? []) ??
+      [];
+
+    if (resolvedApproval && approvalManagers.length === 0) {
+      resolvedApproval = null;
+    }
+
+    const ruleApproverId = approvalManagers[0]?.userId;
+
+    if (ruleApproverId) {
+      return {
+        approverId: ruleApproverId,
+        approvalManagers,
+      };
+    }
+
+    const fallbackApproverId =
+      (await this.userChecks.getRandomApproverIdFromSameDepartment(
+        departmentId,
+        userId,
+      )) ?? (await this.userChecks.getRandomApproverId());
+
+    if (!fallbackApproverId) {
+      throw new HttpException(
+        'There is no admin available to assign the request.',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    return {
+      approverId: fallbackApproverId,
+      approvalManagers: [],
+    };
+  }
+
   async create(req: RequestInterface, data: CreateRequestDto) {
     const userId = req?.sessionInfo?.id;
     if (!userId) {
@@ -238,19 +361,14 @@ export class RequestsService {
         'User department is missing company context for request creation.',
       );
     }
-    const adminId = await this.userChecks.getRandomApproverIdFromSameDepartment(
-      id_department,
+    const { approverId, approvalManagers } = await this.resolveInitialApprover(
       userId,
+      id_department,
+      data,
     );
-    if (!adminId) {
-      throw new HttpException(
-        'There is no admin available to assign the request.',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
-    }
 
     const resolvedAdminId =
-      await this.approverSubstituteService.resolveApprover(adminId);
+      await this.approverSubstituteService.resolveApprover(approverId);
 
     // Assign SOI
     const SOIId = await this.userChecks.getRandomSoiId();
@@ -276,6 +394,19 @@ export class RequestsService {
     });
 
     const saved = await this.requestsRepo.save(request);
+
+    if (approvalManagers.length > 0) {
+      await this.requestApprovalStepsRepo.save(
+        approvalManagers.map((manager, index) =>
+          this.requestApprovalStepsRepo.create({
+            idRequest: saved.id,
+            idApprover: manager.userId,
+            order: index + 1,
+            status: 'pending',
+          }),
+        ),
+      );
+    }
 
     const emailWarnings: EmailWarning[] = [];
 
@@ -394,6 +525,13 @@ export class RequestsService {
   async findByAdmin(req: RequestInterface): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
 
+    const originalApproverIds =
+      await this.approverSubstituteService.getOriginalApproverIdsForSubstitute(
+        userId,
+      );
+
+    const adminIds = [userId, ...originalApproverIds];
+
     return this.requestsRepo
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.requests_destinations', 'rd')
@@ -404,7 +542,7 @@ export class RequestsService {
       .leftJoinAndSelect('r.admin', 'adm')
       .leftJoinAndSelect('r.SOI', 'soi')
       .leftJoinAndSelect('r.destination', 'dest')
-      .where('r.id_admin = :userId', { userId })
+      .where('r.id_admin IN (:...adminIds)', { adminIds })
       .andWhere('r.status = :status', { status: 'Pending Review' })
       .orderBy(
         `CASE r.priority
@@ -648,10 +786,45 @@ export class RequestsService {
         destRepo.create({ ...d }),
       );
 
-      // Reset status to Pending Review
+      // Reset approval flow when the requester resubmits after changes.
+      if (!req.userInfo.id_department) {
+        throw new BadRequestException(
+          'User must belong to a company department to update requests.',
+        );
+      }
+
+      const { approverId, approvalManagers } =
+        await this.resolveInitialApprover(
+          entity.id_user,
+          req.userInfo.id_department,
+          data as CreateRequestDto,
+        );
+
+      const resolvedAdminId =
+        await this.approverSubstituteService.resolveApprover(approverId);
+
+      entity.id_admin = resolvedAdminId;
+      entity.id_travel_agency = null;
       entity.status = 'Pending Review';
 
       const updated = await repo.save(entity);
+
+      const approvalStepRepo = manager.getRepository(RequestApprovalStep);
+
+      await approvalStepRepo.delete({ idRequest: updated.id });
+
+      if (approvalManagers.length > 0) {
+        await approvalStepRepo.save(
+          approvalManagers.map((managerEntry, index) =>
+            approvalStepRepo.create({
+              idRequest: updated.id,
+              idApprover: managerEntry.userId,
+              order: index + 1,
+              status: 'pending',
+            }),
+          ),
+        );
+      }
 
       const emailWarnings: EmailWarning[] = [];
 
@@ -735,4 +908,6 @@ export class RequestsService {
  * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch in create() and updateRequest() to prevent email failures from aborting request operations.
  * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
  * - 2026-04-30 | Diego Vergara | Added Spanish, indexed destination validation in create() so the frontend toast can render the exact missing/invalid destino message and react-hook-form can highlight the offending field.
+ * - 2026-05-12 | Juan de Dios Gastélum | Integrated approval rules into request creation and froze hierarchy approval steps.
+ * - 2026-05-13 | Juan de Dios Gastélum | Added company wide approver fallback when no approver exists in requester's department.
  */

@@ -1,6 +1,7 @@
 /**
  * File: authorization-substitute.entity.ts
- * Description: Temporary assignment so targetUserId receives effective permissions of roleId between start and end dates.
+ * Description: Person-to-person substitute assignment. originalUserId delegates
+ * approval authority to targetUserId between start and end dates.
  */
 
 import {
@@ -18,8 +19,11 @@ export class AuthorizationSubstitute {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'role_id', type: 'uuid' })
-  roleId: string;
+  @Column({ name: 'original_user_id', type: 'uuid' })
+  originalUserId: string;
+
+  @Column({ name: 'role_id', type: 'uuid', nullable: true })
+  roleId: string | null;
 
   @Column({ name: 'target_user_id', type: 'uuid' })
   targetUserId: string;
@@ -33,9 +37,13 @@ export class AuthorizationSubstitute {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
-  @ManyToOne(() => Roles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'original_user_id' })
+  originalUser: User;
+
+  @ManyToOne(() => Roles, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'role_id' })
-  role: Roles;
+  role: Roles | null;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'target_user_id' })
@@ -45,4 +53,6 @@ export class AuthorizationSubstitute {
 /*
 Modification History:
 - 2026-03-27 | Efren | Initial creation for substitute approver API (P1).
+- 2026-05-12 | Juan de Dios Gastélum | Changed to person-to-person model: added originalUserId,
+  made roleId nullable. Approver assigns their own substitute directly.
 */

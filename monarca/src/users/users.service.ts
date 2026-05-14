@@ -16,7 +16,10 @@ import { CreateUserDto, UpdateUserDto, UserDto } from './dto/user.dtos';
 import { Department } from 'src/departments/entity/department.entity';
 import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
-import { PreviewEmployeeDto, PreviewResponseDto } from './dto/import-preview.dto';
+import {
+  PreviewEmployeeDto,
+  PreviewResponseDto,
+} from './dto/import-preview.dto';
 import { ConfirmImportDto } from './dto/import-confirm.dto';
 import { ImportResultDto } from './dto/import-result.dto';
 import * as XLSX from 'xlsx';
@@ -46,7 +49,11 @@ export class UsersService {
   async findById(id: string): Promise<User> {
     const user = await this.repo.findOne({
       where: { id },
-      relations: ['role', 'role.rolePermissions', 'role.rolePermissions.permission'],
+      relations: [
+        'role',
+        'role.rolePermissions',
+        'role.rolePermissions.permission',
+      ],
     });
 
     if (!user) {
@@ -60,7 +67,13 @@ export class UsersService {
    * Retrieves all registered users.
    * @returns An array of user data transfer objects.
    */
-  async findAll(): Promise<UserDto[]> {
+  async findAll(roleName?: string): Promise<UserDto[]> {
+    if (roleName) {
+      return await this.repo.find({
+        where: { role: { name: roleName } },
+        relations: ['role'],
+      });
+    }
     return await this.repo.find();
   }
 
@@ -103,7 +116,9 @@ export class UsersService {
 
     const targetRoleId = data.idRole ?? currentUser.idRole;
     const targetDepartmentId =
-      data.idDepartment !== undefined ? data.idDepartment : currentUser.idDepartment;
+      data.idDepartment !== undefined
+        ? data.idDepartment
+        : currentUser.idDepartment;
 
     await this.validateCompanyRoleInvariant(targetRoleId, targetDepartmentId);
 
@@ -254,7 +269,8 @@ export class UsersService {
         );
       }
 
-      const statusRaw = this.normalizeCellValue(row.status)?.toUpperCase() ?? 'A';
+      const statusRaw =
+        this.normalizeCellValue(row.status)?.toUpperCase() ?? 'A';
       const availabilityStatus = statusRaw === 'A' ? 'active' : 'inactive';
 
       const isManagerInBatch =
@@ -283,7 +299,9 @@ export class UsersService {
       };
     });
 
-    const errorRows = employees.filter((e) => e.validationErrors.length > 0).length;
+    const errorRows = employees.filter(
+      (e) => e.validationErrors.length > 0,
+    ).length;
 
     return {
       employees,
@@ -563,7 +581,14 @@ export class UsersService {
       if (!parsed) return null;
 
       const date = new Date(
-        Date.UTC(parsed.y, parsed.m - 1, parsed.d, parsed.H, parsed.M, parsed.S),
+        Date.UTC(
+          parsed.y,
+          parsed.m - 1,
+          parsed.d,
+          parsed.H,
+          parsed.M,
+          parsed.S,
+        ),
       );
       return date.toISOString();
     }
@@ -594,7 +619,10 @@ export class UsersService {
       }
     }
 
-    this.logger.error('Unexpected error while saving imported employees', error);
+    this.logger.error(
+      'Unexpected error while saving imported employees',
+      error,
+    );
     throw new BadRequestException(
       'Import failed due to invalid data. Please review the uploaded file and try again.',
     );
@@ -605,4 +633,5 @@ export class UsersService {
 Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
 - 2026-04-15 | Excel Import | Added previewExcel() and confirmImport() methods for 2-step employee import.
+- 2026-05-13 | Juan de Dios Gastélum | Added optional roleName filter to findAll.
 */

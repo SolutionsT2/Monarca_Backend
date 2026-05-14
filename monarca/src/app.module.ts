@@ -55,6 +55,11 @@ import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
 import { ExchangeRate } from './exchange-rate/entities/exchange-rate.entity';
 import { PolicyExportsModule } from './policy-exports/policy-exports.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
+import { ApprovalRule } from './approval-rules/entities/approval-rule.entity';
+import { ApprovalRuleCondition } from './approval-rules/entities/approval-rule-condition.entity';
+import { ApprovalRuleStep } from './approval-rules/entities/approval-rule-step.entity';
+import { ApprovalRulesModule } from './approval-rules/approval-rules.module';
+import { RequestApprovalStep } from './requests/entities/request-approval-step.entity';
 
 // ---- Ditta Consulting integration entities ----
 import { Company } from './companies/entity/company.entity';
@@ -94,6 +99,7 @@ import { BankAccount } from './bank-accounts/entity/bank-account.entity';
     PolicyEngineModule,
     ExchangeRateModule,
     PolicyExportsModule,
+    ApprovalRulesModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'localhost',
@@ -111,6 +117,7 @@ import { BankAccount } from './bank-accounts/entity/bank-account.entity';
         Airport,
         Request,
         RequestsDestination,
+        RequestApprovalStep,
         Roles,
         RolePermission,
         Permission,
@@ -128,6 +135,9 @@ import { BankAccount } from './bank-accounts/entity/bank-account.entity';
         PolicyViolation,
         Delegation,
         ExchangeRate,
+        ApprovalRule,
+        ApprovalRuleCondition,
+        ApprovalRuleStep,
         // Ditta Consulting
         Company,
         AccountingAccount,
@@ -149,6 +159,7 @@ import { BankAccount } from './bank-accounts/entity/bank-account.entity';
       Airport,
       Request,
       RequestsDestination,
+      RequestApprovalStep,
       Roles,
       RolePermission,
       Permission,
@@ -186,4 +197,5 @@ export class AppModule {}
  * - 2026-03-27 | Efren | Register RolesModule; add auth_modules and authorization_substitutes entities.
  * - 2026-04-13 | Diego Vergara | Registered Ditta Consulting entities (Company, AccountingAccount, DocumentClass, PolicyExport) in TypeOrmModule for schema sync and dependency injection.
  * - 2026-04-23 | Katia Alvarez | Registered PolicyExportsModule for policy export functionality.
+ * - 2026-05-12 | Juan de Dios Gastélum | Registered ApprovalRulesModule and its 3 entities.
  */

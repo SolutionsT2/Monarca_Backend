@@ -126,7 +126,10 @@ export class ApproverSubstituteService {
 
     for (const req of requests) {
       const resolvedApproverId = await this.resolveApprover(req.id_admin);
-      if (resolvedApproverId !== userId || resolvedApproverId === req.id_admin) {
+      if (
+        resolvedApproverId !== userId ||
+        resolvedApproverId === req.id_admin
+      ) {
         continue;
       }
 
@@ -142,6 +145,53 @@ export class ApproverSubstituteService {
     }
 
     return updates;
+  }
+
+  /**
+   * Returns the active substitute assigned BY the given originalUserId for today.
+   */
+  async getActiveSubstituteByOriginalUser(
+    originalUserId: string,
+  ): Promise<AuthorizationSubstitute | null> {
+    const today = this.getTodayDateString();
+    const result = await this.substituteRepo
+      .createQueryBuilder('sub')
+      .where('sub.original_user_id = :originalUserId', { originalUserId })
+      .andWhere('sub.start_date <= :today', { today })
+      .andWhere('sub.end_date >= :today', { today })
+      .orderBy('sub.start_date', 'DESC')
+      .getOne();
+    return result ?? null;
+  }
+
+  /**
+   * Returns the IDs of all users for whom userId is currently an active substitute.
+   */
+  async getOriginalApproverIdsForSubstitute(
+    substituteUserId: string,
+  ): Promise<string[]> {
+    const today = this.getTodayDateString();
+    const rows = await this.substituteRepo
+      .createQueryBuilder('sub')
+      .select('sub.original_user_id', 'originalUserId')
+      .where('sub.target_user_id = :substituteUserId', { substituteUserId })
+      .andWhere('sub.start_date <= :today', { today })
+      .andWhere('sub.end_date >= :today', { today })
+      .getRawMany<{ originalUserId: string }>();
+    return rows.map((r) => r.originalUserId);
+  }
+
+  /**
+   * Returns true if userId is authorized to approve on behalf of approverId.
+   * True when userId === approverId OR userId is an active substitute for approverId.
+   */
+  async isAuthorizedToApprove(
+    approverId: string,
+    userId: string,
+  ): Promise<boolean> {
+    if (userId === approverId) return true;
+    const substitute = await this.getActiveSubstituteByOriginalUser(approverId);
+    return substitute?.targetUserId === userId;
   }
 
   private getTodayDateString(): string {
