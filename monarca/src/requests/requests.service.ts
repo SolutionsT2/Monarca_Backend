@@ -62,12 +62,13 @@ export class RequestsService {
     const requesterName = request.user
       ? `${request.user.name} ${request.user.lastName || ''}`.trim()
       : 'N/A';
-    const originCity = request.destination?.city || request.id_origin_city || 'N/A';
+    const originCity =
+      request.destination?.city || request.id_origin_city || 'N/A';
     const travelAgencyName = request.travelAgency?.name
       ? request.travelAgency.name
       : request.id_travel_agency
-      ? 'Agencia asignada'
-      : 'Sin asignar';
+        ? 'Agencia asignada'
+        : 'Sin asignar';
     const createdAt = request.createdAt
       ? new Date(request.createdAt).toLocaleDateString('es-MX')
       : 'N/A';
@@ -115,11 +116,15 @@ export class RequestsService {
           <td style="padding:8px;border:1px solid #ddd;"><strong>Anticipo</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">$${request.advance_money} MXN</td>
         </tr>
-        ${request.requirements ? `
+        ${
+          request.requirements
+            ? `
         <tr style="background:#f9f9f9;">
           <td style="padding:8px;border:1px solid #ddd;"><strong>Requerimientos</strong></td>
           <td style="padding:8px;border:1px solid #ddd;">${request.requirements}</td>
-        </tr>` : ''}
+        </tr>`
+            : ''
+        }
       </table>
       ${destinationsHtml}
     `;
@@ -134,7 +139,8 @@ export class RequestsService {
     const rows = destinations
       .sort((a, b) => (a.destination_order || 0) - (b.destination_order || 0))
       .map((destination, index) => {
-        const cityName = destination.destination?.city || destination.id_destination;
+        const cityName =
+          destination.destination?.city || destination.id_destination;
         const departure = this.formatDate(destination.departure_date);
         const arrival = this.formatDate(destination.arrival_date);
         const hotel = destination.is_hotel_required ? 'Si' : 'No';
@@ -185,9 +191,7 @@ export class RequestsService {
       return '';
     }
 
-    const normalized = baseUrl.endsWith('/')
-      ? baseUrl.slice(0, -1)
-      : baseUrl;
+    const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     return `${normalized}/dashboard`;
   }
 
@@ -655,11 +659,18 @@ ${loginLine}
 
     const id_travel_agency = req.userInfo.id_travel_agency;
 
+    const isSubstitute =
+      await this.approverSubstituteService.isAuthorizedToApprove(
+        request.id_admin,
+        userId,
+      );
+
     if (
       userId !== request.id_user &&
       userId !== request.id_admin &&
       userId !== request.id_SOI &&
-      !(id_travel_agency && id_travel_agency === request.id_travel_agency)
+      !(id_travel_agency && id_travel_agency === request.id_travel_agency) &&
+      !isSubstitute
     )
       throw new UnauthorizedException('Cannot access this request.');
 
@@ -1100,7 +1111,9 @@ ${loginLine}
         : await this.userChecks.getUserById(updated.id_user);
 
       if (requestUser?.email) {
-        const summary = this.buildRequestSummaryHtml(detailedRequest || updated);
+        const summary = this.buildRequestSummaryHtml(
+          detailedRequest || updated,
+        );
         const loginUrl = this.getLoginUrl();
         const loginLine = loginUrl
           ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`

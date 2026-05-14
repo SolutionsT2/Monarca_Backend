@@ -69,6 +69,10 @@ export class CreateApprovalRuleDto {
   @IsOptional()
   description?: string;
 
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateConditionDto)
