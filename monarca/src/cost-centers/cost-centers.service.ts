@@ -40,7 +40,7 @@ export class CostCentersService {
 
       if (duplicateNumeric) {
         throw new BadRequestException(
-          `Cost center numericId ${data.numericId} already exists for this company.`,
+          `Ya existe un centro de costos con el ID numérico ${data.numericId} para esta empresa.`,
         );
       }
     }
@@ -57,7 +57,7 @@ export class CostCentersService {
 
       if (duplicateKey) {
         throw new BadRequestException(
-          `Cost center key ${key} already exists for this company.`,
+          `Ya existe un centro de costos con la clave "${key}" para esta empresa.`,
         );
       }
     }
