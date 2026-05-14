@@ -82,15 +82,22 @@ export class RevisionsService {
 
     const emailWarnings: EmailWarning[] = [];
 
+    const summary = this.requestService.buildRequestSummaryHtml(request);
+    const loginUrl = this.requestService.getLoginUrl();
+    const loginLine = loginUrl
+      ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
+      : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
+
     const userEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: user.email,
+      to: request.user?.email || user.email,
       subject: 'Solicitud con cambios necesarios',
       text: `Tu solicitud de viaje con el título "${request.title}" ha sido marcada con cambios necesarios.`,
-      html: `<p>Hola ${user.name},</p>
-<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido marcada con cambios necesario. Por favor revisa los comentarios y ajusta tu solicitud.</p>
+      html: `<p>Hola ${request.user?.name || user.name},</p>
+<p>Tu solicitud de viaje con el título "<strong>${request.title}</strong>" ha sido marcada con cambios necesarios.</p>
 <p>Comentarios:</p>
 <p>${data.comment}</p>
-<p>Para más detalles, visita tu panel de solicitudes.</p>
+${summary}
+${loginLine}
 <p>Saludos,</p>
 <p>Equipo de Monarca</p>`,
       failureMessage:

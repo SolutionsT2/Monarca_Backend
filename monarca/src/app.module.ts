@@ -182,6 +182,7 @@ import { BankAccount } from './bank-accounts/entity/bank-account.entity';
       AccountingAccount,
       DocumentClass,
       PolicyExport,
+      ExchangeRate,
       BankAccount,
     ]),
   ],

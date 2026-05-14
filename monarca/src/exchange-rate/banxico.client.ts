@@ -13,7 +13,6 @@ export class BanxicoClient {
     EUR: 'SF46410',  // Euros a Pesos Mexicanos
     JPY: 'SF46406',  // Yenes a Pesos Mexicanos
     CNY: 'SF290383', // Yuanes a Pesos Mexicanos
-    PEN: 'SF63519',  // Soles peruanos a Pesos Mexicanos
   };
 
   /**
@@ -75,3 +74,4 @@ export class BanxicoClient {
     };
   }
 }
+

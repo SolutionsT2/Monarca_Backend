@@ -25,6 +25,8 @@ import { DocumentClass } from 'src/document-classes/entity/document-class.entity
 import { Department } from 'src/departments/entity/department.entity';
 import { PolicyEngineModule } from 'src/policy-engine/policy-engine.module';
 import { PolicyViolation } from 'src/policy-engine/entities/policy-violation.entity';
+import { EmailActionService } from './email-action.service';
+import { EmailActionController } from './email-action.controller';
 import { User } from 'src/users/entities/user.entity';
 import { AuthorizationSubstitute } from 'src/roles/entity/authorization-substitute.entity';
 import { NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
@@ -34,10 +36,6 @@ import { RequestApprovalStep } from './entities/request-approval-step.entity';
 import { ApprovalRulesModule } from 'src/approval-rules/approval-rules.module';
 import { Destination } from 'src/destinations/entities/destination.entity';
 
-/**
- * Module encapsulating request domain logic
- * and related integrations.
- */
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -61,7 +59,7 @@ import { Destination } from 'src/destinations/entities/destination.entity';
     PolicyEngineModule,
     ApprovalRulesModule,
   ],
-  controllers: [RequestsController, RequestsStatusController],
+  controllers: [EmailActionController, RequestsController, RequestsStatusController],
   providers: [
     RequestsService,
     RequestsChecks,
@@ -69,6 +67,7 @@ import { Destination } from 'src/destinations/entities/destination.entity';
     NotificationsService,
     ApproverSubstituteService,
     ApproverSubstituteMiddleware,
+    EmailActionService,
   ],
   exports: [RequestsService, RequestsChecks, ApproverSubstituteService],
 })
@@ -88,7 +87,7 @@ export class RequestsModule implements NestModule {
 
 /*
 Modification History:
-
 - 2026-02-26 | Diego Vergara | Added module documentation and clarified inline comments.
 - 2026-05-12 | Juan de Dios Gastélum | Registered request approval steps and approval rules dependencies.
+- 2026-04-30 | Added EmailActionController and EmailActionService.
 */
