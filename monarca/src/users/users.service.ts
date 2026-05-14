@@ -26,6 +26,9 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
   private static readonly SUPPLIER_NUMBER_MAX_LENGTH = 20;
+  private static readonly MONARCA_LOGIN_EMAIL_DOMAIN = 'monarca.com';
+  /** Plain password for every user created/updated via Excel import (Company Admin). */
+  private static readonly EXCEL_IMPORT_DEFAULT_PASSWORD = 'password';
 
   constructor(
     @InjectRepository(User)
@@ -165,7 +168,7 @@ export class UsersService {
 
     const [allRoles, users, departments, costCenters] = await Promise.all([
       this.rolesRepo.find({ order: { name: 'ASC' } }),
-      this.repo.find({ select: ['employeeNumber'] }),
+      this.repo.find({ select: ['employeeNumber', 'username', 'email'] }),
       this.departmentRepo.find({ relations: { cost_center: true } }),
       this.costCenterRepo.find(),
     ]);
@@ -178,11 +181,30 @@ export class UsersService {
       (r) => r.name.toLowerCase().replace(/\s+/g, '') === 'aprobador',
     );
 
-    const existingUsers = new Set(
+    const existingEmployeeNumbers = new Set(
       users
         .map((u) => this.normalizeCellValue(u.employeeNumber))
         .filter((v): v is string => !!v),
     );
+
+    const loginIdentityConflictsWithOtherEmployee = (
+      rowEmployeeNumber: string,
+      normalizedUsername: string,
+    ): string | null => {
+      const expectedEmail = `${normalizedUsername}@${UsersService.MONARCA_LOGIN_EMAIL_DOMAIN}`.toLowerCase();
+      for (const u of users) {
+        const uEmp = this.normalizeCellValue(u.employeeNumber) ?? '';
+        if (uEmp === rowEmployeeNumber) {
+          continue;
+        }
+        const uNorm = this.normalizeUsernameForMonarcaLogin(u.username);
+        const uMail = u.email?.trim().toLowerCase() ?? '';
+        if (uNorm === normalizedUsername || uMail === expectedEmail) {
+          return `Usuario o correo @${UsersService.MONARCA_LOGIN_EMAIL_DOMAIN} ya está en uso (empleado ${uEmp || 'sin número'})`;
+        }
+      }
+      return null;
+    };
 
     const cecoToDepartment = new Map<string, Department>();
     for (const department of departments) {
@@ -217,13 +239,16 @@ export class UsersService {
       }
     }
 
-    const employees: PreviewEmployeeDto[] = rows.map((row, index) => {
+    const normalizedUsernameCounts = new Map<string, number>();
+    const rowDrafts = rows.map((row, index) => {
       const validationErrors: string[] = [];
 
       const employeeNumber = this.normalizeCellValue(row.NoEmpleado) ?? '';
       const fullName = this.normalizeCellValue(row.Nombre) ?? '';
-      const username = this.normalizeNullableCellValue(row.Usuario);
-      const email = this.normalizeNullableCellValue(row.Email);
+      const normalizedUsername = this.resolveMonarcaLoginUsernameFromRow(
+        row,
+        employeeNumber,
+      );
       const supplierNumber = this.normalizeNullableCellValue(row.Proveedor);
       const ceco = this.normalizeCellValue(row.Ceco) ?? '';
       const bossEmployeeNumber = this.normalizeNullableCellValue(
@@ -254,7 +279,19 @@ export class UsersService {
         );
       }
 
-      const statusRaw = this.normalizeCellValue(row.status)?.toUpperCase() ?? 'A';
+      if (!normalizedUsername) {
+        validationErrors.push(
+          'Could not derive login username: add Usuario or Email, or use NoEmpleado with letters/digits',
+        );
+      } else {
+        normalizedUsernameCounts.set(
+          normalizedUsername,
+          (normalizedUsernameCounts.get(normalizedUsername) ?? 0) + 1,
+        );
+      }
+
+      const statusRaw =
+        this.normalizeCellValue(row.status ?? row.Status)?.toUpperCase() ?? 'A';
       const availabilityStatus = statusRaw === 'A' ? 'active' : 'inactive';
 
       const isManagerInBatch =
@@ -268,8 +305,7 @@ export class UsersService {
         employeeNumber,
         name,
         lastName,
-        username,
-        email,
+        normalizedUsername,
         supplierNumber,
         departmentId: department?.id ?? null,
         departmentName: department?.name ?? null,
@@ -277,9 +313,44 @@ export class UsersService {
         availabilityStatus,
         signupDate: this.excelValueToIsoString(row.FechaAlta),
         lastchangeDate: this.excelValueToIsoString(row.FechaCambio),
-        isUpdate: existingUsers.has(employeeNumber),
+        isUpdate: existingEmployeeNumbers.has(employeeNumber),
         validationErrors,
         suggestedRoleId,
+      };
+    });
+
+    const employees: PreviewEmployeeDto[] = rowDrafts.map((draft) => {
+      const validationErrors = [...draft.validationErrors];
+      const { normalizedUsername, ...rest } = draft;
+
+      if (
+        normalizedUsername &&
+        (normalizedUsernameCounts.get(normalizedUsername) ?? 0) > 1
+      ) {
+        validationErrors.push(
+          `Usuario "${normalizedUsername}" is duplicated in this file`,
+        );
+      }
+
+      if (normalizedUsername && draft.employeeNumber) {
+        const conflict = loginIdentityConflictsWithOtherEmployee(
+          draft.employeeNumber,
+          normalizedUsername,
+        );
+        if (conflict) {
+          validationErrors.push(conflict);
+        }
+      }
+
+      const monarcaEmail = normalizedUsername
+        ? `${normalizedUsername}@${UsersService.MONARCA_LOGIN_EMAIL_DOMAIN}`
+        : null;
+
+      return {
+        ...rest,
+        username: normalizedUsername,
+        email: monarcaEmail,
+        validationErrors,
       };
     });
 
@@ -377,8 +448,27 @@ export class UsersService {
         continue;
       }
 
-      const basePassword = `${employee.username ?? ''}${(employee.name ?? '').replace(/\s+/g, '')}${(employee.lastName ?? '').replace(/\s+/g, '')}`;
-      const hashedPassword = await bcrypt.hash(basePassword, 10);
+      let normalizedUsername = this.normalizeUsernameForMonarcaLogin(
+        employee.username,
+      );
+      if (!normalizedUsername) {
+        normalizedUsername =
+          this.normalizeUsernameForMonarcaLogin(employeeNumber);
+      }
+      if (!normalizedUsername) {
+        result.errors.push({
+          employeeNumber,
+          message:
+            'Could not derive login username from Usuario or NoEmpleado for monarca.com email',
+        });
+        continue;
+      }
+
+      const monarcaEmail = `${normalizedUsername}@${UsersService.MONARCA_LOGIN_EMAIL_DOMAIN}`;
+      const hashedPassword = await bcrypt.hash(
+        UsersService.EXCEL_IMPORT_DEFAULT_PASSWORD,
+        10,
+      );
       const existingId = existingUserMap.get(employeeNumber);
 
       const entity: Partial<User> = {
@@ -386,8 +476,8 @@ export class UsersService {
         employeeNumber,
         name: employee.name,
         lastName: employee.lastName,
-        username: employee.username ?? null,
-        email: employee.email ?? null,
+        username: normalizedUsername,
+        email: monarcaEmail,
         supplierNumber: supplierNumber ?? undefined,
         idDepartment: employee.departmentId,
         idRole: employee.idRole,
@@ -524,6 +614,44 @@ export class UsersService {
     }
   }
 
+  /**
+   * Login local-part: column Usuario, else local part of Email, else NoEmpleado (e.g. Emp001 → emp001).
+   */
+  private resolveMonarcaLoginUsernameFromRow(
+    row: Record<string, unknown>,
+    employeeNumber: string,
+  ): string | null {
+    const fromUsuario = this.normalizeUsernameForMonarcaLogin(row.Usuario);
+    if (fromUsuario) {
+      return fromUsuario;
+    }
+    const emailCell =
+      this.normalizeCellValue(row.Email) ??
+      this.normalizeCellValue(row.email);
+    if (emailCell) {
+      const at = emailCell.indexOf('@');
+      const localSource = at >= 0 ? emailCell.slice(0, at) : emailCell;
+      const fromEmail = this.normalizeUsernameForMonarcaLogin(localSource);
+      if (fromEmail) {
+        return fromEmail;
+      }
+    }
+    return this.normalizeUsernameForMonarcaLogin(employeeNumber);
+  }
+
+  private normalizeUsernameForMonarcaLogin(value: unknown): string | null {
+    const raw = this.normalizeCellValue(value);
+    if (!raw) {
+      return null;
+    }
+    const withoutDiacritics = raw
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const collapsed = withoutDiacritics.toLowerCase().replace(/\s+/g, '');
+    const safe = collapsed.replace(/[^a-z0-9._-]/g, '');
+    return safe || null;
+  }
+
   private normalizeCellValue(value: unknown): string | null {
     if (value === null || value === undefined) return null;
     if (typeof value === 'number') {
@@ -605,4 +733,7 @@ export class UsersService {
 Modification History:
 - 2026-02-26 | Juan de Dios Gastélum | Applied coding standards.
 - 2026-04-15 | Excel Import | Added previewExcel() and confirmImport() methods for 2-step employee import.
+- 2026-05-13 | Excel import sets login email to {usuario}@monarca.com and normalizes Usuario for auth.
+- 2026-05-13 | Excel import derives login username from Usuario, Email local-part, or NoEmpleado when Usuario is absent.
+- 2026-05-13 | Excel import default password set to constant for all imported users.
 */
