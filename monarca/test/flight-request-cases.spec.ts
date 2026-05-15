@@ -1,18 +1,11 @@
 /*
  * flight-request-cases.spec.ts
- *
  * Unit & Functional Tests for Monarca Backend
- * TC-1005 - Travel Agent reservation history
- * TC-1006 - Flight request saving and error reporting
- * TC-1005 Test Designed by: Diego Flores Becerril
- * TC-1005 Test Executed by: Jose Angel De La Cruz Alonso
- * TC-1006 Test Designed by: Jose Angel De La Cruz Alonso
- * TC-1006 Test Executed by: Efrén Chávez Camacho
  */
 
-// ─────────────────────────────────────────────
+
 // TC-1005 - Travel Agent reservation history
-// ─────────────────────────────────────────────
+
 describe('TC-1005 - Travel Agent reservation history', () => {
   const TRAVEL_AGENCY_ID = 'agency-uuid-001';
   const mockReservations = [
@@ -50,9 +43,8 @@ describe('TC-1005 - Travel Agent reservation history', () => {
   });
 });
 
-// ─────────────────────────────────────────────
 // TC-1006 - Flight request saving and error reporting
-// ─────────────────────────────────────────────
+
 describe('TC-1006 - Flight request saving and error reporting', () => {
   const mockSave = jest.fn();
   const mockNotifyOrWarn = jest.fn();
@@ -115,7 +107,3 @@ describe('TC-1006 - Flight request saving and error reporting', () => {
   });
 });
 
-/*
-Modification History:
-- 2026-05-13 | Jose Angel De La Cruz Alonso | Initial creation consolidating TC-1005 and TC-1006.
-*/

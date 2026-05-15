@@ -1,16 +1,17 @@
 /*
  * email-notification.spec.ts
- *
  * Functionality Test - TC-1002
  * Module: Email system
  * Title: Verify email notifications work
- * Description: Ensure approver receives email after requester creates a trip.
- * Test Designed by: Ernesto Garza
- * Test Executed by: Katia Alvarez
  */
 
+
+//npx jest --config ./test/jest-unit.json --testPathPattern="email-notification" para correr
+
+// dentro de este archivo esta la prueba unitaria para verificar que el sistema de notificaciones por correo electrónico funcione correctamente
 import { NotificationsService } from 'src/notifications/notifications.service';
 
+// Aqui haremos que el servicio de notificaciones sea simulado (mocked) para no depender de un servidor SMTP real durante las pruebas, lo que nos permitirá verificar que se llama al método correcto con los parámetros esperados sin enviar correos reales. Esto es importante para mantener las pruebas rápidas y confiables.
 describe('TC-1002 - Email notification to approver on trip creation', () => {
   let notificationsService: NotificationsService;
 
@@ -24,11 +25,10 @@ describe('TC-1002 - Email notification to approver on trip creation', () => {
     } as unknown as NotificationsService;
   });
 
-  // Step 1-12: Requester creates trip → Step 13: Approver receives email
   it('should call notifyOrWarn with the approver email when a trip is created', async () => {
     const approverEmail = 'approver@monarca.com';
 
-    // Simulate what requests.service.ts does on trip creation (line 465)
+    // aqui simulamos la creación de un viaje y la lógica que debería llamar a notificationsService.notifyOrWarn con el correo del aprobador.
     await notificationsService.notifyOrWarn({
       to: approverEmail,
       subject: 'Nueva solicitud de viaje: Developer Conference',
@@ -45,7 +45,7 @@ describe('TC-1002 - Email notification to approver on trip creation', () => {
     );
   });
 
-  // Verify no warning returned when email succeeds
+  // verificamos  que el método notifyOrWarn devuelve null (sin advertencia) cuando el correo se envía correctamente, lo que indica que no hubo problemas con la notificación. 
   it('should return null (no warning) when approver email is sent successfully', async () => {
     const result = await notificationsService.notifyOrWarn({
       to: 'approver@monarca.com',
@@ -58,7 +58,7 @@ describe('TC-1002 - Email notification to approver on trip creation', () => {
     expect(result).toBeNull();
   });
 
-  // Verify warning returned when email fails
+  // Simulamos un fallo en la entrega del correo al aprobador y verificamos que el método notifyOrWarn devuelve un objeto EmailWarning con el código de error y los destinatarios afectados, lo que indica que hubo un problema al intentar enviar la notificación.
   it('should return an EmailWarning when approver email delivery fails', async () => {
     (notificationsService.notifyOrWarn as jest.Mock).mockResolvedValueOnce({
       code: 'EMAIL_NOTIFICATION_FAILED',
@@ -79,7 +79,8 @@ describe('TC-1002 - Email notification to approver on trip creation', () => {
     expect(result?.recipients).toContain('approver@monarca.com');
   });
 
-  // Verify empty/null recipient is handled gracefully
+  // Verificamos que el método notifyOrWarn maneja correctamente el caso en que el correo del aprobador
+  // es nulo o vacío, devolviendo un EmailWarning con el código de error y sin destinatarios, lo que indica que no se pudo enviar la notificación debido a la falta de una dirección de correo válida.
   it('should not crash when approver email is null or empty', async () => {
     (notificationsService.notifyOrWarn as jest.Mock).mockResolvedValueOnce({
       code: 'EMAIL_NOTIFICATION_FAILED',

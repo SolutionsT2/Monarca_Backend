@@ -1,14 +1,7 @@
 /*
  * soi-instructions-cases.spec.ts
- *
  * User Interface Test - TC-1010
  * Module: SOI - UI Instructions
- * Title: Verify system displays clear and role-based instructions
- *        when marking a trip as "registrado"
- * Test Designed by: Santiago Arista Viramontes
- * Test Executed by: Mateo Arminio
- * Test Execution date: 06/04/2026
- * Result: FAIL - Instruction message not shown correctly. Not implemented yet.
  */
 
 // Role-based instruction resolver (to be implemented)

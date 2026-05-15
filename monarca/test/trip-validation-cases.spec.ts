@@ -1,13 +1,8 @@
 /*
  * trip-validation-cases.spec.ts
- *
- * Functionality Test - TC-1008
- * Module: Trip Creation - Origin/Destination Validation
+ * Functionality Test TC-1008
+ * Module: Trip Creation  Origin/Destination Validation
  * Title: Verify that origin and destination cities cannot be the same
- * Test Designed by: Juan de Dios Gastélum Flores
- * Test Executed by: Diego Vergara Hernández
- * Test Execution date: 05/04/2026
- * Result: PASS
  */
 
 // Pure validation function that mirrors the business rule
