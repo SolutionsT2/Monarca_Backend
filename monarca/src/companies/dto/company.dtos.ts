@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Length,
   Min,
@@ -33,6 +34,7 @@ export class CreateCompanyAdminDto {
   password!: string;
 
   @ApiProperty({ example: 'admin.acme' })
+  @IsOptional()
   @IsString()
   username?: string;
 }
