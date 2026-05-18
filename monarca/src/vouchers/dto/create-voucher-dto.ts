@@ -11,6 +11,7 @@ import {
   IsDateString,
   IsOptional,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import {
@@ -78,6 +79,23 @@ export class CreateVoucherDto {
   })
   @IsOptional()
   file_url_xml?: string;
+
+  @ApiProperty({
+    description: 'Indicates if the voucher is from outside Mexico (XML optional)',
+    example: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return value;
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_foreign?: boolean;
 
   @ApiProperty({
     description: 'Status of approval',

@@ -43,6 +43,9 @@ export class Voucher {
   @Column({ name: 'file_url_xml', type: 'varchar', nullable: true })
   file_url_xml: string | null;
 
+  @Column({ name: 'is_foreign', type: 'boolean', default: false })
+  is_foreign: boolean;
+
   @Column({ name: 'status', type: 'varchar' })
   status: string;
 
