@@ -272,6 +272,27 @@ export class PolicyEngineService {
     return process.env.ALLOW_VOUCHER_AMOUNT_RULE_BYPASS_FOR_TESTS?.toLowerCase() === 'true';
   }
 
+  private resolvePolicyAmount(voucher: {
+    amount: number;
+    amount_mxn?: number | null;
+    currency?: string | null;
+  }): { amount: number; currency: string } {
+    const normalizedAmountMxn =
+      typeof voucher.amount_mxn === 'number' && Number.isFinite(voucher.amount_mxn)
+        ? voucher.amount_mxn
+        : null;
+
+    if (normalizedAmountMxn !== null) {
+      return { amount: normalizedAmountMxn, currency: 'MXN' };
+    }
+
+    const normalizedAmount = Number(voucher.amount);
+    return {
+      amount: Number.isFinite(normalizedAmount) ? normalizedAmount : 0,
+      currency: voucher.currency || 'MXN',
+    };
+  }
+
   private resolveSeverity(_rule: PolicyRule): PolicySeverity {
     return PolicySeverity.WARNING;
   }
@@ -311,8 +332,8 @@ export class PolicyEngineService {
       };
 
       const totalVouchers = vouchers.reduce((sum, voucher) => {
-        const amount = Number(voucher.amount);
-        return sum + (Number.isFinite(amount) ? amount : 0);
+        const { amount } = this.resolvePolicyAmount(voucher);
+        return sum + amount;
       }, 0);
       const passed = totalVouchers <= requestContext.advance_money;
 
@@ -468,34 +489,36 @@ export class PolicyEngineService {
       this.allowVoucherAmountThresholdBypassForTesting() &&
       ['LT', 'LTE', 'GT', 'GTE'].includes(operator)
     ) {
+      const { amount, currency } = this.resolvePolicyAmount(voucher);
       return {
         ...base,
         voucher_id: voucher.id,
         passed: true,
         message: `La validación de montos ha sido omitida en modo de prueba (${this.getOperatorDescription(operator)}).`,
         evaluated_value: {
-          amount: voucher.amount,
+          amount,
           operator,
           threshold,
-          currency: voucher.currency,
+          currency,
           bypass_amount_rule_for_tests: true,
         },
       };
     }
 
+    const { amount, currency } = this.resolvePolicyAmount(voucher);
     let passed = true;
     let comparisonDescription = '';
     if (operator === 'LT') {
-      passed = voucher.amount >= threshold;
+      passed = amount >= threshold;
       comparisonDescription = `debe ser mayor que ${threshold}`;
     } else if (operator === 'LTE') {
-      passed = voucher.amount > threshold;
+      passed = amount > threshold;
       comparisonDescription = `debe ser mayor o igual que ${threshold}`;
     } else if (operator === 'GT') {
-      passed = voucher.amount <= threshold;
+      passed = amount <= threshold;
       comparisonDescription = `debe ser menor que ${threshold}`;
     } else if (operator === 'GTE') {
-      passed = voucher.amount < threshold;
+      passed = amount < threshold;
       comparisonDescription = `debe ser menor o igual que ${threshold}`;
     }
 
@@ -504,13 +527,13 @@ export class PolicyEngineService {
       voucher_id: voucher.id,
       passed,
       message: passed
-        ? `El monto del comprobante (${voucher.amount} ${voucher.currency}) cumple con la política: ${comparisonDescription}.`
-        : `ERROR: El monto del comprobante (${voucher.amount} ${voucher.currency}) incumple la política: ${comparisonDescription}.`,
+        ? `El monto del comprobante (${amount} ${currency}) cumple con la política: ${comparisonDescription}.`
+        : `ERROR: El monto del comprobante (${amount} ${currency}) incumple la política: ${comparisonDescription}.`,
       evaluated_value: {
-        amount: voucher.amount,
+        amount,
         operator,
         threshold,
-        currency: voucher.currency,
+        currency,
       },
     };
   }
@@ -636,7 +659,9 @@ export class PolicyEngineService {
         if (this.allowVoucherAmountThresholdBypassForTesting()) {
           return false;
         }
-        return typeof threshold === 'number' ? voucher.amount < threshold : false;
+        return typeof threshold === 'number'
+          ? this.resolvePolicyAmount(voucher).amount < threshold
+          : false;
       case 'MISSING_XML':
         return !voucher.file_url_xml;
       case 'MISSING_PDF':

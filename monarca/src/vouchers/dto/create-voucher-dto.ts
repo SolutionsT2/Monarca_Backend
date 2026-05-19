@@ -60,6 +60,15 @@ export class CreateVoucherDto {
   currency: string;
 
   @ApiProperty({
+    description: 'Voucher amount converted to MXN',
+    example: 2500.75,
+  })
+  @Transform(({ value }) => Number(value))
+  @IsOptional()
+  @IsNumber()
+  amount_mxn?: number;
+
+  @ApiProperty({
     description: 'Date when the voucher was issued',
     example: '2025-04-25T00:00:00.000Z',
   })

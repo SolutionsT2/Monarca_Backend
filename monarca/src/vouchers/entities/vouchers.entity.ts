@@ -34,6 +34,9 @@ export class Voucher {
   @Column({ name: 'currency', type: 'varchar' })
   currency: string;
 
+  @Column({ name: 'amount_mxn', type: 'float', nullable: true })
+  amount_mxn: number | null;
+
   @Column({ name: 'date', type: 'timestamptz' })
   date: Date;
 
