@@ -36,6 +36,7 @@ interface VoucherPolicyPreviewInput {
   date?: string;
   has_xml?: boolean;
   has_pdf?: boolean;
+  is_foreign?: boolean;
 }
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 import { RequestApprovalStep } from './entities/request-approval-step.entity';
@@ -90,6 +91,7 @@ export class RequestsStatusService {
       currency: voucher.currency || 'MXN',
       file_url_pdf: voucher.has_pdf ? 'preview://pdf' : null,
       file_url_xml: voucher.has_xml ? 'preview://xml' : null,
+      is_foreign: voucher.is_foreign ?? false,
       date: voucher.date ? new Date(voucher.date) : new Date(''),
     }));
   }

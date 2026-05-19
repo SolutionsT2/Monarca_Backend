@@ -253,13 +253,16 @@ export class PolicyEngineService {
       return [evaluation];
     }
 
+    const tripWindowLabel = this.formatTripWindowLabel(evaluation);
+    const rangeSuffix = tripWindowLabel ? ` (rango permitido: ${tripWindowLabel})` : '';
+
     return outOfWindowIds.map((voucherId) => {
       const row = voucherRowById.get(voucherId);
       const rowLabel = row ? `fila ${row}` : 'fila desconocida';
       return {
         ...evaluation,
         voucher_id: voucherId,
-        message: `ERROR: La fecha del comprobante en ${rowLabel} está fuera de la ventana del viaje permitida.`,
+        message: `ERROR: La fecha del comprobante en ${rowLabel} está fuera de la ventana del viaje permitida.${rangeSuffix}`,
       };
     });
   }
@@ -270,6 +273,33 @@ export class PolicyEngineService {
 
   private allowVoucherAmountThresholdBypassForTesting(): boolean {
     return process.env.ALLOW_VOUCHER_AMOUNT_RULE_BYPASS_FOR_TESTS?.toLowerCase() === 'true';
+  }
+
+  private formatDateForMessage(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  private toUtcDateKey(date: Date): number {
+    return date.getUTCFullYear() * 10000 + (date.getUTCMonth() + 1) * 100 + date.getUTCDate();
+  }
+
+  private formatTripWindowLabel(evaluation: EvaluatedRuleResult): string | null {
+    const evaluatedValue = evaluation.evaluated_value as
+      | { trip_start_date?: unknown; trip_end_date?: unknown }
+      | undefined;
+
+    if (!evaluatedValue?.trip_start_date || !evaluatedValue?.trip_end_date) {
+      return null;
+    }
+
+    const start = new Date(String(evaluatedValue.trip_start_date));
+    const end = new Date(String(evaluatedValue.trip_end_date));
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return null;
+    }
+
+    return `${this.formatDateForMessage(start)} - ${this.formatDateForMessage(end)}`;
   }
 
   private resolvePolicyAmount(voucher: {
@@ -404,23 +434,28 @@ export class PolicyEngineService {
         };
       }
 
+      const tripStartKey = this.toUtcDateKey(tripStart);
+      const tripEndKey = this.toUtcDateKey(tripEnd);
+
       const outOfWindowVouchers = vouchers.filter((voucher) => {
         const voucherDate = new Date(voucher.date);
         if (Number.isNaN(voucherDate.getTime())) {
           return true;
         }
 
-        return voucherDate < tripStart || voucherDate > tripEnd;
+        const voucherKey = this.toUtcDateKey(voucherDate);
+        return voucherKey < tripStartKey || voucherKey > tripEndKey;
       });
 
       const passed = outOfWindowVouchers.length === 0;
+      const tripWindowLabel = `${this.formatDateForMessage(tripStart)} - ${this.formatDateForMessage(tripEnd)}`;
 
       return {
         ...base,
         passed,
         message: passed
-          ? 'Todas las fechas de los comprobantes están dentro de la ventana del viaje.'
-          : 'ERROR: Una o más fechas de comprobantes se encuentran fuera de la ventana del viaje permitida.',
+          ? `Todas las fechas de los comprobantes están dentro de la ventana del viaje (${tripWindowLabel}).`
+          : `ERROR: Una o más fechas de comprobantes se encuentran fuera de la ventana del viaje permitida (${tripWindowLabel}).`,
         evaluated_value: {
           trip_start_date: tripStart.toISOString(),
           trip_end_date: tripEnd.toISOString(),
@@ -445,7 +480,7 @@ export class PolicyEngineService {
     const base = this.createEvaluationBase(rule);
     const threshold = typeof rule.threshold_value === 'number' ? rule.threshold_value : null;
     if (operator === 'MISSING_XML') {
-      const passed = !!voucher.file_url_xml;
+      const passed = Boolean(voucher.is_foreign) || !!voucher.file_url_xml;
       return {
         ...base,
         voucher_id: voucher.id,
@@ -527,8 +562,8 @@ export class PolicyEngineService {
       voucher_id: voucher.id,
       passed,
       message: passed
-        ? `El monto del comprobante (${amount} ${currency}) cumple con la política: ${comparisonDescription}.`
-        : `ERROR: El monto del comprobante (${amount} ${currency}) incumple la política: ${comparisonDescription}.`,
+        ? `El monto del comprobante (${amount}) cumple con la política: ${comparisonDescription}.`
+        : `ERROR: El monto del comprobante (${amount} ) incumple la política: ${comparisonDescription}.`,
       evaluated_value: {
         amount,
         operator,
@@ -663,7 +698,7 @@ export class PolicyEngineService {
           ? this.resolvePolicyAmount(voucher).amount < threshold
           : false;
       case 'MISSING_XML':
-        return !voucher.file_url_xml;
+        return !voucher.is_foreign && !voucher.file_url_xml;
       case 'MISSING_PDF':
         return !voucher.file_url_pdf;
       case 'MISSING_FILE':

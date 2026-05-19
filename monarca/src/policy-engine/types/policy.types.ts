@@ -31,6 +31,7 @@ export interface VoucherPolicyContext {
   currency: string;
   file_url_pdf: string | null;
   file_url_xml: string | null;
+  is_foreign?: boolean;
   date: Date;
 }
 
