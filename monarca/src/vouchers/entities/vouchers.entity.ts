@@ -34,6 +34,9 @@ export class Voucher {
   @Column({ name: 'currency', type: 'varchar' })
   currency: string;
 
+  @Column({ name: 'amount_mxn', type: 'float', nullable: true })
+  amount_mxn: number | null;
+
   @Column({ name: 'date', type: 'timestamptz' })
   date: Date;
 
@@ -42,6 +45,9 @@ export class Voucher {
 
   @Column({ name: 'file_url_xml', type: 'varchar', nullable: true })
   file_url_xml: string | null;
+
+  @Column({ name: 'is_foreign', type: 'boolean', default: false })
+  is_foreign: boolean;
 
   @Column({ name: 'status', type: 'varchar' })
   status: string;

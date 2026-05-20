@@ -80,7 +80,15 @@ export class VouchersController {
       ...(files.file_url_xml || []),
     ];
 
+    const isForeign = dto.is_foreign === true;
     const xmlFile = files.file_url_xml?.[0];
+    if (!isForeign && !xmlFile) {
+      await this.cleanupUploadedFiles(uploaded);
+      throw new BadRequestException({
+        message: 'El XML es obligatorio para vouchers de Mexico.',
+        errorCode: 'XML_REQUIRED',
+      });
+    }
     if (xmlFile) {
       let xmlContent: string;
       try {

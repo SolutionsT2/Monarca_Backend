@@ -27,9 +27,11 @@ export interface VoucherPolicyContext {
   id_request: string;
   class: string;
   amount: number;
+  amount_mxn?: number | null;
   currency: string;
   file_url_pdf: string | null;
   file_url_xml: string | null;
+  is_foreign?: boolean;
   date: Date;
 }
 

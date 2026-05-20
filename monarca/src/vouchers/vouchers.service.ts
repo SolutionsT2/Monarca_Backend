@@ -67,10 +67,12 @@ export class VouchersService {
       class: data.class,
       amount: data.amount,
       currency: data.currency,
+      amount_mxn: data.amount_mxn ?? null,
       tax_type: data.tax_type,
       date: new Date(data.date), // Ensuring that the date is correctly parsed
       file_url_pdf: data.file_url_pdf,
       file_url_xml: data.file_url_xml,
+      is_foreign: data.is_foreign ?? false,
       status: data.status,
       id_approver: approverId, // Mapping the correct file URL
     });
@@ -174,9 +176,11 @@ export class VouchersService {
       amount: data.amount ?? existingVoucher.amount, // Use existing if not provided
       tax_type: data.tax_type ?? existingVoucher.tax_type, // Use existing if not provided
       currency: data.currency ?? existingVoucher.currency, // Use existing if not provided
+      amount_mxn: data.amount_mxn ?? existingVoucher.amount_mxn,
       date: data.date ? new Date(data.date) : existingVoucher.date, // Update only if new date is provided
       file_url_pdf: data.file_url_pdf ?? existingVoucher.file_url_pdf, // Use existing if not provided
       file_url_xml: data.file_url_xml ?? existingVoucher.file_url_xml, // Use existing if not provided
+      is_foreign: data.is_foreign ?? existingVoucher.is_foreign,
       status: data.status ?? existingVoucher.status,
     };
 
