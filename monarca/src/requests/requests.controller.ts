@@ -55,6 +55,11 @@ export class RequestsController {
     return this.requestsService.findByAdmin(req);
   }
 
+  @Get('approver/history')
+  async findApproverApprovedHistory(@Request() req: RequestInterface) {
+    return this.requestsService.findApproverApprovedHistory(req);
+  }
+
   @Get('to-approve-SOI')
   async findAssignedSOI(@Request() req: RequestInterface) {
     return this.requestsService.findBySOI(req);

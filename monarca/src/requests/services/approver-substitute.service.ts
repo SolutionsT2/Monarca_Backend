@@ -46,10 +46,15 @@ export class ApproverSubstituteService {
   }
 
   /**
-   * Resolves the effective approver id. If the original approver is inactive,
-   * it tries to find an active substitute by role.
+   * Resolves the effective approver id. Active person-to-person delegations
+   * take precedence; otherwise inactive approvers fall back to role-based substitutes.
    */
   async resolveApprover(adminId: string): Promise<string> {
+    const delegation = await this.getActiveSubstituteByOriginalUser(adminId);
+    if (delegation?.targetUserId && delegation.targetUserId !== adminId) {
+      return delegation.targetUserId;
+    }
+
     const admin = await this.usersRepo.findOne({
       where: { id: adminId },
       select: ['id', 'idRole', 'availabilityStatus'],
@@ -126,10 +131,7 @@ export class ApproverSubstituteService {
 
     for (const req of requests) {
       const resolvedApproverId = await this.resolveApprover(req.id_admin);
-      if (
-        resolvedApproverId !== userId ||
-        resolvedApproverId === req.id_admin
-      ) {
+      if (resolvedApproverId !== userId || resolvedApproverId === req.id_admin) {
         continue;
       }
 
