@@ -10,6 +10,19 @@ import { CostCenter } from './entity/cost-centers.entity';
 import { Department } from 'src/departments/entity/department.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
 import { CreateCostCenterDto } from './dto/cost-centers.dtos';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ConfirmCostCentersDto,
+  PreviewCostCentersResponseDto,
+  PreviewCostCenterRowDto,
+} from './dto/import-cost-centers.dto';
+import { ImportResultDto } from 'src/utils/import-result.dto';
+import {
+  getRowValue,
+  normalizeCellValue,
+  normalizeNumberValue,
+  parseExcelRows,
+} from 'src/utils/excel-import.utils';
 
 @Injectable()
 export class CostCentersService {
@@ -70,6 +83,89 @@ export class CostCentersService {
     });
 
     return this.costCenterRepo.save(entity);
+  }
+
+  async previewExcelForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    buffer: Buffer,
+  ): Promise<PreviewCostCentersResponseDto> {
+    const companyId = await this.resolveCompanyIdForCompanyAdmin(idRole, idDepartment);
+
+    const rows = parseExcelRows(buffer);
+    if (!rows.length) {
+      throw new HttpException({ errors: { file: ['El archivo Excel no contiene filas'] } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const costCenters = rows.map((row, index) => this.mapCostCenterPreviewRow(row, index + 2, companyId));
+    const errorRows = costCenters.filter((row) => row.validationErrors.length > 0).length;
+
+    return {
+      costCenters,
+      totalRows: costCenters.length,
+      validRows: costCenters.length - errorRows,
+      errorRows,
+    };
+  }
+
+  async confirmImportForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    data: ConfirmCostCentersDto,
+  ): Promise<ImportResultDto> {
+    const companyId = await this.resolveCompanyIdForCompanyAdmin(idRole, idDepartment);
+
+    if (!data.costCenters?.length) {
+      throw new HttpException({ errors: { costCenters: ['No se proporcionaron centros de costo para importar'] } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const result: ImportResultDto = { created: 0, updated: 0, errors: [] };
+
+    for (const [index, costCenter] of data.costCenters.entries()) {
+      try {
+        const normalizedKey = normalizeCellValue(costCenter.key);
+        const normalizedName = normalizeCellValue(costCenter.name);
+
+        if (!normalizedName) {
+          throw new HttpException({ errors: { name: ['El nombre es obligatorio'] } }, HttpStatus.BAD_REQUEST);
+        }
+
+        const whereConditions: any = { id_company: companyId, deletedAt: IsNull() };
+        if (normalizedKey) {
+          whereConditions.key = normalizedKey;
+        } else if (costCenter.numericId !== undefined && costCenter.numericId !== null) {
+          whereConditions.numericId = costCenter.numericId;
+        } else {
+          whereConditions.name = normalizedName;
+        }
+
+        const existing = await this.costCenterRepo.findOne({
+          where: whereConditions,
+        });
+
+        if (existing) {
+          existing.key = normalizedKey ?? existing.key;
+          existing.name = normalizedName;
+          existing.numericId = costCenter.numericId ?? existing.numericId;
+          await this.costCenterRepo.save(existing);
+          result.updated += 1;
+        } else {
+          await this.createForCompanyAdmin(idRole, idDepartment, {
+            key: normalizedKey ?? undefined,
+            name: normalizedName,
+            numericId: costCenter.numericId ?? undefined,
+          });
+          result.created += 1;
+        }
+      } catch (error) {
+        result.errors.push({
+          row: `row-${index + 2}`,
+          message: this.formatImportErrorMessage(error, 'Error inesperado al importar centros de costo'),
+        });
+      }
+    }
+
+    return result;
   }
 
   async findAllForCompanyAdmin(
@@ -197,5 +293,51 @@ export class CostCentersService {
     }
 
     return department.id_company;
+  }
+
+  private mapCostCenterPreviewRow(
+    row: Record<string, any>,
+    rowNumber: number,
+    companyId: string,
+  ): PreviewCostCenterRowDto {
+    const numericId = normalizeNumberValue(
+      getRowValue(row, 'numericid', 'numeric id', 'id numerico', 'id numérico', 'id_numerico'),
+    );
+    const key = normalizeCellValue(getRowValue(row, 'key', 'llave', 'clave'));
+    const name = normalizeCellValue(getRowValue(row, 'name', 'nombre')) ?? '';
+
+    const validationErrors: string[] = [];
+
+    if (!name) {
+      validationErrors.push('El nombre es obligatorio');
+    }
+
+    return {
+      row: rowNumber,
+      numericId,
+      key,
+      name,
+      isUpdate: false,
+      validationErrors,
+    };
+  }
+
+  private formatImportErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpException) {
+      const response = error.getResponse();
+      if (typeof response === 'string') {
+        return response;
+      }
+
+      if (response && typeof response === 'object') {
+        return JSON.stringify(response);
+      }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    return fallback;
   }
 }
