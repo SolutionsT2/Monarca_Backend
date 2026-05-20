@@ -21,8 +21,14 @@ export class BankAccount {
   @Column({ name: 'region', type: 'varchar', length: 100 })
   region!: string;
 
-  @Column({ name: 'iban', type: 'varchar', length: 34, unique: true })
+  @Column({ name: 'iban', type: 'varchar', length: 34 })
   iban!: string;
+
+  @Column({ name: 'identifier_type', type: 'varchar', length: 20, nullable: true })
+  identifierType!: string | null;
+
+  @Column({ name: 'identifier_value', type: 'varchar', length: 100, nullable: true })
+  identifierValue!: string | null;
 
   @Column({ name: 'id_company', type: 'uuid' })
   id_company!: string;
