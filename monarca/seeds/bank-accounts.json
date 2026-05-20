@@ -2,11 +2,11 @@
   {
     "id": "11111111-1111-1111-1111-111111111111",
     "name": "Default Bank Account",
-    "country": "Mexico",
-    "region": "North America",
-    "iban": "MX00MONARCA00000000000000000001",
-    "identifierType": "OTHER",
-    "identifierValue": "MX00MONARCA00000000000000000001",
+    "country": "MX",
+    "region": "CDMX",
+    "iban": "002180012345678901",
+    "identifierType": "CLABE",
+    "identifierValue": "002180012345678901",
     "id_company": "9f4e4bfa-8e0d-4f2b-a3f1-4ef0d2db4a11"
   }
 ]
