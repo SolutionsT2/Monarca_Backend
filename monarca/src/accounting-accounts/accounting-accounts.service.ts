@@ -39,7 +39,9 @@ export class AccountingAccountsService {
       description: data.description.trim(),
       requiresCostCenter: data.requiresCostCenter ?? false,
       id_company: idCompany,
-      id_bank_account: await this.findBankAccountIdForCompanyOrFail(idCompany, data.idBankAccount),
+      id_bank_account: data.idBankAccount
+        ? await this.findBankAccountIdForCompanyOrFail(idCompany, data.idBankAccount)
+        : null,
     });
 
     return this.accountingAccountRepo.save(accountingAccount);
@@ -109,10 +111,14 @@ export class AccountingAccountsService {
     }
 
     if (data.idBankAccount !== undefined) {
-      accountingAccount.id_bank_account = await this.findBankAccountIdForCompanyOrFail(
-        idCompany,
-        data.idBankAccount,
-      );
+      if (data.idBankAccount === null) {
+        accountingAccount.id_bank_account = null;
+      } else {
+        accountingAccount.id_bank_account = await this.findBankAccountIdForCompanyOrFail(
+          idCompany,
+          data.idBankAccount,
+        );
+      }
     }
 
     await this.accountingAccountRepo.save(accountingAccount);
