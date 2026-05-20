@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { BankAccount } from './entity/bank-account.entity';
@@ -7,6 +7,10 @@ import { Department } from 'src/departments/entity/department.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
 import { Company } from 'src/companies/entity/company.entity';
 import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
+import {
+  BankAccountInputValidationError,
+  normalizeBankAccountInput,
+} from './bank-account-identifier';
 
 @Injectable()
 export class BankAccountsService {
@@ -30,11 +34,15 @@ export class BankAccountsService {
   ): Promise<BankAccount> {
     await this.assertCompanyAdminAccess(idRole, userDepartmentId);
 
+    const normalized = this.normalizeBankAccountInputOrFail(data);
+
     const entity = this.repo.create({
-      name: data.name.trim(),
-      country: data.country.trim(),
-      region: data.region.trim(),
-      iban: data.iban.trim().toUpperCase(),
+      name: normalized.name,
+      country: normalized.country,
+      region: normalized.region,
+      iban: normalized.identifierValue,
+      identifierType: normalized.identifierType,
+      identifierValue: normalized.identifierValue,
     });
 
     return this.repo.save(entity);
@@ -64,11 +72,15 @@ export class BankAccountsService {
     await this.assertCompanyAdminAccessForCompany(idRole, idDepartment, idCompany);
     await this.findCompanyOrFail(idCompany);
 
+    const normalized = this.normalizeBankAccountInputOrFail(data);
+
     const entity = this.repo.create({
-      name: data.name.trim(),
-      country: data.country.trim(),
-      region: data.region.trim(),
-      iban: data.iban.trim().toUpperCase(),
+      name: normalized.name,
+      country: normalized.country,
+      region: normalized.region,
+      iban: normalized.identifierValue,
+      identifierType: normalized.identifierType,
+      identifierValue: normalized.identifierValue,
       id_company: idCompany,
     });
 
@@ -99,10 +111,20 @@ export class BankAccountsService {
       throw new NotFoundException(`Bank account ${id} not found`);
     }
 
-    if (data.name !== undefined) entity.name = data.name.trim();
-    if (data.country !== undefined) entity.country = data.country.trim();
-    if (data.region !== undefined) entity.region = data.region.trim();
-    if (data.iban !== undefined) entity.iban = data.iban.trim().toUpperCase();
+    const normalized = this.normalizeBankAccountInputOrFail({
+      name: data.name ?? entity.name,
+      country: data.country ?? entity.country,
+      region: data.region ?? entity.region,
+      regionOther: data.regionOther,
+      iban: data.iban ?? entity.iban,
+    });
+
+    entity.name = normalized.name;
+    entity.country = normalized.country;
+    entity.region = normalized.region;
+    entity.iban = normalized.identifierValue;
+    entity.identifierType = normalized.identifierType;
+    entity.identifierValue = normalized.identifierValue;
 
     await this.repo.save(entity);
     return this.findOne(id);
@@ -135,10 +157,20 @@ export class BankAccountsService {
 
     const entity = await this.findOne(id);
 
-    if (data.name !== undefined) entity.name = data.name.trim();
-    if (data.country !== undefined) entity.country = data.country.trim();
-    if (data.region !== undefined) entity.region = data.region.trim();
-    if (data.iban !== undefined) entity.iban = data.iban.trim().toUpperCase();
+    const normalized = this.normalizeBankAccountInputOrFail({
+      name: data.name ?? entity.name,
+      country: data.country ?? entity.country,
+      region: data.region ?? entity.region,
+      regionOther: data.regionOther,
+      iban: data.iban ?? entity.iban,
+    });
+
+    entity.name = normalized.name;
+    entity.country = normalized.country;
+    entity.region = normalized.region;
+    entity.iban = normalized.identifierValue;
+    entity.identifierType = normalized.identifierType;
+    entity.identifierValue = normalized.identifierValue;
 
     await this.repo.save(entity);
     return this.findOne(id);
@@ -247,6 +279,30 @@ export class BankAccountsService {
     const inUseCount = await this.accountingAccountRepo.count({ where });
     if (inUseCount > 0) {
       throw new ConflictException('No se puede eliminar la cuenta bancaria porque está siendo utilizada por una cuenta contable.');
+    }
+  }
+
+  private normalizeBankAccountInputOrFail(data: {
+    name?: string | null;
+    country?: string | null;
+    region?: string | null;
+    regionOther?: string | null;
+    iban?: string | null;
+  }) {
+    try {
+      return normalizeBankAccountInput({
+        name: data.name,
+        country: data.country,
+        region: data.region,
+        regionOther: data.regionOther,
+        identifier: data.iban,
+      });
+    } catch (error) {
+      if (error instanceof BankAccountInputValidationError) {
+        throw new HttpException({ errors: error.errors }, HttpStatus.BAD_REQUEST);
+      }
+
+      throw error;
     }
   }
 }
