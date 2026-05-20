@@ -166,7 +166,7 @@ export class CostCentersService {
   ): Promise<string> {
     const role = await this.roleRepo.findOne({ where: { id: idRole } });
     if (!role) {
-      throw new ForbiddenException('Role not found');
+      throw new ForbiddenException('Rol no encontrado');
     }
 
     const normalizedRole = role.name.trim().toLowerCase();
@@ -178,18 +178,22 @@ export class CostCentersService {
     ].includes(normalizedRole);
 
     if (!isCompanyAdmin) {
-      throw new ForbiddenException('Only CompanyAdmin can access cost centers endpoints.');
+      throw new ForbiddenException(
+        'Solo CompanyAdmin puede gestionar centros de costos.',
+      );
     }
 
     if (!idDepartment) {
       throw new ForbiddenException(
-        'CompanyAdmin must belong to a department associated with a company.',
+        'El CompanyAdmin debe pertenecer a un departamento asociado a una empresa.',
       );
     }
 
     const department = await this.departmentRepo.findOne({ where: { id: idDepartment } });
     if (!department?.id_company) {
-      throw new NotFoundException('Department company context not found.');
+      throw new NotFoundException(
+        'No se encontró el contexto de empresa del departamento.',
+      );
     }
 
     return department.id_company;
