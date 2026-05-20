@@ -729,6 +729,45 @@ ${loginLine}
       .getMany();
   }
 
+  /**
+   * Approved travel history for approvers and active substitutes.
+   * Includes requests assigned to the user and requests they approved on behalf of another approver.
+   */
+  async findApproverApprovedHistory(
+    req: RequestInterface,
+  ): Promise<RequestEntity[]> {
+    const userId = req.sessionInfo.id;
+    const excludedStatuses = ['Pending Review', 'Denied', 'Cancelled'];
+
+    return this.requestsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.requests_destinations', 'rd')
+      .leftJoinAndSelect('rd.destination', 'd')
+      .leftJoinAndSelect('rd.airport', 'ap')
+      .leftJoinAndSelect('r.revisions', 'rev')
+      .leftJoinAndSelect('r.user', 'u')
+      .leftJoinAndSelect('u.department', 'dept')
+      .leftJoinAndSelect('r.admin', 'adm')
+      .leftJoinAndSelect('r.SOI', 'soi')
+      .leftJoinAndSelect('r.destination', 'dest')
+      .leftJoinAndSelect('r.origin_airport', 'origin_airport')
+      .leftJoinAndSelect('r.travelAgency', 'ta')
+      .leftJoinAndSelect('ta.users', 'ta_users')
+      .leftJoin(
+        'request_approval_steps',
+        'approved_step',
+        'approved_step.id_request = r.id AND approved_step.id_approved_by = :userId AND approved_step.status = :approvedStatus',
+        { userId, approvedStatus: 'approved' },
+      )
+      .where('r.status NOT IN (:...excludedStatuses)', { excludedStatuses })
+      .andWhere('(r.id_admin = :userId OR approved_step.id IS NOT NULL)', {
+        userId,
+      })
+      .distinct(true)
+      .orderBy('r.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findBySOI(req: RequestInterface): Promise<RequestEntity[]> {
     const userId = req.sessionInfo.id;
     const list = await this.requestsRepo.find({

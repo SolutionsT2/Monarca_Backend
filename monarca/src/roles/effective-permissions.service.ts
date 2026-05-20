@@ -47,6 +47,11 @@ export class EffectivePermissionsService {
         'role.rolePermissions',
         'role.rolePermissions.permission',
         'role.rolePermissions.permission.authModule',
+        'originalUser',
+        'originalUser.role',
+        'originalUser.role.rolePermissions',
+        'originalUser.role.rolePermissions.permission',
+        'originalUser.role.rolePermissions.permission.authModule',
       ],
     });
 
@@ -57,7 +62,8 @@ export class EffectivePermissionsService {
       if (start > today || end < today) {
         continue;
       }
-      for (const p of getActivePermissionsForRole(sub.role)) {
+      const delegatedRole = sub.role ?? sub.originalUser?.role;
+      for (const p of getActivePermissionsForRole(delegatedRole)) {
         byId.set(String(p.id), p);
       }
     }

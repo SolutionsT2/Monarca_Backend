@@ -338,10 +338,16 @@ export class RequestsStatusService {
       }
     }
 
-    await this.requestsRepo.update(
-      { id: id_request },
-      { id_travel_agency: id_travel_agency },
-    );
+    const finalApproverUpdate: {
+      id_travel_agency: string;
+      id_admin?: string;
+    } = { id_travel_agency };
+
+    if (id_user !== request.id_admin) {
+      finalApproverUpdate.id_admin = id_user;
+    }
+
+    await this.requestsRepo.update({ id: id_request }, finalApproverUpdate);
 
     const emailWarnings: EmailWarning[] = [];
 
@@ -350,6 +356,7 @@ export class RequestsStatusService {
       relations: [
         'user',
         'SOI',
+        'admin',
         'destination',
         'requests_destinations',
         'requests_destinations.destination',
@@ -364,11 +371,14 @@ export class RequestsStatusService {
       ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
       : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
 
+    const soiEmail = detailedRequest?.SOI?.email ?? request.SOI.email;
+    const soiName = detailedRequest?.SOI?.name ?? request.SOI.name;
+
     const soiEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.SOI.email,
+      to: soiEmail,
       subject: 'Solicitud pendiente de aprobacion contable',
       text: `Tienes la solicitud "${request.id}" por aprobar. Ingresa a la plataforma para revisarla.`,
-      html: `<p>Hola ${request.SOI.name},</p>
+      html: `<p>Hola ${soiName},</p>
 <p>Tienes la solicitud <strong>${request.id}</strong> por aprobar.</p>
 ${summary}
 ${loginLine}
