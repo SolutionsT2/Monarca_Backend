@@ -20,9 +20,11 @@ export class CreateAccountingAccountDto {
   @IsBoolean()
   requiresCostCenter?: boolean;
 
-  @ApiProperty({ example: '11111111-1111-1111-1111-111111111111' })
-  @IsUUID()
-  idBankAccount: string;
+  @ApiProperty({ example: '11111111-1111-1111-1111-111111111111', nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(36, 36)
+  idBankAccount?: string | null;
 }
 
 export class UpdateAccountingAccountDto extends PartialType(CreateAccountingAccountDto) {}

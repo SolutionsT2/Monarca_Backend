@@ -30,11 +30,13 @@ import { DocumentClass } from 'src/document-classes/entity/document-class.entity
 interface VoucherPolicyPreviewInput {
   id_request?: string;
   class: string;
-  amount: number;
+  amount?: number;
+  amount_mxn?: number;
   currency?: string;
   date?: string;
   has_xml?: boolean;
   has_pdf?: boolean;
+  is_foreign?: boolean;
 }
 import { ApproverSubstituteService } from './services/approver-substitute.service';
 import { RequestApprovalStep } from './entities/request-approval-step.entity';
@@ -85,10 +87,11 @@ export class RequestsStatusService {
       id: `preview-${index + 1}`,
       id_request,
       class: voucher.class || '',
-      amount: Number(voucher.amount || 0),
+      amount: Number(voucher.amount_mxn ?? voucher.amount ?? 0),
       currency: voucher.currency || 'MXN',
       file_url_pdf: voucher.has_pdf ? 'preview://pdf' : null,
       file_url_xml: voucher.has_xml ? 'preview://xml' : null,
+      is_foreign: voucher.is_foreign ?? false,
       date: voucher.date ? new Date(voucher.date) : new Date(''),
     }));
   }
@@ -122,7 +125,7 @@ export class RequestsStatusService {
             const hasData =
               Boolean(voucher.class) ||
               Boolean(voucher.date) ||
-              Number(voucher.amount) > 0 ||
+              Number(voucher.amount_mxn ?? voucher.amount) > 0 ||
               Boolean(voucher.has_pdf) ||
               Boolean(voucher.has_xml);
             return hasData;
@@ -335,10 +338,16 @@ export class RequestsStatusService {
       }
     }
 
-    await this.requestsRepo.update(
-      { id: id_request },
-      { id_travel_agency: id_travel_agency },
-    );
+    const finalApproverUpdate: {
+      id_travel_agency: string;
+      id_admin?: string;
+    } = { id_travel_agency };
+
+    if (id_user !== request.id_admin) {
+      finalApproverUpdate.id_admin = id_user;
+    }
+
+    await this.requestsRepo.update({ id: id_request }, finalApproverUpdate);
 
     const emailWarnings: EmailWarning[] = [];
 
@@ -347,6 +356,7 @@ export class RequestsStatusService {
       relations: [
         'user',
         'SOI',
+        'admin',
         'destination',
         'requests_destinations',
         'requests_destinations.destination',
@@ -361,11 +371,14 @@ export class RequestsStatusService {
       ? `<p>Ingresa a la plataforma para revisar la solicitud: <a href="${loginUrl}">${loginUrl}</a></p>`
       : '<p>Ingresa a la plataforma para revisar la solicitud.</p>';
 
+    const soiEmail = detailedRequest?.SOI?.email ?? request.SOI.email;
+    const soiName = detailedRequest?.SOI?.name ?? request.SOI.name;
+
     const soiEmailWarning = await this.notificationsService.notifyOrWarn({
-      to: request.SOI.email,
+      to: soiEmail,
       subject: 'Solicitud pendiente de aprobacion contable',
       text: `Tienes la solicitud "${request.id}" por aprobar. Ingresa a la plataforma para revisarla.`,
-      html: `<p>Hola ${request.SOI.name},</p>
+      html: `<p>Hola ${soiName},</p>
 <p>Tienes la solicitud <strong>${request.id}</strong> por aprobar.</p>
 ${summary}
 ${loginLine}
@@ -699,6 +712,7 @@ ${loginLine}
         id_request: voucher.id_request,
         class: voucher.class,
         amount: voucher.amount,
+        amount_mxn: voucher.amount_mxn ?? null,
         currency: voucher.currency,
         file_url_pdf: voucher.file_url_pdf,
         file_url_xml: voucher.file_url_xml,
