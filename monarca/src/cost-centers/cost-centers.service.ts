@@ -40,7 +40,7 @@ export class CostCentersService {
 
       if (duplicateNumeric) {
         throw new BadRequestException(
-          `Cost center numericId ${data.numericId} already exists for this company.`,
+          `Centro de costo con ID numérico ${data.numericId} ya existe para esta empresa.`,
         );
       }
     }
@@ -57,7 +57,7 @@ export class CostCentersService {
 
       if (duplicateKey) {
         throw new BadRequestException(
-          `Cost center key ${key} already exists for this company.`,
+          `Centro de costo con llave ${key} ya existe para esta empresa.`,
         );
       }
     }
@@ -100,7 +100,7 @@ export class CostCentersService {
     });
 
     if (!costCenter) {
-      throw new NotFoundException(`Cost center ${idCostCenter} not found`);
+      throw new NotFoundException(`Centro de costo ${idCostCenter} no se encontró para esta empresa`);
     }
 
     const departmentsUsingCostCenter = await this.departmentRepo.count({
@@ -140,7 +140,7 @@ export class CostCentersService {
     });
 
     if (!targetDepartment) {
-      throw new NotFoundException(`Department ${idTargetDepartment} not found`);
+      throw new NotFoundException(`Departmento ${idTargetDepartment} no se encontró dentro de esta empresa`);
     }
 
     const costCenter = await this.costCenterRepo.findOne({
@@ -152,7 +152,7 @@ export class CostCentersService {
     });
 
     if (!costCenter) {
-      throw new NotFoundException(`Cost center ${costCenterId} not found`);
+      throw new NotFoundException(`Cost center ${costCenterId} no se encontró para esta empresa`);
     }
 
     targetDepartment.cost_center = costCenter;
