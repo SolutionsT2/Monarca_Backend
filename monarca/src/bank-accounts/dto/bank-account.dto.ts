@@ -37,6 +37,11 @@ export class CreateBankAccountDto {
   @Length(4, 100)
   @Transform(({ value }) => normalizeIdentifierInput(value))
   iban!: string;
+
+  @ApiProperty({ example: 'region_other', nullable: true, required: false })
+  @IsString()
+  @Length(2, 100)
+  regionOther?: string | null;
 }
 
 export class UpdateBankAccountDto extends PartialType(CreateBankAccountDto) {}

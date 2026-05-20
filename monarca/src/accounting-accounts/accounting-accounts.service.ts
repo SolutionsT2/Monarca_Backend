@@ -219,7 +219,7 @@ export class AccountingAccountsService {
         const matchedAccount = bankAccounts.find((ba) => {
           const nameMatch = ba.name?.trim().toLowerCase() === matchStr;
           const ibanMatch = ba.iban?.trim().toLowerCase() === matchStr;
-          const identifierMatch = ba.identifierValue?.trim().toLowerCase() === matchStr;
+          const identifierMatch = ba.iban?.trim().toLowerCase() === matchStr;
           return nameMatch || ibanMatch || identifierMatch;
         });
 
