@@ -40,7 +40,7 @@ export class CostCentersService {
 
       if (duplicateNumeric) {
         throw new BadRequestException(
-          `Cost center numericId ${data.numericId} already exists for this company.`,
+          `El ID numérico ${data.numericId} ya existe para esta empresa.`,
         );
       }
     }
@@ -57,7 +57,7 @@ export class CostCentersService {
 
       if (duplicateKey) {
         throw new BadRequestException(
-          `Cost center key ${key} already exists for this company.`,
+          `La clave "${key}" ya existe para esta empresa.`,
         );
       }
     }
@@ -100,7 +100,7 @@ export class CostCentersService {
     });
 
     if (!costCenter) {
-      throw new NotFoundException(`Cost center ${idCostCenter} not found`);
+      throw new NotFoundException(`Centro de costos ${idCostCenter} no encontrado`);
     }
 
     const departmentsUsingCostCenter = await this.departmentRepo.count({
@@ -140,7 +140,7 @@ export class CostCentersService {
     });
 
     if (!targetDepartment) {
-      throw new NotFoundException(`Department ${idTargetDepartment} not found`);
+      throw new NotFoundException(`Departamento ${idTargetDepartment} no encontrado`);
     }
 
     const costCenter = await this.costCenterRepo.findOne({
@@ -152,7 +152,7 @@ export class CostCentersService {
     });
 
     if (!costCenter) {
-      throw new NotFoundException(`Cost center ${costCenterId} not found`);
+      throw new NotFoundException(`Centro de costos ${costCenterId} no encontrado`);
     }
 
     targetDepartment.cost_center = costCenter;
@@ -166,7 +166,7 @@ export class CostCentersService {
   ): Promise<string> {
     const role = await this.roleRepo.findOne({ where: { id: idRole } });
     if (!role) {
-      throw new ForbiddenException('Role not found');
+      throw new ForbiddenException('Rol no encontrado');
     }
 
     const normalizedRole = role.name.trim().toLowerCase();
@@ -178,18 +178,22 @@ export class CostCentersService {
     ].includes(normalizedRole);
 
     if (!isCompanyAdmin) {
-      throw new ForbiddenException('Only CompanyAdmin can access cost centers endpoints.');
+      throw new ForbiddenException(
+        'Solo CompanyAdmin puede gestionar centros de costos.',
+      );
     }
 
     if (!idDepartment) {
       throw new ForbiddenException(
-        'CompanyAdmin must belong to a department associated with a company.',
+        'El CompanyAdmin debe pertenecer a un departamento asociado a una empresa.',
       );
     }
 
     const department = await this.departmentRepo.findOne({ where: { id: idDepartment } });
     if (!department?.id_company) {
-      throw new NotFoundException('Department company context not found.');
+      throw new NotFoundException(
+        'No se encontró el contexto de empresa del departamento.',
+      );
     }
 
     return department.id_company;

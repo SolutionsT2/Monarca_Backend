@@ -22,6 +22,10 @@ import {
 } from './dto/import-preview.dto';
 import { ConfirmImportDto } from './dto/import-confirm.dto';
 import { ImportResultDto } from './dto/import-result.dto';
+import {
+  ImportJsonEmployeeDto,
+  ImportJsonPreviewDto,
+} from './dto/import-json-preview.dto';
 import * as XLSX from 'xlsx';
 import * as bcrypt from 'bcrypt';
 
@@ -154,9 +158,7 @@ export class UsersService {
 
     const normalizedRole = user.role.name.toLowerCase().replace(/\s+/g, '');
     if (normalizedRole !== 'companyadmin') {
-      throw new ForbiddenException(
-        'Only CompanyAdmin can import employees from Excel',
-      );
+      throw new ForbiddenException('Only CompanyAdmin can import employees');
     }
   }
 
@@ -181,6 +183,60 @@ export class UsersService {
       throw new BadRequestException('Excel file has no rows');
     }
 
+    // Excel data rows start at sheet row 2 (row 1 is the header).
+    return this.previewFromRows(rows, 2);
+  }
+
+  /**
+   * Step 1 (JSON variant): Map JSON employees to Excel-shaped rows and run the
+   * same preview pipeline used by the Excel import.
+   */
+  async previewJson(data: ImportJsonPreviewDto): Promise<PreviewResponseDto> {
+    if (!data?.employees?.length) {
+      throw new BadRequestException('JSON file has no employees');
+    }
+
+    const rows = data.employees.map((employee) =>
+      this.mapJsonEmployeeToImportRow(employee),
+    );
+
+    // JSON arrays don't have a header row, so the first item is row 1.
+    return this.previewFromRows(rows, 1);
+  }
+
+  /**
+   * Converts a JSON employee entry to the Excel-template row shape consumed by
+   * the shared preview pipeline.
+   */
+  private mapJsonEmployeeToImportRow(
+    employee: ImportJsonEmployeeDto,
+  ): Record<string, unknown> {
+    return {
+      NoEmpleado: employee.noEmpleado,
+      Nombre: employee.nombre,
+      Usuario: employee.usuario ?? null,
+      Email: employee.email ?? null,
+      Ceco: employee.ceco,
+      'Jefe Inmediato': employee.jefeInmediato ?? null,
+      Proveedor: employee.proveedor ?? null,
+      status: employee.status ?? null,
+      FechaAlta: employee.fechaAlta ?? null,
+      FechaCambio: employee.fechaCambio ?? null,
+    };
+  }
+
+  /**
+   * Shared preview pipeline used by both Excel and JSON imports.
+   * Expects rows with the same column keys produced by the Excel template
+   * (NoEmpleado, Nombre, Usuario, Email, Ceco, Jefe Inmediato, Proveedor,
+   * status, FechaAlta, FechaCambio).
+   * @param rows Normalized row objects in Excel-template shape.
+   * @param rowNumberOffset Display row number for the first item (2 for Excel, 1 for JSON).
+   */
+  private async previewFromRows(
+    rows: Record<string, unknown>[],
+    rowNumberOffset: number,
+  ): Promise<PreviewResponseDto> {
     const [allRoles, users, departments, costCenters] = await Promise.all([
       this.rolesRepo.find({ order: { name: 'ASC' } }),
       this.repo.find({ select: ['employeeNumber', 'username', 'email'] }),
@@ -316,7 +372,7 @@ export class UsersService {
         : (solicitanteRole?.id ?? null);
 
       return {
-        row: index + 2,
+        row: index + rowNumberOffset,
         employeeNumber,
         name,
         lastName,

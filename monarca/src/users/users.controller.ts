@@ -29,6 +29,7 @@ import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { Permissions } from 'src/guards/decorators/permission.decorator';
 import { ExcelUploadInterceptor } from 'src/utils/excel-upload.interceptor';
 import { ConfirmImportDto } from './dto/import-confirm.dto';
+import { ImportJsonPreviewDto } from './dto/import-json-preview.dto';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 
 @Controller('users')
@@ -112,6 +113,21 @@ export class UsersController {
     if (!file) throw new BadRequestException('No file uploaded');
     await this.usersService.assertCompanyAdmin(req.sessionInfo.id);
     return this.usersService.previewExcel(file.buffer);
+  }
+
+  /**
+   * Step 1 (JSON variant): Accept a JSON payload with the same fields as the
+   * Excel template and return the same preview response shape.
+   */
+  @Post('import/preview-json')
+  @UseGuards(AuthGuard, PermissionsGuard)
+  @Permissions('import_employees')
+  async previewImportJson(
+    @Request() req: RequestInterface,
+    @Body() body: ImportJsonPreviewDto,
+  ) {
+    await this.usersService.assertCompanyAdmin(req.sessionInfo.id);
+    return this.usersService.previewJson(body);
   }
 
   /**
