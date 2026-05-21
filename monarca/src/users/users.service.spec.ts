@@ -25,7 +25,7 @@ describe('UsersService', () => {
       findOne: jest.fn(),
     };
 
-    roleRepo.findOne.mockResolvedValue({ id: 'r1', name: 'superadmin' });
+    roleRepo.findOne.mockResolvedValue({ id: 'r1', name: 'Solicitante' });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

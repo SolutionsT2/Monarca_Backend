@@ -35,6 +35,9 @@ export class CreateUserDto {
 
   @ApiProperty({ example: 'Emp001', required: false })
   employeeNumber?: string;
+
+  @ApiProperty({ example: '5781a1d8-f9f7-4561-b2ed-f6117877459f', required: false, nullable: true })
+  idManager?: string | null;
 }
 
 /**
