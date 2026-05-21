@@ -211,6 +211,10 @@ export class VouchersService {
     if (!result.affected) {
       throw new NotFoundException(`Voucher with ID ${id} not found`);
     }
+    
+    // Revert the request status to 'In Progress' so it reappears 
+    await this.rRepo.update(voucher.id_request, { status: 'In Progress' });
+    
     return { status: true, message: `Voucher with ID ${id} removed` };
   }
 
