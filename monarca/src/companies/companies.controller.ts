@@ -1,12 +1,15 @@
 import {
   Body,
   Controller,
+  BadRequestException,
   Get,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
   Request,
+  UploadedFile,
+  UseInterceptors,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -15,6 +18,8 @@ import {
   UpdateCompanyDepartmentCostCenterDto,
   UpdateCompanyDto,
 } from './dto/company.dtos';
+import { ExcelUploadInterceptor } from 'src/utils/excel-upload.interceptor';
+import { ConfirmDepartmentsDto } from './dto/import-departments.dto';
 import { CompaniesService } from './companies.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
@@ -98,6 +103,39 @@ export class CompaniesController {
     return this.companiesService.updateDepartmentCostCenter(
       id,
       departmentId,
+      data,
+    );
+  }
+
+  @Post(':id/departments/import/preview')
+  @UseInterceptors(ExcelUploadInterceptor())
+  async previewDepartmentsImport(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return this.companiesService.previewDepartmentsExcel(
+      req.userInfo.id_role,
+      req.userInfo.id_department,
+      id,
+      file.buffer,
+    );
+  }
+
+  @Post(':id/departments/import/confirm')
+  async confirmDepartmentsImport(
+    @Request() req: RequestInterface,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() data: ConfirmDepartmentsDto,
+  ) {
+    return this.companiesService.confirmDepartmentsImport(
+      req.userInfo.id_role,
+      req.userInfo.id_department,
+      id,
       data,
     );
   }

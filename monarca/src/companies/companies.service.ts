@@ -16,6 +16,19 @@ import { CostCenter } from 'src/cost-centers/entity/cost-centers.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Roles } from 'src/roles/entity/roles.entity';
 import * as bcrypt from 'bcrypt';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ConfirmDepartmentsDto,
+  PreviewDepartmentsResponseDto,
+  PreviewDepartmentRowDto,
+} from './dto/import-departments.dto';
+import { ImportResultDto } from 'src/utils/import-result.dto';
+import {
+  getRowValue,
+  normalizeCellValue,
+  normalizeNumberValue,
+  parseExcelRows,
+} from 'src/utils/excel-import.utils';
 
 const ADMIN_DEPARTMENT_NAME = 'Admin Department';
 
@@ -135,6 +148,92 @@ export class CompaniesService {
     return this.departmentRepo.save(department);
   }
 
+  async previewDepartmentsExcel(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    buffer: Buffer,
+  ): Promise<PreviewDepartmentsResponseDto> {
+    await this.assertCompanyDepartmentAccess(idRole, idDepartment, idCompany);
+
+    const rows = parseExcelRows(buffer);
+    if (!rows.length) {
+      throw new HttpException({ errors: { file: ['El archivo Excel no contiene filas'] } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const departments = rows.map((row, index) => this.mapDepartmentPreviewRow(row, index + 2, idCompany));
+    const errorRows = departments.filter((row) => row.validationErrors.length > 0).length;
+
+    return {
+      departments,
+      totalRows: departments.length,
+      validRows: departments.length - errorRows,
+      errorRows,
+    };
+  }
+
+  async confirmDepartmentsImport(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    data: ConfirmDepartmentsDto,
+  ): Promise<ImportResultDto> {
+    await this.assertCompanyDepartmentAccess(idRole, idDepartment, idCompany);
+
+    if (!data.departments?.length) {
+      throw new HttpException({ errors: { departments: ['No se proporcionaron departamentos para importar'] } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const result: ImportResultDto = { created: 0, updated: 0, errors: [] };
+
+    for (const [index, department] of data.departments.entries()) {
+      try {
+        const normalizedName = normalizeCellValue(department.name);
+        const costCenterId = department.cost_center_id;
+
+        if (!normalizedName) {
+          throw new HttpException({ errors: { name: ['El nombre es obligatorio'] } }, HttpStatus.BAD_REQUEST);
+        }
+
+        const costCenter = await this.costCenterRepo.findOne({
+          where: { numericId: costCenterId, id_company: idCompany, deletedAt: IsNull() },
+        });
+
+        if (!costCenter) {
+          throw new HttpException({ errors: { cost_center_id: [`Centro de costo ${costCenterId} no se encontró para esta empresa`] } }, HttpStatus.BAD_REQUEST);
+        }
+
+        const existing = await this.departmentRepo.findOne({
+          where: { id_company: idCompany, name: normalizedName },
+          relations: ['cost_center'],
+        });
+
+        if (existing) {
+          existing.cost_center = costCenter;
+          await this.departmentRepo.save(existing);
+          result.updated += 1;
+        } else {
+          await this.departmentRepo.save(
+            this.departmentRepo.create({
+              name: normalizedName,
+              id_company: idCompany,
+              isProtected: false,
+              cost_center: costCenter,
+            }),
+          );
+          result.created += 1;
+        }
+      } catch (error) {
+        result.errors.push({
+          row: `row-${index + 2}`,
+          message: this.formatImportErrorMessage(error, 'Error inesperado al importar departamentos'),
+        });
+      }
+    }
+
+    return result;
+  }
+
   findDepartments(idCompany: string): Promise<CompanyDepartmentDto[]> {
     return this.departmentRepo.find({
       where: { id_company: idCompany },
@@ -240,6 +339,66 @@ export class CompaniesService {
         'CompanyAdmin can only access departments for their own company.',
       );
     }
+  }
+
+  private mapDepartmentPreviewRow(
+    row: Record<string, any>,
+    rowNumber: number,
+    idCompany: string,
+  ): PreviewDepartmentRowDto {
+    const name = normalizeCellValue(getRowValue(row, 'name', 'nombre')) ?? '';
+    const costCenterId = normalizeNumberValue(
+      getRowValue(
+        row,
+        'cost_center_id',
+        'cost center id',
+        'ceco',
+        'numericid',
+        'centro de costos',
+        'centro de costo',
+        'id centro de costos',
+        'id centro de costo',
+      ),
+    );
+
+    const validationErrors: string[] = [];
+    let costCenterName: string | null = null;
+
+    if (!name) {
+      validationErrors.push('El nombre es obligatorio');
+    }
+
+    if (!costCenterId) {
+      validationErrors.push('El centro de costo es obligatorio');
+    }
+
+    return {
+      row: rowNumber,
+      name,
+      cost_center_id: costCenterId ?? 0,
+      costCenterName,
+      isUpdate: false,
+      validationErrors,
+    };
+  }
+
+  private formatImportErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpException) {
+      const response = error.getResponse();
+      if (typeof response === 'string') {
+        return response;
+      }
+
+      if (response && typeof response === 'object') {
+        return JSON.stringify(response);
+      }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    return fallback;
   }
 
   private async findCompanyAdminRole(): Promise<Roles> {

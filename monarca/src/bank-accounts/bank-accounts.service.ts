@@ -8,9 +8,20 @@ import { Roles } from 'src/roles/entity/roles.entity';
 import { Company } from 'src/companies/entity/company.entity';
 import { AccountingAccount } from 'src/accounting-accounts/entity/accounting-account.entity';
 import {
+  ConfirmBankAccountsDto,
+  PreviewBankAccountsResponseDto,
+  PreviewBankAccountRowDto,
+} from './dto/import-bank-accounts.dto';
+import {
   BankAccountInputValidationError,
   normalizeBankAccountInput,
 } from './bank-account-identifier';
+import { ImportResultDto } from 'src/utils/import-result.dto';
+import {
+  getRowValue,
+  normalizeCellValue,
+  parseExcelRows,
+} from 'src/utils/excel-import.utils';
 
 @Injectable()
 export class BankAccountsService {
@@ -85,6 +96,90 @@ export class BankAccountsService {
     });
 
     return this.repo.save(entity);
+  }
+
+  async previewExcelForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    buffer: Buffer,
+  ): Promise<PreviewBankAccountsResponseDto> {
+    await this.assertCompanyAdminAccessForCompany(idRole, idDepartment, idCompany);
+    await this.findCompanyOrFail(idCompany);
+
+    const rows = parseExcelRows(buffer);
+    if (!rows.length) {
+      throw new HttpException({ errors: { file: ['El archivo Excel no contiene filas'] } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const accounts = rows.map((row, index) => this.mapBankAccountPreviewRow(row, index + 2, idCompany));
+    const errorRows = accounts.filter((row) => row.validationErrors.length > 0).length;
+
+    return {
+      accounts,
+      totalRows: accounts.length,
+      validRows: accounts.length - errorRows,
+      errorRows,
+    };
+  }
+
+  async confirmImportForCompanyAdmin(
+    idRole: string,
+    idDepartment: string | undefined,
+    idCompany: string,
+    data: ConfirmBankAccountsDto,
+  ): Promise<ImportResultDto> {
+    await this.assertCompanyAdminAccessForCompany(idRole, idDepartment, idCompany);
+    await this.findCompanyOrFail(idCompany);
+
+    if (!data.accounts?.length) {
+      throw new HttpException({ errors: { accounts: ['No se proporcionaron cuentas bancarias para importar'] } }, HttpStatus.BAD_REQUEST);
+    }
+
+    const result: ImportResultDto = { created: 0, updated: 0, errors: [] };
+
+    for (const [index, account] of data.accounts.entries()) {
+      try {
+        const normalized = this.normalizeBankAccountInputOrFail(account);
+
+        const existing = await this.repo.findOne({
+          where: {
+            id_company: idCompany,
+            name: normalized.name,
+            country: normalized.country,
+            region: normalized.region,
+            iban: normalized.identifierValue,
+          },
+        });
+
+        if (existing) {
+          existing.identifierType = normalized.identifierType;
+          existing.identifierValue = normalized.identifierValue;
+          await this.repo.save(existing);
+          result.updated += 1;
+        } else {
+          await this.repo.save(
+            this.repo.create({
+              name: normalized.name,
+              country: normalized.country,
+              region: normalized.region,
+              iban: normalized.identifierValue,
+              identifierType: normalized.identifierType,
+              identifierValue: normalized.identifierValue,
+              id_company: idCompany,
+            }),
+          );
+          result.created += 1;
+        }
+      } catch (error) {
+        result.errors.push({
+          row: `row-${index + 2}`,
+          message: this.formatImportErrorMessage(error, 'Error inesperado al importar cuentas bancarias'),
+        });
+      }
+    }
+
+    return result;
   }
 
   async findAllForCompanyAdmin(
@@ -304,5 +399,75 @@ export class BankAccountsService {
 
       throw error;
     }
+  }
+
+  private mapBankAccountPreviewRow(
+    row: Record<string, any>,
+    rowNumber: number,
+    idCompany: string,
+  ): PreviewBankAccountRowDto {
+    const name = normalizeCellValue(getRowValue(row, 'name', 'nombre')) ?? '';
+    const country = normalizeCellValue(getRowValue(row, 'country', 'pais', 'país')) ?? '';
+    const region = normalizeCellValue(getRowValue(row, 'region', 'región')) ?? '';
+    const regionOther = normalizeCellValue(getRowValue(row, 'regionother', 'region other', 'otra region'));
+    const iban = normalizeCellValue(getRowValue(row, 'iban', 'identificador', 'identifier')) ?? '';
+
+    const validationErrors: string[] = [];
+    let identifierType: string | null = null;
+
+    try {
+      const normalized = this.normalizeBankAccountInputOrFail({
+        name,
+        country,
+        region,
+        regionOther,
+        iban,
+      });
+
+      identifierType = normalized.identifierType;
+
+      const existing = this.repo.create({
+        name: normalized.name,
+        country: normalized.country,
+        region: normalized.region,
+        iban: normalized.identifierValue,
+        id_company: idCompany,
+      });
+
+      void existing;
+    } catch (error) {
+      validationErrors.push(this.formatImportErrorMessage(error, 'Error inesperado al validar la cuenta bancaria'));
+    }
+
+    return {
+      row: rowNumber,
+      name,
+      country,
+      region,
+      regionOther,
+      iban,
+      identifierType,
+      isUpdate: false,
+      validationErrors,
+    };
+  }
+
+  private formatImportErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpException) {
+      const response = error.getResponse();
+      if (typeof response === 'string') {
+        return response;
+      }
+
+      if (response && typeof response === 'object') {
+        return JSON.stringify(response);
+      }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    return fallback;
   }
 }

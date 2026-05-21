@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PermissionsGuard } from 'src/guards/permissions.guard';
 import { RequestInterface } from 'src/guards/interfaces/request.interface';
 import { CostCentersService } from './cost-centers.service';
 import { CreateCostCenterDto } from './dto/cost-centers.dtos';
+import { ExcelUploadInterceptor } from 'src/utils/excel-upload.interceptor';
+import { ConfirmCostCentersDto } from './dto/import-cost-centers.dto';
 
 @UseGuards(AuthGuard, PermissionsGuard)
 @Controller('cost-centers')
@@ -39,6 +41,35 @@ export class CostCentersController {
       req.userInfo.id_role,
       req.userInfo.id_department,
       id,
+    );
+  }
+
+  @Post('import/preview')
+  @UseInterceptors(ExcelUploadInterceptor())
+  async previewImport(
+    @Request() req: RequestInterface,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return this.costCentersService.previewExcelForCompanyAdmin(
+      req.userInfo.id_role,
+      req.userInfo.id_department,
+      file.buffer,
+    );
+  }
+
+  @Post('import/confirm')
+  async confirmImport(
+    @Request() req: RequestInterface,
+    @Body() data: ConfirmCostCentersDto,
+  ) {
+    return this.costCentersService.confirmImportForCompanyAdmin(
+      req.userInfo.id_role,
+      req.userInfo.id_department,
+      data,
     );
   }
 }
