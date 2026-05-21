@@ -34,7 +34,8 @@
     "availabilityStatus": "active",
     "employeeStatus": "active",
     "username": "approver1",
-    "supplierNumber": "33333333"
+    "supplierNumber": "33333333",
+    "employeeNumber": "Emp000"
   },
   {
     "id": "5932b459-a3ea-46a1-8482-d56bfda8c866",
@@ -48,7 +49,8 @@
     "employeeStatus": "active",
     "username": "requester1",
     "idManager": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
-    "supplierNumber": "11111111"
+    "supplierNumber": "11111111",
+    "employeeNumber": "Emp003"
   },
   {
     "id": "7528d97a-02d1-4c55-9477-8b368acc09f0",
@@ -62,7 +64,8 @@
     "employeeStatus": "active",
     "username": "requester2",
     "idManager": "5781a1d8-f9f7-4561-b2ed-f6117877459f",
-    "supplierNumber": "22222222"
+    "supplierNumber": "22222222",
+    "employeeNumber": "Emp053"
   },
   {
     "id": "d3b833d4-a445-4c1e-9d3d-06be11d115fd",
@@ -74,7 +77,8 @@
     "email": "soi1@monarca.com",
     "availabilityStatus": "active",
     "employeeStatus": "active",
-    "username": "soi1"
+    "username": "soi1",
+    "employeeNumber": "Emp043"
   },
   {
     "id": "0f89e2dd-3b30-4d46-b9c3-825328dbc9c9",
@@ -87,7 +91,8 @@
     "availabilityStatus": "active",
     "idTravelAgency": "24169971-6d7f-4bf7-982c-dad1aebac579",
     "employeeStatus": "active",
-    "username": "travelagent1"
+    "username": "travelagent1",
+    "employeeNumber": "Emp021"
   },
   {
     "id": "c2d3e4f5-0607-4890-a1b2-c3d4e5f60708",
@@ -100,6 +105,7 @@
     "availabilityStatus": "active",
     "idTravelAgency": "b71ae191-cf50-4fac-8e66-c638212eaba7",
     "employeeStatus": "active",
-    "username": "travelagent2"
+    "username": "travelagent2",
+    "employeeNumber": "Emp019"
   }
 ]
