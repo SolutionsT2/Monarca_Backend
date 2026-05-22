@@ -78,10 +78,12 @@ export class UsersService {
     if (roleName) {
       return await this.repo.find({
         where: { role: { name: roleName } },
-        relations: ['role'],
+        relations: ['role', 'department'],
       });
     }
-    return await this.repo.find();
+    return await this.repo.find({
+      relations: ['role', 'department'],
+    });
   }
 
   /**
@@ -465,9 +467,11 @@ export class UsersService {
     const roleIds = [...new Set(data.employees.map((e) => e.idRole))];
     const validRoles = await this.rolesRepo.find({
       where: { id: In(roleIds) },
-      select: ['id'],
+      select: ['id', 'name'],
     });
-    const validRoleSet = new Set(validRoles.map((r) => r.id));
+    const roleMap = new Map<string, string>(
+      validRoles.map((r) => [r.id, r.name])
+    );
 
     const departmentIds = [
       ...new Set(data.employees.map((e) => e.departmentId).filter(Boolean)),
@@ -490,10 +494,26 @@ export class UsersService {
         continue;
       }
 
-      if (!validRoleSet.has(employee.idRole)) {
+      const roleName = roleMap.get(employee.idRole);
+      if (!roleName) {
         result.errors.push({
           employeeNumber,
           message: `Role ${employee.idRole} does not exist`,
+        });
+        continue;
+      }
+
+      const normalizedRoleName = roleName.toLowerCase().replace(/\s+/g, '');
+      const isPlatformAdmin = [
+        'superadmin',
+        'superadministrador',
+        'administrador',
+      ].includes(normalizedRoleName);
+
+      if (isPlatformAdmin) {
+        result.errors.push({
+          employeeNumber,
+          message: `No se permite asignar el rol de administrador de plataforma (${roleName}) a través de la importación masiva.`,
         });
         continue;
       }
@@ -657,6 +677,19 @@ export class UsersService {
     }
 
     const roleName = role.name.toLowerCase();
+    const normalizedName = roleName.replace(/\s+/g, '');
+
+    const isPlatformAdmin = [
+      'superadmin',
+      'superadministrador',
+      'administrador',
+    ].includes(normalizedName);
+
+    if (isPlatformAdmin) {
+      throw new BadRequestException(
+        'No se permite asignar roles de administrador de plataforma (SuperAdmin / Administrador).',
+      );
+    }
 
     const isSuperAdmin = [
       'superadmin',
