@@ -46,13 +46,23 @@ export class ApproverSubstituteService {
   }
 
   /**
-   * Resolves the effective approver id. Active person-to-person delegations
-   * take precedence; otherwise inactive approvers fall back to role-based substitutes.
+   * Resolves the effective approver ID recursively.
+   * Active person-to-person delegations take precedence and are followed
+   * through the chain. Inactive approvers with no delegation fall back to
+   * role-based substitutes. A visited set prevents infinite cycles.
+   * @param adminId Approver ID to resolve.
+   * @param visited Set of already-visited IDs to detect cycles.
    */
-  async resolveApprover(adminId: string): Promise<string> {
+  async resolveApprover(
+    adminId: string,
+    visited = new Set<string>(),
+  ): Promise<string> {
+    if (visited.has(adminId)) return adminId;
+    visited.add(adminId);
+
     const delegation = await this.getActiveSubstituteByOriginalUser(adminId);
     if (delegation?.targetUserId && delegation.targetUserId !== adminId) {
-      return delegation.targetUserId;
+      return this.resolveApprover(delegation.targetUserId, visited);
     }
 
     const admin = await this.usersRepo.findOne({
@@ -60,28 +70,15 @@ export class ApproverSubstituteService {
       select: ['id', 'idRole', 'availabilityStatus'],
     });
 
-    if (!admin) {
-      return adminId;
-    }
-
-    if (admin.availabilityStatus === 'active') {
-      return adminId;
-    }
-
-    if (!admin.idRole) {
-      return adminId;
-    }
+    if (!admin) return adminId;
+    if (admin.availabilityStatus === 'active') return adminId;
+    if (!admin.idRole) return adminId;
 
     const substitute = await this.getActiveSubstituteByRole(admin.idRole);
-    if (!substitute || !substitute.targetUserId) {
-      return adminId;
-    }
+    if (!substitute || !substitute.targetUserId) return adminId;
+    if (substitute.targetUserId === adminId) return adminId;
 
-    if (substitute.targetUserId === adminId) {
-      return adminId;
-    }
-
-    return substitute.targetUserId;
+    return this.resolveApprover(substitute.targetUserId, visited);
   }
 
   /**
@@ -119,11 +116,19 @@ export class ApproverSubstituteService {
 
   /**
    * Reassigns pending requests that should now belong to the substitute user.
+   * Only queries requests assigned to approvers that userId currently substitutes for,
+   * avoiding a full-table scan on every GET.
    * Returns number of updated rows.
    */
   async reassignPendingForSubstituteUser(userId: string): Promise<number> {
+    const originalIds = await this.getOriginalApproverIdsForSubstitute(userId);
+    if (originalIds.length === 0) return 0;
+
     const requests = await this.requestsRepo.find({
-      where: { status: In(['Pending Review', 'Pending Vouchers Approval']) },
+      where: {
+        status: In(['Pending Review', 'Pending Vouchers Approval']),
+        id_admin: In(originalIds),
+      },
       select: ['id', 'id_admin'],
     });
 
@@ -131,7 +136,10 @@ export class ApproverSubstituteService {
 
     for (const req of requests) {
       const resolvedApproverId = await this.resolveApprover(req.id_admin);
-      if (resolvedApproverId !== userId || resolvedApproverId === req.id_admin) {
+      if (
+        resolvedApproverId !== userId ||
+        resolvedApproverId === req.id_admin
+      ) {
         continue;
       }
 

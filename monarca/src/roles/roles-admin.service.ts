@@ -6,6 +6,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -313,9 +314,11 @@ export class RolesAdminService implements OnModuleInit {
 
     const todayStr = this.todayDateString();
     if (dto.startDate < todayStr) {
-      throw new BadRequestException(
-        'startDate cannot be before today',
-      );
+      throw new BadRequestException('startDate cannot be before today');
+    }
+
+    if (dto.endDate < todayStr) {
+      throw new BadRequestException('endDate cannot be before today');
     }
 
     const original = await this.userRepo.findOne({
@@ -338,6 +341,21 @@ export class RolesAdminService implements OnModuleInit {
       );
     }
 
+    const overlap = await this.substituteRepo
+      .createQueryBuilder('sub')
+      .where('sub.original_user_id = :originalUserId', {
+        originalUserId: dto.originalUserId,
+      })
+      .andWhere('sub.start_date <= :endDate', { endDate: dto.endDate })
+      .andWhere('sub.end_date >= :startDate', { startDate: dto.startDate })
+      .getOne();
+
+    if (overlap) {
+      throw new BadRequestException(
+        'Ya existe una delegación que se traslapa con las fechas indicadas.',
+      );
+    }
+
     const entity = this.substituteRepo.create({
       originalUserId: dto.originalUserId,
       roleId: dto.roleId ?? original.idRole ?? null,
@@ -350,19 +368,28 @@ export class RolesAdminService implements OnModuleInit {
     return this.toSubstituteResponse(saved);
   }
 
+  async deleteSubstitute(id: string, callerUserId: string): Promise<void> {
+    const substitute = await this.substituteRepo.findOne({
+      where: { id },
+      select: ['id', 'originalUserId'],
+    });
+    if (!substitute) {
+      throw new NotFoundException('Substitute not found');
+    }
+    if (substitute.originalUserId !== callerUserId) {
+      throw new ForbiddenException(
+        'You can only delete your own substitute delegations.',
+      );
+    }
+    await this.substituteRepo.delete(id);
+  }
+
   private todayDateString(): string {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  }
-
-  async deleteSubstitute(id: string): Promise<void> {
-    const res = await this.substituteRepo.delete(id);
-    if (!res.affected) {
-      throw new NotFoundException('Substitute not found');
-    }
   }
 
   // --- Internals ---
@@ -555,6 +582,8 @@ export class RolesAdminService implements OnModuleInit {
   }
 }
 
-/**
+/*
+ * Modification History:
  * - 2026-05-12 | Juan de Dios Gastélum | Added 2-business-day startDate validation, changed to p2p model using originalUserId.
+ * - 2026-06-06 | Juan de Dios Gastélum | Added overlap validation in createSubstitute. Added ownership check in deleteSubstitute.
  */

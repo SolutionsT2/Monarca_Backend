@@ -108,5 +108,9 @@
     "idRole": "22222222-2222-4222-8222-222222222222",
     "idPermission": "e1f2a3b4-c5d6-4e7f-8901-a2b3c4d5e6f7",
     "expiresAt": null
+  },
+  {
+    "idRole": "22222222-2222-4222-8222-222222222222",
+    "idPermission": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
   }
 ]

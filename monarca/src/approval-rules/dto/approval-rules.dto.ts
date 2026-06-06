@@ -11,6 +11,7 @@ import {
   IsIn,
   IsNumber,
   IsUUID,
+  IsNotEmpty,
   Min,
   Max,
   ValidateNested,
@@ -30,6 +31,7 @@ export class CreateConditionDto {
   operator?: string;
 
   @IsString()
+  @IsNotEmpty()
   value: string;
 }
 
@@ -73,6 +75,12 @@ export class CreateApprovalRuleDto {
   @IsOptional()
   isActive?: boolean;
 
+  // Lower value = higher priority = evaluated first.
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  priority?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateConditionDto)
@@ -113,4 +121,5 @@ export class ResolveApproversDto {
 /*
  * Modification History:
  * - 2026-05-12 | Juan de Dios Gastélum | Initial file creation.
+ * - 2026-05-26 | Juan de Dios Gastélum | Added condition value to reject empty cost strings. Added priority field to CreateApprovalRuleDto.
  */

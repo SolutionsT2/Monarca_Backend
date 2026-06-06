@@ -117,5 +117,12 @@
     "description": "Allows importing employees from Excel files",
     "module": "user",
     "action": "import"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "manage_approval_rules",
+    "description": "Allows creating, editing and deleting approval rules",
+    "module": "approval-rules",
+    "action": "manage"
   }
 ]
