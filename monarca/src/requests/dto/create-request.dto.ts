@@ -98,8 +98,9 @@ export class RequestDestinationtDto {
     description: 'Additional details or requirements for this destination',
     example: 'Hotel near downtown',
   })
+  @IsOptional()
   @IsString()
-  details: string;
+  details?: string;
 }
 
 /**

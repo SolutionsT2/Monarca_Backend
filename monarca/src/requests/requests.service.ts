@@ -376,6 +376,7 @@ export class RequestsService {
   private async resolveInitialApprover(
     userId: string,
     departmentId: string,
+    companyId: string,
     data: CreateRequestDto,
   ): Promise<{
     approverId: string;
@@ -383,12 +384,15 @@ export class RequestsService {
   }> {
     const approvalContext = await this.buildApprovalContext(data);
 
-    let resolvedApproval = await this.approvalRulesService.resolveApprovers({
-      userId,
-      tripType: approvalContext.tripType,
-      cost: approvalContext.cost,
-      priority: data.priority,
-    });
+    let resolvedApproval = await this.approvalRulesService.resolveApprovers(
+      {
+        userId,
+        tripType: approvalContext.tripType,
+        cost: approvalContext.cost,
+        priority: data.priority,
+      },
+      companyId,
+    );
 
     const approvalManagers =
       resolvedApproval?.steps.flatMap((step) => step.resolvedManagers ?? []) ??
@@ -499,6 +503,7 @@ export class RequestsService {
     const { approverId, approvalManagers } = await this.resolveInitialApprover(
       userId,
       id_department,
+      department.id_company,
       data,
     );
 
@@ -1007,10 +1012,24 @@ ${loginLine}
         );
       }
 
+      const updateDepartmentId = req.userInfo.id_department;
+      if (!updateDepartmentId) {
+        throw new BadRequestException(
+          'User must belong to a company department to update requests.',
+        );
+      }
+
+      if (!entity.id_company) {
+        throw new BadRequestException(
+          'Request is missing company context and cannot be resubmitted.',
+        );
+      }
+
       const { approverId, approvalManagers } =
         await this.resolveInitialApprover(
           entity.id_user,
-          req.userInfo.id_department,
+          updateDepartmentId,
+          entity.id_company,
           data as CreateRequestDto,
         );
 
@@ -1181,9 +1200,10 @@ ${loginLine}
 /**
  * Modification History:
  * - 2026-03-02: Added file header with description and modification history.
- * - 2026-04-15 | Juan de Dios Gastélum Flores | Wrapped notificationsService.notify() calls in try-catch to prevent email failures from aborting request operations.
- * - 2026-04-29 | Juan de Dios Gastélum Flores | Added email warning response handling for request creation and updates when notification delivery fails.
+ * - 2026-04-15 | Juan de Dios Gastélum | Wrapped notificationsService.notify() calls in try-catch to prevent email failures from aborting request operations.
+ * - 2026-04-29 | Juan de Dios Gastélum | Added email warning response handling for request creation and updates when notification delivery fails.
  * - 2026-04-30 | Diego Vergara | Added Spanish, indexed destination validation in create() so the frontend toast can render the exact missing/invalid destino message and react-hook-form can highlight the offending field.
  * - 2026-05-12 | Juan de Dios Gastélum | Integrated approval rules into request creation and froze hierarchy approval steps.
  * - 2026-05-13 | Juan de Dios Gastélum | Added company wide approver fallback when no approver exists in requester's department.
+  * - 2026-05-26 | Juan de Dios Gastélum | Updated resolveInitialApprover to pass companyId for multi-tenant rule scoping.
  */

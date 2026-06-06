@@ -28,14 +28,18 @@ export class HierarchyResolverService {
 
   /**
    * Climbs the manager chain upward from the given user, up to `levels` deep.
-   * Stops early if the chain ends (idManager is null) or a cycle is detected.
+   * Stops early if the chain ends (idManager is null), a cycle is detected,
+   * or a manager does not hold the required role (when requiredRoleId is provided).
    * @param userId Starting user (requester).
    * @param levels Max number of levels to climb.
+   * @param requiredRoleId When provided, the chain stops at the first manager
+   *                       whose role does not match this ID.
    * @returns Array of resolved managers ordered from closest (level 1) to furthest.
    */
   async resolveManagerChain(
     userId: string,
     levels: number,
+    requiredRoleId?: string,
   ): Promise<ResolvedManager[]> {
     const depth = Math.min(levels, MAX_HIERARCHY_DEPTH);
     const chain: ResolvedManager[] = [];
@@ -48,17 +52,19 @@ export class HierarchyResolverService {
         select: ['id', 'idManager'],
       });
 
-      if (!user || !user.idManager) break; // Chain ends: no manager assigned
-      if (visited.has(user.idManager)) break; // Cycle guard
+      if (!user || !user.idManager) break;
+      if (visited.has(user.idManager)) break;
 
       visited.add(user.idManager);
 
       const manager = await this.userRepository.findOne({
         where: { id: user.idManager },
-        select: ['id', 'name', 'lastName', 'email'],
+        select: ['id', 'name', 'lastName', 'email', 'idRole'],
       });
 
-      if (!manager) break; // Manager ID exists but record was deleted
+      if (!manager) break;
+
+      if (requiredRoleId && manager.idRole !== requiredRoleId) break;
 
       chain.push({
         level: i,
@@ -92,4 +98,5 @@ export class HierarchyResolverService {
 /*
  * Modification History:
  * - 2026-05-12 | Juan de Dios Gastélum | Initial file creation.
+ * - 2026-06-06 | Juan de Dios Gastélum Flores | Added requiredRoleId parameter to resolveManagerChain. Chain stops when a manager does not hold the required role.
  */
