@@ -1,3 +1,28 @@
 [
-    
+  {
+    "id": "22222222-2222-2222-2222-222222222224",
+    "id_request": "22222222-2222-2222-2222-222222222222",
+    "class": "Flight",
+    "amount": 500,
+    "tax_type": "V0",
+    "currency": "USD",
+    "date": "2026-07-14T12:00:00Z",
+    "file_url_pdf": "/files/vouchers/flight.pdf",
+    "file_url_xml": "/files/vouchers/flight.xml",
+    "status": "Voucher Approved",
+    "id_approver": "5781a1d8-f9f7-4561-b2ed-f6117877459f"
+  },
+  {
+    "id": "33333333-3333-3333-3333-333333333335",
+    "id_request": "33333333-3333-3333-3333-333333333333",
+    "class": "Hotel",
+    "amount": 800,
+    "tax_type": "V7",
+    "currency": "USD",
+    "date": "2026-07-19T12:00:00Z",
+    "file_url_pdf": "/files/vouchers/hotel.pdf",
+    "file_url_xml": "/files/vouchers/hotel.xml",
+    "status": "Voucher Approved",
+    "id_approver": "5781a1d8-f9f7-4561-b2ed-f6117877459f"
+  }
 ]
